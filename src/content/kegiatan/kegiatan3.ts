@@ -1,0 +1,163 @@
+import type { KegiatanContent } from '../types';
+
+export const kegiatan3: KegiatanContent = {
+  nomor: 3,
+  judul: 'Kegiatan 3 — Bagaimana Mempercepat Proses Fermentasi Briket Bambu?',
+  subjudul: 'Pengaruh Luas Permukaan terhadap Laju Reaksi',
+  warna: '#2E7D32',
+  warnaLight: '#E8F5E9',
+  sdg: [
+    { nomor: 7, warna: '#FCC30B', label: 'Energi Bersih & Terjangkau' },
+    { nomor: 13, warna: '#3F7E44', label: 'Aksi Iklim' },
+  ],
+  cakupanMateri: [
+    'Faktor yang memengaruhi laju reaksi (luas permukaan)',
+    'Hukum laju dan orde reaksi',
+    'Tetapan laju reaksi (k)',
+    'Teori tumbukan',
+    'Analisis efisiensi',
+  ],
+  tujuan: [
+    'Menjelaskan pengaruh luas permukaan terhadap laju reaksi berdasarkan teori tumbukan.',
+    'Menganalisis dan menentukan persamaan laju reaksi.',
+    'Menghitung tetapan laju reaksi (k).',
+    'Menganalisis efisiensi penggunaan bahan baku berdasarkan laju reaksi.',
+    'Menyusun argumentasi ilmiah mengenai penggunaan bahan kimia yang efisien.',
+  ],
+  materi:
+    'Luas permukaan memengaruhi laju reaksi karena partikel yang lebih kecil memiliki luas kontak yang lebih besar, sehingga meningkatkan frekuensi tumbukan efektif. Bahan berbentuk serbuk bereaksi lebih cepat dibanding bahan berbentuk bongkahan.',
+  steps: [
+    {
+      id: 's1',
+      sintaks: 1,
+      label: 'Orientasi pada Masalah',
+      ringkas: 'Stimulus, narasi masalah & pertanyaan pemantik',
+      blocks: [
+        {
+          kind: 'stimulus',
+          title: 'Amati dan Simak',
+          body: 'Video proses fermentasi briket bambu. Gambar pengamatan: briket bambu yang dipotong kecil-kecil lebih cepat mengalami karbonisasi dibandingkan briket bambu yang utuh. Artikel pendukung: pengembangan briket bambu sebagai sumber energi alternatif yang ramah lingkungan.',
+        },
+        {
+          kind: 'masalah',
+          title: 'Narasi Masalah',
+          body: 'Industri pembuatan briket bambu ingin mempercepat proses fermentasi agar produksi lebih efisien. Salah satu upaya yang dapat dilakukan adalah mengubah ukuran potongan bambu sebelum proses fermentasi. Selain itu, industri juga ingin memastikan bahan baku digunakan secara efisien.',
+        },
+        { kind: 'pertanyaan', id: 'k3_p1', text: 'Mengapa potongan bambu yang lebih kecil lebih cepat mengalami karbonisasi?' },
+        { kind: 'pertanyaan', id: 'k3_p2', text: 'Bagaimana luas permukaan memengaruhi laju reaksi?' },
+        { kind: 'pertanyaan', id: 'k3_p3', text: 'Bagaimana konsep laju reaksi dapat membantu menentukan efisiensi penggunaan bahan baku?' },
+      ],
+    },
+    {
+      id: 's2',
+      sintaks: 2,
+      label: 'Mengorganisasi Peserta Didik',
+      ringkas: 'Diagnosis awal & perencanaan penyelidikan',
+      blocks: [
+        {
+          kind: 'tabel-org',
+          id: 'k3_org',
+          headers: ['Apa yang sudah diketahui?', 'Apa yang perlu diketahui?', 'Hipotesis'],
+          rowCount: 3,
+          title: 'Aktivitas 1 — Diagnosis Awal',
+          perencanaanId: 'k3_rencana',
+          perencanaanText: 'Aktivitas 2 — Perencanaan Penyelidikan: Tuliskan informasi yang perlu dikumpulkan agar dapat menentukan kondisi yang paling efisien untuk mempercepat proses fermentasi briket bambu.',
+        },
+      ],
+    },
+    {
+      id: 's3',
+      sintaks: 3,
+      label: 'Membimbing Penyelidikan',
+      ringkas: 'Data percobaan, orde reaksi & efisiensi',
+      blocks: [
+        { kind: 'bagian-header', label: 'Bagian A — Analisis Data Eksperimen' },
+        {
+          kind: 'data-eksperimen',
+          title: 'Percobaan fermentasi briket bambu dengan variasi ukuran potongan bambu',
+          headers: ['Ukuran potongan bambu', 'Waktu karbonisasi (jam)', 'Laju Reaksi (gram/jam)'],
+          rows: [['Besar', '10', '10'], ['Sedang', '6', '16,67'], ['Kecil', '4', '25']],
+        },
+        { kind: 'input-hitung', id: 'k3_h1', label: 'Hitung laju reaksi pada masing-masing ukuran potongan bambu', unit: 'gram/jam', allowImage: true },
+        { kind: 'analitis', id: 'k3_h2', text: 'Buat grafik hubungan ukuran potongan bambu terhadap laju reaksi.', allowImage: true },
+        { kind: 'analitis', id: 'k3_h3', text: 'Berdasarkan data, bagaimana hubungan ukuran potongan bambu dengan laju reaksi?' },
+        { kind: 'input-hitung', id: 'k3_h4', label: 'Tentukan orde reaksi terhadap ukuran potongan bambu', allowImage: true },
+        { kind: 'input-hitung', id: 'k3_h5', label: 'Tuliskan persamaan laju reaksi' },
+        { kind: 'input-hitung', id: 'k3_h6', label: 'Hitung nilai tetapan laju reaksi (k), lengkap dengan satuannya', allowImage: true },
+        { kind: 'input-hitung', id: 'k3_h7', label: 'Prediksi laju reaksi jika ukuran potongan bambu yang digunakan lebih kecil dari ukuran pada percobaan' },
+        { kind: 'bagian-header', label: 'Bagian B — Penalaran Kimia (Representasi Submikroskopik)' },
+        {
+          kind: 'diagram-submikro',
+          title: 'Partikel padat besar vs partikel padat kecil',
+          kiri: { label: 'Potongan Besar', deskripsi: 'Luas permukaan kecil → sedikit tumbukan → reaksi lambat.' },
+          kanan: { label: 'Potongan Kecil', deskripsi: 'Luas permukaan besar → banyak tumbukan → reaksi cepat.' },
+        },
+        { kind: 'analitis', id: 'k3_b1', text: 'Mengapa bahan dengan luas permukaan yang lebih besar memiliki laju reaksi yang lebih tinggi?' },
+        { kind: 'analitis', id: 'k3_b2', text: 'Bagaimana teori tumbukan menjelaskan pengaruh luas permukaan terhadap laju reaksi?' },
+        { kind: 'bagian-header', label: 'Bagian C — Analisis Efisiensi' },
+        {
+          kind: 'analisis-efisiensi',
+          id: 'k3_ef',
+          title: 'Tiga pilihan ukuran potongan bambu untuk skala produksi',
+          headers: ['Ukuran', 'Efektivitas', 'Biaya'],
+          rows: [['Besar', 'Rendah', 'Rendah'], ['Sedang', 'Sedang', 'Sedang'], ['Kecil (serbuk)', 'Tinggi', 'Tinggi']],
+          pertanyaanId: 'k3_ef_jwb',
+          pertanyaanText: 'Berdasarkan hasil analisis data pada tabel di atas serta hasil perhitungan pada Bagian A, apakah peningkatan luas permukaan selalu sebanding dengan manfaat yang diperoleh? Jelaskan.',
+        },
+      ],
+    },
+    {
+      id: 's4',
+      sintaks: 4,
+      label: 'Mengembangkan dan Menyajikan Hasil',
+      ringkas: 'Peran konsultan energi terbarukan & unggah karya',
+      blocks: [
+        {
+          kind: 'instruksi-pengembangan',
+          title: 'Peran: Konsultan Energi Terbarukan',
+          body: 'Setiap kelompok berperan sebagai konsultan energi terbarukan yang diminta menyusun rekomendasi kepada industri briket bambu mengenai ukuran potongan bambu yang paling efisien. Presentasi memuat:',
+          bullets: [
+            'Hasil perhitungan laju reaksi.',
+            'Grafik hubungan ukuran potongan terhadap laju reaksi.',
+            'Persamaan laju reaksi dan tetapan laju (k).',
+            'Prediksi laju reaksi pada ukuran baru.',
+            'Alasan ilmiah di balik rekomendasi.',
+            'Rekomendasi penggunaan bahan baku yang paling efisien.',
+          ],
+        },
+        { kind: 'upload-hasil', id: 'k3_up', title: 'Unggah Karya', body: 'Unggah bahan presentasi kelompok Anda pada kolom yang tersedia.' },
+      ],
+    },
+    {
+      id: 's5',
+      sintaks: 5,
+      label: 'Menganalisis dan Mengevaluasi',
+      ringkas: 'Studi kasus, alternatif & argumentasi TAP',
+      blocks: [
+        {
+          kind: 'alternatif-kasus',
+          id: 'k3_alt',
+          title: 'Studi Kasus — Industri ingin menekan biaya produksi. Pilih alternatif paling tepat:',
+          options: [
+            { id: 'a', label: 'Alternatif A', deskripsi: 'Menggunakan potongan bambu yang besar agar biaya pengolahan rendah.' },
+            { id: 'b', label: 'Alternatif B', deskripsi: 'Menggunakan serbuk bambu agar laju reaksi tinggi.' },
+            { id: 'c', label: 'Alternatif C', deskripsi: 'Menggunakan ukuran potongan optimum berdasarkan hasil analisis laju reaksi sehingga proses tetap efektif, biaya terkendali, dan dampak lingkungan dapat diminimalkan.' },
+          ],
+          alasanId: 'k3_alt_alasan',
+        },
+        {
+          kind: 'argumentasi-tap',
+          id: 'k3_tap',
+          title: 'Argumentasi Ilmiah (TAP)',
+          kasus: 'Berdasarkan hasil analisis laju reaksi dan efisiensi, alternatif manakah yang paling tepat? Susun argumentasimu dengan kerangka TAP.',
+        },
+        {
+          kind: 'penalaran-level',
+          makroskopik: 'Proses fermentasi dan karbonisasi briket bambu.',
+          submikroskopik: 'Ilustrasi jumlah tumbukan partikel pada padatan besar dan padatan kecil.',
+          simbolik: 'Tabel data eksperimen, perhitungan laju reaksi, persamaan laju, dan tetapan laju.',
+        },
+      ],
+    },
+  ],
+};

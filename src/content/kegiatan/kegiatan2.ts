@@ -1,0 +1,163 @@
+import type { KegiatanContent } from '../types';
+
+export const kegiatan2: KegiatanContent = {
+  nomor: 2,
+  judul: 'Kegiatan 2 — Bagaimana Menentukan Kondisi Optimum Pengolahan Limbah Cair Industri?',
+  subjudul: 'Pengaruh Konsentrasi terhadap Laju Reaksi · Orde Reaksi · Tetapan Laju (k)',
+  warna: '#1565C0',
+  warnaLight: '#E3F2FD',
+  sdg: [
+    { nomor: 6, warna: '#26BDE2', label: 'Clean Water & Sanitation' },
+    { nomor: 12, warna: '#BF8B2E', label: 'Konsumsi & Produksi Bertanggung Jawab' },
+  ],
+  cakupanMateri: [
+    'Faktor yang memengaruhi laju reaksi (konsentrasi)',
+    'Orde reaksi',
+    'Persamaan laju reaksi',
+    'Tetapan laju (k)',
+    'Teori tumbukan',
+  ],
+  tujuan: [
+    'Menjelaskan pengaruh konsentrasi terhadap laju reaksi berdasarkan teori tumbukan.',
+    'Menentukan orde reaksi berdasarkan data eksperimen.',
+    'Menentukan persamaan laju reaksi.',
+    'Menghitung tetapan laju reaksi (k).',
+    'Memprediksi laju reaksi pada kondisi baru.',
+    'Menyusun argumentasi ilmiah mengenai penggunaan bahan kimia yang efisien dalam pengolahan limbah.',
+  ],
+  materi:
+    'Konsentrasi memengaruhi laju reaksi karena peningkatan jumlah partikel per satuan volume meningkatkan frekuensi tumbukan efektif. Orde reaksi menunjukkan pangkat konsentrasi pereaksi dalam persamaan laju. Tetapan laju (k) karakteristik suatu reaksi pada suhu tertentu.',
+  steps: [
+    {
+      id: 's1',
+      sintaks: 1,
+      label: 'Orientasi pada Masalah',
+      ringkas: 'Stimulus, narasi masalah & pertanyaan pemantik',
+      blocks: [
+        {
+          kind: 'stimulus',
+          title: 'Amati dan Simak',
+          body: 'Gambar pengamatan: sungai yang tercemar limbah tekstil dan Instalasi Pengolahan Air Limbah (IPAL). Video proses pengolahan limbah cair industri tekstil. Artikel pendukung: sebuah industri tekstil harus menurunkan kadar zat warna sebelum limbah dibuang ke sungai. Salah satu faktor yang memengaruhi keberhasilan proses tersebut adalah konsentrasi koagulan yang digunakan. Konsentrasi yang terlalu rendah membuat proses berjalan lambat, sedangkan konsentrasi yang terlalu tinggi meningkatkan biaya dan berpotensi menghasilkan residu kimia.',
+        },
+        {
+          kind: 'masalah',
+          title: 'Narasi Masalah',
+          body: 'Industri tekstil harus menurunkan kadar zat warna sebelum limbah dibuang ke sungai. Konsentrasi koagulan yang terlalu rendah membuat proses berjalan lambat, sedangkan konsentrasi yang terlalu tinggi meningkatkan biaya dan berpotensi menghasilkan residu kimia. Bagaimana menentukan konsentrasi yang paling efektif?',
+        },
+        { kind: 'pertanyaan', id: 'k2_p1', text: 'Mengapa konsentrasi bahan kimia memengaruhi laju pengolahan limbah?' },
+        { kind: 'pertanyaan', id: 'k2_p2', text: 'Apakah penggunaan bahan kimia sebanyak mungkin selalu menjadi solusi terbaik?' },
+        { kind: 'pertanyaan', id: 'k2_p3', text: 'Bagaimana menentukan konsentrasi yang paling efektif berdasarkan data eksperimen?' },
+      ],
+    },
+    {
+      id: 's2',
+      sintaks: 2,
+      label: 'Mengorganisasi Peserta Didik',
+      ringkas: 'Diagnosis awal & perencanaan penyelidikan',
+      blocks: [
+        {
+          kind: 'tabel-org',
+          id: 'k2_org',
+          headers: ['Apa yang sudah diketahui?', 'Apa yang perlu diketahui?', 'Hipotesis'],
+          rowCount: 3,
+          title: 'Aktivitas 1 — Diagnosis Awal',
+          perencanaanId: 'k2_rencana',
+          perencanaanText: 'Aktivitas 2 — Perencanaan Penyelidikan: Tuliskan informasi yang perlu dikumpulkan agar perusahaan dapat menentukan penggunaan bahan kimia (koagulan) yang paling efisien.',
+        },
+      ],
+    },
+    {
+      id: 's3',
+      sintaks: 3,
+      label: 'Membimbing Penyelidikan',
+      ringkas: 'Analisis data, penalaran kimia & efisiensi',
+      blocks: [
+        { kind: 'bagian-header', label: 'Bagian A — Analisis Data Eksperimen' },
+        {
+          kind: 'data-eksperimen',
+          title: 'Percobaan pengaruh konsentrasi koagulan dan limbah terhadap laju reaksi penjernihan',
+          headers: ['Percobaan', '[Koagulan] (M)', '[Limbah] (M)', 'Laju Reaksi (mol/L·s)'],
+          rows: [['1', '0,10', '0,10', '2,0 × 10⁻³'], ['2', '0,20', '0,10', '4,0 × 10⁻³'], ['3', '0,10', '0,20', '2,0 × 10⁻³']],
+        },
+        { kind: 'input-hitung', id: 'k2_h1', label: 'Tentukan orde reaksi terhadap koagulan', allowImage: true },
+        { kind: 'input-hitung', id: 'k2_h2', label: 'Tentukan orde reaksi terhadap limbah' },
+        { kind: 'input-hitung', id: 'k2_h3', label: 'Tuliskan persamaan laju reaksi' },
+        { kind: 'input-hitung', id: 'k2_h4', label: 'Hitung nilai tetapan laju reaksi (k), lengkap dengan satuannya', allowImage: true },
+        { kind: 'input-hitung', id: 'k2_h5', label: 'Prediksi laju reaksi jika [Koagulan] = 0,30 M dan [Limbah] = 0,20 M' },
+        { kind: 'bagian-header', label: 'Bagian B — Penalaran Kimia (Representasi Submikroskopik)' },
+        {
+          kind: 'diagram-submikro',
+          title: 'Larutan Encer vs Larutan Pekat',
+          kiri: { label: 'Larutan Encer', deskripsi: 'Jumlah partikel sedikit → frekuensi tumbukan rendah → tumbukan efektif sedikit.' },
+          kanan: { label: 'Larutan Pekat', deskripsi: 'Jumlah partikel meningkat → frekuensi tumbukan tinggi → tumbukan efektif meningkat.' },
+        },
+        { kind: 'analitis', id: 'k2_b1', text: 'Mengapa peningkatan konsentrasi meningkatkan frekuensi tumbukan?' },
+        { kind: 'analitis', id: 'k2_b2', text: 'Mengapa laju reaksi meningkat seiring meningkatnya konsentrasi?' },
+        { kind: 'analitis', id: 'k2_b3', text: 'Bagaimana teori tumbukan menjelaskan orde reaksi yang diperoleh pada Bagian A?' },
+        { kind: 'bagian-header', label: 'Bagian C — Analisis Efisiensi' },
+        {
+          kind: 'analisis-efisiensi',
+          id: 'k2_ef',
+          title: 'Tiga pilihan konsentrasi koagulan untuk skala produksi',
+          headers: ['Konsentrasi', 'Efektivitas', 'Biaya'],
+          rows: [['0,10 M', 'Sedang', 'Rendah'], ['0,20 M', 'Tinggi', 'Sedang'], ['0,40 M', 'Sangat tinggi', 'Sangat tinggi']],
+          pertanyaanId: 'k2_ef_jwb',
+          pertanyaanText: 'Apakah peningkatan konsentrasi selalu sebanding dengan manfaat yang diperoleh? Jelaskan berdasarkan hasil analisis data pada tabel di atas serta hasil perhitungan pada Bagian A.',
+        },
+      ],
+    },
+    {
+      id: 's4',
+      sintaks: 4,
+      label: 'Mengembangkan dan Menyajikan Hasil',
+      ringkas: 'Peran konsultan lingkungan & unggah karya',
+      blocks: [
+        {
+          kind: 'instruksi-pengembangan',
+          title: 'Peran: Konsultan Lingkungan',
+          body: 'Setiap kelompok berperan sebagai konsultan lingkungan yang diminta menyusun rekomendasi kepada perusahaan mengenai konsentrasi koagulan yang paling tepat digunakan. Presentasi memuat:',
+          bullets: [
+            'Hasil penentuan orde reaksi.',
+            'Persamaan laju reaksi.',
+            'Nilai tetapan laju (k).',
+            'Prediksi laju reaksi pada konsentrasi baru.',
+            'Alasan ilmiah di balik rekomendasi.',
+            'Rekomendasi penggunaan bahan kimia (koagulan) yang paling efisien.',
+          ],
+        },
+        { kind: 'upload-hasil', id: 'k2_up', title: 'Unggah Karya', body: 'Unggah bahan presentasi kelompok Anda pada kolom yang tersedia.' },
+      ],
+    },
+    {
+      id: 's5',
+      sintaks: 5,
+      label: 'Menganalisis dan Mengevaluasi',
+      ringkas: 'Studi kasus, alternatif & argumentasi TAP',
+      blocks: [
+        {
+          kind: 'alternatif-kasus',
+          id: 'k2_alt',
+          title: 'Studi Kasus — Perusahaan ingin meningkatkan kapasitas produksi sehingga proses pengolahan limbah harus berlangsung lebih cepat. Pilih alternatif paling tepat:',
+          options: [
+            { id: 'a', label: 'Alternatif A', deskripsi: 'Menggunakan konsentrasi koagulan setinggi mungkin agar laju reaksi meningkat.' },
+            { id: 'b', label: 'Alternatif B', deskripsi: 'Menggunakan konsentrasi rendah agar biaya produksi murah.' },
+            { id: 'c', label: 'Alternatif C', deskripsi: 'Menggunakan konsentrasi optimum berdasarkan hasil analisis laju reaksi sehingga proses tetap efektif, biaya terkendali, dan dampak lingkungan dapat diminimalkan.' },
+          ],
+          alasanId: 'k2_alt_alasan',
+        },
+        {
+          kind: 'argumentasi-tap',
+          id: 'k2_tap',
+          title: 'Argumentasi Ilmiah (TAP)',
+          kasus: 'Berdasarkan hasil analisis orde reaksi, persamaan laju, dan tetapan laju, alternatif manakah yang paling tepat? Susun argumentasimu dengan kerangka TAP.',
+        },
+        {
+          kind: 'penalaran-level',
+          makroskopik: 'Proses penjernihan limbah cair di Instalasi Pengolahan Air Limbah (IPAL).',
+          submikroskopik: 'Ilustrasi jumlah partikel dan frekuensi tumbukan pada berbagai konsentrasi.',
+          simbolik: 'Tabel data eksperimen, penentuan orde reaksi, persamaan laju, perhitungan tetapan laju, dan prediksi laju reaksi.',
+        },
+      ],
+    },
+  ],
+};
