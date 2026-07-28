@@ -53,12 +53,12 @@ const navItems = [
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
-    to: "/super-admin/pending",
+    to: "/super-admin",
     label: "Menunggu",
     icon: <Clock className="h-5 w-5" />,
   },
   {
-    to: "/super-admin/profiles",
+    to: "/super-admin?tab=profiles",
     label: "Profiles",
     icon: <Users className="h-5 w-5" />,
   },
