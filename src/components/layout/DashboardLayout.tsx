@@ -14,7 +14,7 @@ export function DashboardLayout({
   children,
 }: {
   items: NavItem[];
-  role: 'siswa' | 'guru';
+  role: 'siswa' | 'guru' | 'super_admin';
   children?: ReactNode;
 }) {
   const { profile, signOut } = useAuth();

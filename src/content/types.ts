@@ -12,11 +12,12 @@ export type PBLStep = {
 };
 
 export type ContentBlock =
-  | { kind: 'stimulus'; title: string; body: string }
-  | { kind: 'masalah'; title: string; body: string }
+  | { kind: 'stimulus'; title: string; body: string; mediaUrl?: string; mediaType?: 'image' | 'youtube' }
+  | { kind: 'masalah'; title: string; body: string; mediaUrl?: string; mediaType?: 'image' | 'youtube' }
+  | { kind: 'media'; title?: string; mediaUrl: string; mediaType: 'image' | 'youtube'; caption?: string }
   | { kind: 'pertanyaan'; id: string; text: string; hint?: string }
   | { kind: 'tabel-org'; id: string; headers: string[]; rowCount: number; title: string; perencanaanId?: string; perencanaanText?: string }
-  | { kind: 'data-eksperimen'; title: string; headers: string[]; rows: string[][]; note?: string }
+  | { kind: 'data-eksperimen'; title: string; headers: string[]; rows: { cells: string[] }[]; note?: string }
   | { kind: 'input-hitung'; id: string; label: string; unit?: string; allowImage?: boolean }
   | { kind: 'analitis'; id: string; text: string; allowImage?: boolean }
   | { kind: 'diagram-submikro'; title: string; kiri: { label: string; deskripsi: string }; kanan: { label: string; deskripsi: string } }
@@ -25,7 +26,7 @@ export type ContentBlock =
   | { kind: 'alternatif-kasus'; id: string; title: string; options: { id: string; label: string; deskripsi: string }[]; alasanId: string }
   | { kind: 'argumentasi-tap'; id: string; title: string; kasus: string }
   | { kind: 'bagian-header'; label: string }
-  | { kind: 'analisis-efisiensi'; id: string; title: string; headers: string[]; rows: string[][]; pertanyaanId: string; pertanyaanText: string }
+  | { kind: 'analisis-efisiensi'; id: string; title: string; headers: string[]; rows: { cells: string[] }[]; pertanyaanId: string; pertanyaanText: string }
   | { kind: 'tabel-integrasi'; id: string; title: string; headers: string[]; leftCol: string[]; rowCount: number }
   | { kind: 'analisis-prediksi'; id: string; title: string; kondisi: string[]; pertanyaanText: string }
   | { kind: 'penalaran-level'; makroskopik: string; submikroskopik: string; simbolik: string };

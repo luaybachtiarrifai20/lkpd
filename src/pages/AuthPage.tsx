@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FlaskConical, ArrowLeft, Loader2, User, GraduationCap, LogIn } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { auth, db } from '@/lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 
 export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile, session, loading: authLoading, refreshAuth } = useAuth();
+  const { profile, user, loading: authLoading, refreshAuth } = useAuth();
   const isLogin = mode === 'login';
 
   const [role, setRole] = useState<'siswa' | 'guru'>('siswa');
@@ -25,59 +27,79 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
   // the post-login refreshAuth() update).
   useEffect(() => {
     if (authLoading) return;
-    if (session && profile) {
-      const dest = profile.role === 'guru' ? '/guru' : '/siswa';
+    if (user && profile) {
+      // Jangan redirect jika status masih pending/rejected
+      if (profile.status === 'pending' || profile.status === 'rejected') return;
+      const dest = profile.role === 'guru' ? '/guru' : profile.role === 'super_admin' ? '/super-admin' : '/siswa';
       console.log('[AuthPage] useEffect redirect ->', dest);
       navigate(dest, { replace: true });
     }
-  }, [authLoading, session, profile, navigate]);
+  }, [authLoading, user, profile, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        if (!data.session) throw new Error('Login berhasil tapi sesi tidak ditemukan');
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
 
-        console.log('[AuthPage] signIn success, uid:', data.user.id);
+        console.log('[AuthPage] signIn success, uid:', uid);
 
-        // Force-refresh auth context: getSession() + profile query, fully awaited.
-        // This guarantees ProtectedRoute sees session+profile before we navigate.
+        // Force-refresh auth context
         const prof = await refreshAuth();
-        console.log('[AuthPage] refreshAuth returned profile:', prof?.role);
+        console.log('[AuthPage] refreshAuth returned profile:', prof?.role, prof?.status);
+
+        // Check user status
+        if (prof?.status === 'pending') {
+          await auth.signOut();
+          toast('Akun Anda masih menunggu persetujuan dari super admin', 'warning');
+          return;
+        }
+        if (prof?.status === 'rejected') {
+          await auth.signOut();
+          toast('Akun Anda ditolak oleh super admin', 'error');
+          return;
+        }
 
         toast('Selamat datang kembali!', 'success');
 
         if (prof?.role) {
-          const dest = prof.role === 'guru' ? '/guru' : '/siswa';
+          const dest =
+            prof.role === 'guru' ? '/guru' :
+            prof.role === 'super_admin' ? '/super-admin' :
+            '/siswa';
           console.log('[AuthPage] navigating to:', dest);
           navigate(dest, { replace: true });
         } else {
-          // Profile missing — hard reload to login as fallback.
           console.error('[AuthPage] No profile after refreshAuth');
           toast('Profil tidak ditemukan. Hubungi guru/admin.', 'error');
         }
       } else {
+        // ===== DAFTAR =====
         if (password.length < 6) throw new Error('Kata sandi minimal 6 karakter');
 
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        const uid = data.user?.id;
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
         if (!uid) throw new Error('Gagal mendaftar akun');
 
         let kelasId: string | null = null;
+        let status: 'pending' | 'active' = 'pending';
+        
+        // Siswa + kode kelas valid → auto-active
         if (role === 'siswa' && kodeKelas.trim()) {
-          const { data: kelas } = await supabase
-            .from('kelas')
-            .select('id')
-            .eq('kode_undangan', kodeKelas.trim())
-            .maybeSingle();
-          if (kelas) kelasId = kelas.id;
+          const kelasSnapshot = await getDocs(
+            query(collection(db, 'kelas'), where('kode_undangan', '==', kodeKelas.trim()))
+          );
+          if (!kelasSnapshot.empty) {
+            kelasId = kelasSnapshot.docs[0].id;
+            status = 'active'; // Auto-activate if valid kode_undangan
+          } else {
+            throw new Error('Kode kelas tidak valid');
+          }
         }
 
-        const { error: profErr } = await supabase.from('profiles').insert({
+        const profileData = {
           id: uid,
           nama,
           role,
@@ -85,16 +107,26 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
           username: username || null,
           nisn: role === 'siswa' ? nisn || null : null,
           kelas_id: kelasId,
-        });
+          status,
+          dibuat_pada: new Date().toISOString(),
+        };
 
-        if (profErr) {
-          console.error('[AuthPage] profile insert error:', profErr);
-          toast('Akun dibuat, tapi profil gagal disimpan. Hubungi guru/admin.', 'warning');
+        await setDoc(doc(db, 'profiles', uid), profileData);
+
+        if (status === 'pending') {
+          toast(
+            role === 'guru'
+              ? 'Pendaftaran guru berhasil! Akun Anda menunggu persetujuan super admin sebelum bisa login.'
+              : 'Pendaftaran berhasil! Akun Anda menunggu persetujuan super admin (atau masukkan kode kelas yang valid agar langsung aktif).',
+            'success'
+          );
+          await auth.signOut();
+          navigate('/login', { replace: true });
         } else {
-          console.log('[AuthPage] signup success, refreshAuth as:', role);
-          // Refresh context so ProtectedRoute sees the new profile, then navigate.
+          // Siswa dengan kode kelas valid → langsung aktif
+          console.log('[AuthPage] signup success (auto-active), refreshAuth as:', role);
           await refreshAuth();
-          toast(`Selamat datang, ${nama}!`, 'success');
+          toast(`Selamat datang, ${nama}! Akun langsung aktif karena kode kelas valid.`, 'success');
           const dest = role === 'guru' ? '/guru' : '/siswa';
           navigate(dest, { replace: true });
         }
@@ -168,7 +200,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
                       <input className="input-base" value={nisn} onChange={(e) => setNisn(e.target.value)} placeholder="Nomor Induk Siswa Nasional" />
                     </div>
                     <div>
-                      <label className="label-base">Kode Kelas <span className="font-normal text-slate-400">(opsional)</span></label>
+                      <label className="label-base">Kode Kelas <span className="font-normal text-slate-400">(opsional — isi agar langsung aktif)</span></label>
                       <input className="input-base" value={kodeKelas} onChange={(e) => setKodeKelas(e.target.value)} placeholder="Kode undangan dari guru" />
                     </div>
                   </>
