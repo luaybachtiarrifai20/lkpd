@@ -34,7 +34,7 @@ import {
   collection,
   query,
   where,
-  orderBy,
+  // orderBy,
   getDocs,
   doc,
   getDoc,
@@ -1505,7 +1505,7 @@ export function TeacherEkspor() {
         );
         
         if (!cancelled) {
-          let list = kelasSnapshot.docs.map(
+          const list = kelasSnapshot.docs.map(
             (doc) => ({ id: doc.id, ...doc.data() }) as Kelas
           );
           // Sort di client-side
@@ -1565,7 +1565,7 @@ export function TeacherEkspor() {
       );
       
       // Filter role di client-side
-      let siswa = siswaSnapshot.docs
+      const siswa = siswaSnapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }) as Profile)
         .filter((p) => p.role === "siswa");
       

@@ -23,9 +23,9 @@ import { SuperAdminLogin } from "@/pages/SuperAdminLogin";
 import { SuperAdminDashboard } from "@/pages/SuperAdminDashboard";
 import { SetupSuperAdmin } from "@/pages/SetupSuperAdmin";
 import type { ReactNode } from "react";
-import { SuperAdminKegiatanDetail } from "./pages/super-admin/superAdminKegiatanDetail";
 import { ManageQuestions } from "./pages/super-admin/ManageQuestions";
 import { TestPage } from "./pages/student/TestPage";
+import { SuperAdminKegiatanDetail } from "./pages/super-admin/SuperAdminKegiatanDetail";
 
 function ProtectedRoute({
   role,

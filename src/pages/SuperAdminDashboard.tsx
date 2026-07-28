@@ -78,7 +78,7 @@ function parseTab(search: string): TabType {
 }
 
 export function SuperAdminDashboard() {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
