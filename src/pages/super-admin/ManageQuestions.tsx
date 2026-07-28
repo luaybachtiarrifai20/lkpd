@@ -32,6 +32,11 @@ import {
   List,
   Eye,
   LayoutDashboard,
+  Clock,
+  Users,
+  BookOpen,
+  Activity,
+  Shield,
 } from "lucide-react";
 import type { Question, QuestionOption, QuestionType } from "@/lib/firebase";
 
@@ -46,6 +51,36 @@ const navItems = [
     to: "/super-admin/dashboard",
     label: "Dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/pending",
+    label: "Menunggu",
+    icon: <Clock className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/profiles",
+    label: "Profiles",
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/kelas",
+    label: "Kelas",
+    icon: <BookOpen className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/jawaban",
+    label: "Jawaban",
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/kegiatan",
+    label: "Kegiatan",
+    icon: <Activity className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/admins",
+    label: "Super Admins",
+    icon: <Shield className="h-5 w-5" />,
   },
   {
     to: "/super-admin/questions",
