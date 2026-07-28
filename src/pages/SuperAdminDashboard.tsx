@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Badge, EmptyState } from '@/components/ui';
 
-type TabType = 'pending' | 'profiles' | 'kelas' | 'jawaban' | 'kegiatan' | 'admins';
+type TabType = 'pending' | 'profiles' | 'kelas' | 'jawaban' | 'kegiatan' | 'admins' | 'questions';
 
 type EditingItem = {
   id: string;
@@ -59,6 +59,7 @@ const navItems = [
   { to: '/super-admin?tab=jawaban', label: 'Jawaban', icon: <FileText className="h-5 w-5" /> },
   { to: '/super-admin?tab=kegiatan', label: 'Kegiatan', icon: <Activity className="h-5 w-5" /> },
   { to: '/super-admin?tab=admins', label: 'Super Admins', icon: <Shield className="h-5 w-5" /> },
+  { to: '/super-admin/questions', label: 'Kelola Soal', icon: <FileText className="h-5 w-5" /> },
 ];
 
 const TAB_TITLES: Record<TabType, string> = {
@@ -68,11 +69,12 @@ const TAB_TITLES: Record<TabType, string> = {
   jawaban: 'Jawaban Siswa',
   kegiatan: 'Kegiatan',
   admins: 'Super Admins',
+  questions: 'Kelola Soal',
 };
 
 function parseTab(search: string): TabType {
   const q = new URLSearchParams(search).get('tab');
-  const allowed: TabType[] = ['pending', 'profiles', 'kelas', 'jawaban', 'kegiatan', 'admins'];
+  const allowed: TabType[] = ['pending', 'profiles', 'kelas', 'jawaban', 'kegiatan', 'admins', 'questions'];
   if (q && (allowed as string[]).includes(q)) return q as TabType;
   return 'pending';
 }

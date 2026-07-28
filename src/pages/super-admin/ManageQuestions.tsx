@@ -48,11 +48,6 @@ type QuestionInput = Omit<
 
 const navItems = [
   {
-    to: "/super-admin/dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard className="h-5 w-5" />,
-  },
-  {
     to: "/super-admin",
     label: "Menunggu",
     icon: <Clock className="h-5 w-5" />,
@@ -63,22 +58,22 @@ const navItems = [
     icon: <Users className="h-5 w-5" />,
   },
   {
-    to: "/super-admin/kelas",
+    to: "/super-admin?tab=kelas",
     label: "Kelas",
     icon: <BookOpen className="h-5 w-5" />,
   },
   {
-    to: "/super-admin/jawaban",
+    to: "/super-admin?tab=jawaban",
     label: "Jawaban",
     icon: <FileText className="h-5 w-5" />,
   },
   {
-    to: "/super-admin/kegiatan",
+    to: "/super-admin?tab=kegiatan",
     label: "Kegiatan",
     icon: <Activity className="h-5 w-5" />,
   },
   {
-    to: "/super-admin/admins",
+    to: "/super-admin?tab=admins",
     label: "Super Admins",
     icon: <Shield className="h-5 w-5" />,
   },
