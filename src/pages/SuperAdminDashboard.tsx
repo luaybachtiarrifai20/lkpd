@@ -175,29 +175,78 @@ export function SuperAdminDashboard() {
           break;
         }
         case 'landing': {
+          const defaultContent: LandingPageContent = {
+            id: 'default',
+            hero_title: 'LajuNalar',
+            hero_subtitle: 'E-LKPD Interaktif Laju Reaksi Berbasis PBL-ESD',
+            hero_description: 'Belajar laju reaksi lewat masalah dunia nyata — food waste, limbah cair, biomassa, dan biodiesel B35.',
+            hero_badge: 'Penelitian Tesis Magister UNS 2026',
+            hero_cta_primary: 'Mulai Belajar',
+            hero_cta_secondary: 'Tentang Produk',
+            features_title: 'Komponen Interaktif',
+            features_description: 'Bukan PDF statis — siswa mengisi, mengunggah, & berargumentasi langsung.',
+            activities_title: '4 Kegiatan Belajar',
+            activities_description: 'Tiap kegiatan berbasis masalah ESD dengan warna identitas sendiri.',
+            cta_title: 'Siap mengasah penalaran kimiamu?',
+            cta_description: 'Buat akun dan mulai perjalanan belajar PBL-ESD sekarang.',
+            cta_primary: 'Daftar Gratis',
+            cta_secondary: 'Sudah punya akun',
+            hero_cards: {
+              submikroskopik: { title: 'Submikroskopik', description: 'Tumbukan partikel & energi aktivasi' },
+              simbolik: { title: 'Simbolik', description: 'Persamaan & grafik laju reaksi' },
+              makroskopik: { title: 'Makroskopik', description: 'Gejala reaksi yang teramati' },
+              argumentasi: { title: 'Argumentasi TAP', description: 'Claim–Data–Warrant–Backing' },
+            },
+            role_siswa: {
+              items: ['Peta progres 4 kegiatan', 'Isi jawaban interaktif & upload file', 'Akses kuis via embed & QR', 'Riwayat & nilai'],
+              cta_label: 'Daftar sebagai Siswa',
+            },
+            role_guru: {
+              items: ['Kelola kelas & siswa', 'Rekap progres per kegiatan', 'Kelola link kuis eksternal', 'Ekspor PDF individu & massal'],
+              cta_label: 'Daftar sebagai Guru',
+            },
+            feature_cards: [
+              { title: 'Isian Otomatis', description: 'Textarea auto-resize dengan autosave' },
+              { title: 'Tabel Isian', description: 'Spreadsheet mini untuk hipotesis & data' },
+              { title: 'Upload File', description: 'Drag & drop foto, PDF, dokumen' },
+              { title: 'Argumentasi TAP', description: 'Diagram alur 6 komponen argumen' },
+              { title: 'Progress Tracker', description: 'Stepper PBL & roadmap kegiatan' },
+              { title: 'E-Assessment', description: 'Embed kuis + QR code otomatis' },
+              { title: 'Materi PBL-ESD', description: 'Sintaks 1–5 & integrasi SDG' },
+              { title: 'Ekspor PDF', description: 'Lembar jawaban rapi per siswa' },
+            ],
+            activity_cards: [
+              { title: 'Mengapa Makanan Cepat Basi?', description: 'Pengaruh Suhu terhadap Laju Reaksi' },
+              { title: 'Dilema Limbah Cair Industri', description: 'Pengaruh Konsentrasi & Luas Permukaan terhadap Laju Reaksi' },
+              { title: 'Biomassa dan Energi Alternatif', description: 'Pengaruh Katalis terhadap Laju Reaksi' },
+              { title: 'Menilik Efisiensi Biodiesel B35', description: 'Persamaan Laju Reaksi dan Orde Reaksi' },
+            ],
+            diperbarui_pada: new Date().toISOString(),
+          };
+
           const snap = await getDocs(collection(db, 'landing_page'));
           if (!snap.empty) {
-            setLandingContent({ id: snap.docs[0].id, ...snap.docs[0].data() } as LandingPageContent);
+            const dbData = snap.docs[0].data() as Partial<LandingPageContent>;
+            setLandingContent({
+              ...defaultContent,
+              ...dbData,
+              hero_cards: {
+                ...defaultContent.hero_cards,
+                ...(dbData.hero_cards || {}),
+              },
+              role_siswa: {
+                ...defaultContent.role_siswa,
+                ...(dbData.role_siswa || {}),
+              },
+              role_guru: {
+                ...defaultContent.role_guru,
+                ...(dbData.role_guru || {}),
+              },
+              feature_cards: dbData.feature_cards || defaultContent.feature_cards,
+              activity_cards: dbData.activity_cards || defaultContent.activity_cards,
+              id: snap.docs[0].id,
+            } as LandingPageContent);
           } else {
-            // Create default content if not exists
-            const defaultContent: LandingPageContent = {
-              id: 'default',
-              hero_title: 'LajuNalar',
-              hero_subtitle: 'E-LKPD Interaktif Laju Reaksi Berbasis PBL-ESD',
-              hero_description: 'Belajar laju reaksi lewat masalah dunia nyata — food waste, limbah cair, biomassa, dan biodiesel B35.',
-              hero_badge: 'Penelitian Tesis Magister UNS 2026',
-              hero_cta_primary: 'Mulai Belajar',
-              hero_cta_secondary: 'Tentang Produk',
-              features_title: 'Komponen Interaktif',
-              features_description: 'Bukan PDF statis — siswa mengisi, mengunggah, & berargumentasi langsung.',
-              activities_title: '4 Kegiatan Belajar',
-              activities_description: 'Tiap kegiatan berbasis masalah ESD dengan warna identitas sendiri.',
-              cta_title: 'Siap mengasah penalaran kimiamu?',
-              cta_description: 'Buat akun dan mulai perjalanan belajar PBL-ESD sekarang.',
-              cta_primary: 'Daftar Gratis',
-              cta_secondary: 'Sudah punya akun',
-              diperbarui_pada: new Date().toISOString(),
-            };
             await setDoc(doc(db, 'landing_page', 'default'), defaultContent);
             setLandingContent(defaultContent);
           }
@@ -546,6 +595,131 @@ export function SuperAdminDashboard() {
                     className="input-base"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">Hero Cards</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                {landingContent.hero_cards && Object.entries(landingContent.hero_cards).map(([key, card]) => (
+                  <div key={key} className="space-y-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1 capitalize">{key}</label>
+                    <input
+                      type="text"
+                      value={card.title}
+                      onChange={(e) => setLandingContent({
+                        ...landingContent,
+                        hero_cards: {
+                          ...landingContent.hero_cards,
+                          [key]: { ...card, title: e.target.value }
+                        }
+                      })}
+                      className="input-base mb-2"
+                      placeholder="Title"
+                    />
+                    <textarea
+                      value={card.description}
+                      onChange={(e) => setLandingContent({
+                        ...landingContent,
+                        hero_cards: {
+                          ...landingContent.hero_cards,
+                          [key]: { ...card, description: e.target.value }
+                        }
+                      })}
+                      rows={2}
+                      className="input-base"
+                      placeholder="Description"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">Role Cards</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Siswa Items (satu per baris)</label>
+                  <textarea
+                    value={landingContent.role_siswa?.items?.join('\n') || ''}
+                    onChange={(e) => setLandingContent({
+                      ...landingContent,
+                      role_siswa: {
+                        ...landingContent.role_siswa,
+                        items: e.target.value.split('\n').map(s => s.trim()).filter(Boolean)
+                      }
+                    })}
+                    rows={4}
+                    className="input-base"
+                  />
+                  <input
+                    type="text"
+                    value={landingContent.role_siswa?.cta_label || ''}
+                    onChange={(e) => setLandingContent({
+                      ...landingContent,
+                      role_siswa: { ...landingContent.role_siswa, cta_label: e.target.value }
+                    })}
+                    className="input-base"
+                    placeholder="CTA Label"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Guru Items (satu per baris)</label>
+                  <textarea
+                    value={landingContent.role_guru?.items?.join('\n') || ''}
+                    onChange={(e) => setLandingContent({
+                      ...landingContent,
+                      role_guru: {
+                        ...landingContent.role_guru,
+                        items: e.target.value.split('\n').map(s => s.trim()).filter(Boolean)
+                      }
+                    })}
+                    rows={4}
+                    className="input-base"
+                  />
+                  <input
+                    type="text"
+                    value={landingContent.role_guru?.cta_label || ''}
+                    onChange={(e) => setLandingContent({
+                      ...landingContent,
+                      role_guru: { ...landingContent.role_guru, cta_label: e.target.value }
+                    })}
+                    className="input-base"
+                    placeholder="CTA Label"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">Feature Cards</h3>
+              <div className="space-y-3">
+                {landingContent.feature_cards?.map((card, index) => (
+                  <div key={index} className="grid gap-2 md:grid-cols-2 p-3 bg-slate-50 rounded-lg">
+                    <input
+                      type="text"
+                      value={card.title}
+                      onChange={(e) => {
+                        const newCards = [...landingContent.feature_cards];
+                        newCards[index] = { ...card, title: e.target.value };
+                        setLandingContent({ ...landingContent, feature_cards: newCards });
+                      }}
+                      className="input-base"
+                      placeholder="Title"
+                    />
+                    <input
+                      type="text"
+                      value={card.description}
+                      onChange={(e) => {
+                        const newCards = [...landingContent.feature_cards];
+                        newCards[index] = { ...card, description: e.target.value };
+                        setLandingContent({ ...landingContent, feature_cards: newCards });
+                      }}
+                      className="input-base"
+                      placeholder="Description"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 

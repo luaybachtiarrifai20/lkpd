@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
-  FlaskConical, Leaf, Atom, BarChart3, MessagesSquare, UploadCloud,
-  CheckCircle2, FileEdit, Award, BookOpen, ArrowRight, Sparkles,
+  FlaskConical, Leaf, Atom, BarChart3, MessagesSquare,
+  CheckCircle2, FileEdit, ArrowRight, Sparkles,
   GraduationCap, User, Target,
 } from 'lucide-react';
 import { KEGIATAN_CONTENT } from '@/content/kegiatanContent';
@@ -47,6 +47,32 @@ export function LandingPage() {
   const ctaDescription = content?.cta_description || 'Buat akun dan mulai perjalanan belajar PBL-ESD sekarang.';
   const ctaPrimary = content?.cta_primary || 'Daftar Gratis';
   const ctaSecondary = content?.cta_secondary || 'Sudah punya akun';
+
+  // Card data with defaults
+  const heroCards = content?.hero_cards || {
+    submikroskopik: { title: 'Submikroskopik', description: 'Tumbukan partikel & energi aktivasi' },
+    simbolik: { title: 'Simbolik', description: 'Persamaan & grafik laju reaksi' },
+    makroskopik: { title: 'Makroskopik', description: 'Gejala reaksi yang teramati' },
+    argumentasi: { title: 'Argumentasi TAP', description: 'Claim–Data–Warrant–Backing' },
+  };
+  const roleSiswa = content?.role_siswa || {
+    items: ['Peta progres 4 kegiatan', 'Isi jawaban interaktif & upload file', 'Akses kuis via embed & QR', 'Riwayat & nilai'],
+    cta_label: 'Daftar sebagai Siswa',
+  };
+  const roleGuru = content?.role_guru || {
+    items: ['Kelola kelas & siswa', 'Rekap progres per kegiatan', 'Kelola link kuis eksternal', 'Ekspor PDF individu & massal'],
+    cta_label: 'Daftar sebagai Guru',
+  };
+  const featureCards = content?.feature_cards || [
+    { title: 'Isian Otomatis', description: 'Textarea auto-resize dengan autosave' },
+    { title: 'Tabel Isian', description: 'Spreadsheet mini untuk hipotesis & data' },
+    { title: 'Upload File', description: 'Drag & drop foto, PDF, dokumen' },
+    { title: 'Argumentasi TAP', description: 'Diagram alur 6 komponen argumen' },
+    { title: 'Progress Tracker', description: 'Stepper PBL & roadmap kegiatan' },
+    { title: 'E-Assessment', description: 'Embed kuis + QR code otomatis' },
+    { title: 'Materi PBL-ESD', description: 'Sintaks 1–5 & integrasi SDG' },
+    { title: 'Ekspor PDF', description: 'Lembar jawaban rapi per siswa' },
+  ];
 
   if (loading) {
     return (
@@ -117,10 +143,10 @@ export function LandingPage() {
             {/* Visual card stack */}
             <div className="relative hidden lg:block animate-fade-in">
               <div className="grid grid-cols-2 gap-4">
-                <FeatureCard icon={<Atom className="h-6 w-6" />} title="Submikroskopik" desc="Tumbukan partikel & energi aktivasi" color="bg-brand-teal-light text-brand-teal" />
-                <FeatureCard icon={<BarChart3 className="h-6 w-6" />} title="Simbolik" desc="Persamaan & grafik laju reaksi" color="bg-brand-amber-light text-brand-amber" />
-                <FeatureCard icon={<FlaskConical className="h-6 w-6" />} title="Makroskopik" desc="Gejala reaksi yang teramati" color="bg-brand-green-light text-brand-green" />
-                <FeatureCard icon={<MessagesSquare className="h-6 w-6" />} title="Argumentasi TAP" desc="Claim–Data–Warrant–Backing" color="bg-blue-50 text-student" />
+                <FeatureCard icon={<Atom className="h-6 w-6" />} title={heroCards.submikroskopik.title} desc={heroCards.submikroskopik.description} color="bg-brand-teal-light text-brand-teal" />
+                <FeatureCard icon={<BarChart3 className="h-6 w-6" />} title={heroCards.simbolik.title} desc={heroCards.simbolik.description} color="bg-brand-amber-light text-brand-amber" />
+                <FeatureCard icon={<FlaskConical className="h-6 w-6" />} title={heroCards.makroskopik.title} desc={heroCards.makroskopik.description} color="bg-brand-green-light text-brand-green" />
+                <FeatureCard icon={<MessagesSquare className="h-6 w-6" />} title={heroCards.argumentasi.title} desc={heroCards.argumentasi.description} color="bg-blue-50 text-student" />
               </div>
             </div>
           </div>
@@ -134,15 +160,15 @@ export function LandingPage() {
             icon={<User className="h-6 w-6" />}
             role="Siswa"
             color="text-student bg-blue-50"
-            items={['Peta progres 4 kegiatan', 'Isi jawaban interaktif & upload file', 'Akses kuis via embed & QR', 'Riwayat & nilai']}
-            cta={{ to: '/daftar', label: 'Daftar sebagai Siswa' }}
+            items={roleSiswa.items}
+            cta={{ to: '/daftar', label: roleSiswa.cta_label }}
           />
           <RoleCard
             icon={<GraduationCap className="h-6 w-6" />}
             role="Guru"
             color="text-teacher bg-violet-50"
-            items={['Kelola kelas & siswa', 'Rekap progres per kegiatan', 'Kelola link kuis eksternal', 'Ekspor PDF individu & massal']}
-            cta={{ to: '/daftar', label: 'Daftar sebagai Guru' }}
+            items={roleGuru.items}
+            cta={{ to: '/daftar', label: roleGuru.cta_label }}
           />
         </div>
       </section>
@@ -155,14 +181,14 @@ export function LandingPage() {
             <p className="mt-2 text-slate-500">{featuresDescription}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <FeatureMini icon={<FileEdit className="h-5 w-5" />} title="Isian Otomatis" desc="Textarea auto-resize dengan autosave" />
-            <FeatureMini icon={<BarChart3 className="h-5 w-5" />} title="Tabel Isian" desc="Spreadsheet mini untuk hipotesis & data" />
-            <FeatureMini icon={<UploadCloud className="h-5 w-5" />} title="Upload File" desc="Drag & drop foto, PDF, dokumen" />
-            <FeatureMini icon={<MessagesSquare className="h-5 w-5" />} title="Argumentasi TAP" desc="Diagram alur 6 komponen argumen" />
-            <FeatureMini icon={<CheckCircle2 className="h-5 w-5" />} title="Progress Tracker" desc="Stepper PBL & roadmap kegiatan" />
-            <FeatureMini icon={<Award className="h-5 w-5" />} title="E-Assessment" desc="Embed kuis + QR code otomatis" />
-            <FeatureMini icon={<BookOpen className="h-5 w-5" />} title="Materi PBL-ESD" desc="Sintaks 1–5 & integrasi SDG" />
-            <FeatureMini icon={<FileEdit className="h-5 w-5" />} title="Ekspor PDF" desc="Lembar jawaban rapi per siswa" />
+            {featureCards.map((card, index) => (
+              <FeatureMini
+                key={index}
+                icon={<FileEdit className="h-5 w-5" />}
+                title={card.title}
+                desc={card.description}
+              />
+            ))}
           </div>
         </div>
       </section>

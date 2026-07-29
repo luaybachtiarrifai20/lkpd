@@ -149,5 +149,19 @@ export type LandingPageContent = {
   cta_description: string;
   cta_primary: string;
   cta_secondary: string;
+  // Hero cards
+  hero_cards: {
+    submikroskopik: { title: string; description: string };
+    simbolik: { title: string; description: string };
+    makroskopik: { title: string; description: string };
+    argumentasi: { title: string; description: string };
+  };
+  // Role cards
+  role_siswa: { items: string[]; cta_label: string };
+  role_guru: { items: string[]; cta_label: string };
+  // Feature mini cards
+  feature_cards: Array<{ title: string; description: string }>;
+  // Activity cards
+  activity_cards?: Array<{ title: string; description: string }>;
   diperbarui_pada: string;
 };
