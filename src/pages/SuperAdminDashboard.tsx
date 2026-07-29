@@ -4,7 +4,7 @@ import {
   collection, getDocs, doc, updateDoc, deleteDoc, setDoc, query, where, orderBy,
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan } from '@/lib/firebase';
+import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan, type LandingPageContent } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Badge, EmptyState } from '@/components/ui';
 
-type TabType = 'pending' | 'profiles' | 'kelas' | 'jawaban' | 'kegiatan' | 'admins' | 'questions';
+type TabType = 'pending' | 'profiles' | 'kelas' | 'jawaban' | 'kegiatan' | 'admins' | 'questions' | 'landing';
 
 type EditingItem = {
   id: string;
@@ -59,6 +59,7 @@ const navItems = [
   { to: '/super-admin?tab=jawaban', label: 'Jawaban', icon: <FileText className="h-5 w-5" /> },
   { to: '/super-admin?tab=kegiatan', label: 'Kegiatan', icon: <Activity className="h-5 w-5" /> },
   { to: '/super-admin?tab=admins', label: 'Super Admins', icon: <Shield className="h-5 w-5" /> },
+  { to: '/super-admin?tab=landing', label: 'Landing Page', icon: <LayoutDashboard className="h-5 w-5" /> },
   { to: '/super-admin/questions', label: 'Kelola Soal', icon: <FileText className="h-5 w-5" /> },
 ];
 
@@ -70,11 +71,12 @@ const TAB_TITLES: Record<TabType, string> = {
   kegiatan: 'Kegiatan',
   admins: 'Super Admins',
   questions: 'Kelola Soal',
+  landing: 'Konten Landing Page',
 };
 
 function parseTab(search: string): TabType {
   const q = new URLSearchParams(search).get('tab');
-  const allowed: TabType[] = ['pending', 'profiles', 'kelas', 'jawaban', 'kegiatan', 'admins', 'questions'];
+  const allowed: TabType[] = ['pending', 'profiles', 'kelas', 'jawaban', 'kegiatan', 'admins', 'questions', 'landing'];
   if (q && (allowed as string[]).includes(q)) return q as TabType;
   return 'pending';
 }
@@ -93,6 +95,7 @@ export function SuperAdminDashboard() {
   const [kelas, setKelas] = useState<Kelas[]>([]);
   const [jawaban, setJawaban] = useState<Jawaban[]>([]);
   const [kegiatan, setKegiatan] = useState<Kegiatan[]>([]);
+  const [landingContent, setLandingContent] = useState<LandingPageContent | null>(null);
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -169,6 +172,35 @@ export function SuperAdminDashboard() {
             query(collection(db, 'profiles'), where('status', '==', 'pending'))
           );
           setProfiles(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Profile)));
+          break;
+        }
+        case 'landing': {
+          const snap = await getDocs(collection(db, 'landing_page'));
+          if (!snap.empty) {
+            setLandingContent({ id: snap.docs[0].id, ...snap.docs[0].data() } as LandingPageContent);
+          } else {
+            // Create default content if not exists
+            const defaultContent: LandingPageContent = {
+              id: 'default',
+              hero_title: 'LajuNalar',
+              hero_subtitle: 'E-LKPD Interaktif Laju Reaksi Berbasis PBL-ESD',
+              hero_description: 'Belajar laju reaksi lewat masalah dunia nyata — food waste, limbah cair, biomassa, dan biodiesel B35.',
+              hero_badge: 'Penelitian Tesis Magister UNS 2026',
+              hero_cta_primary: 'Mulai Belajar',
+              hero_cta_secondary: 'Tentang Produk',
+              features_title: 'Komponen Interaktif',
+              features_description: 'Bukan PDF statis — siswa mengisi, mengunggah, & berargumentasi langsung.',
+              activities_title: '4 Kegiatan Belajar',
+              activities_description: 'Tiap kegiatan berbasis masalah ESD dengan warna identitas sendiri.',
+              cta_title: 'Siap mengasah penalaran kimiamu?',
+              cta_description: 'Buat akun dan mulai perjalanan belajar PBL-ESD sekarang.',
+              cta_primary: 'Daftar Gratis',
+              cta_secondary: 'Sudah punya akun',
+              diperbarui_pada: new Date().toISOString(),
+            };
+            await setDoc(doc(db, 'landing_page', 'default'), defaultContent);
+            setLandingContent(defaultContent);
+          }
           break;
         }
       }
@@ -363,6 +395,179 @@ export function SuperAdminDashboard() {
           <div className="card border-l-4 border-amber-400 bg-amber-50/40 text-sm text-slate-600">
             Guru dan siswa tanpa kode kelas valid muncul di sini. Siswa dengan{' '}
             <strong>kode undangan</strong> valid otomatis aktif.
+          </div>
+        )}
+
+        {/* Landing Page Editor */}
+        {activeTab === 'landing' && landingContent && (
+          <div className="card space-y-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">Hero Section</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Judul Utama</label>
+                  <input
+                    type="text"
+                    value={landingContent.hero_title}
+                    onChange={(e) => setLandingContent({ ...landingContent, hero_title: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Subjudul</label>
+                  <input
+                    type="text"
+                    value={landingContent.hero_subtitle}
+                    onChange={(e) => setLandingContent({ ...landingContent, hero_subtitle: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                <textarea
+                  value={landingContent.hero_description}
+                  onChange={(e) => setLandingContent({ ...landingContent, hero_description: e.target.value })}
+                  rows={3}
+                  className="input-base"
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Badge</label>
+                  <input
+                    type="text"
+                    value={landingContent.hero_badge}
+                    onChange={(e) => setLandingContent({ ...landingContent, hero_badge: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">CTA Primary</label>
+                  <input
+                    type="text"
+                    value={landingContent.hero_cta_primary}
+                    onChange={(e) => setLandingContent({ ...landingContent, hero_cta_primary: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">CTA Secondary</label>
+                  <input
+                    type="text"
+                    value={landingContent.hero_cta_secondary}
+                    onChange={(e) => setLandingContent({ ...landingContent, hero_cta_secondary: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">Features Section</h3>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Judul</label>
+                <input
+                  type="text"
+                  value={landingContent.features_title}
+                  onChange={(e) => setLandingContent({ ...landingContent, features_title: e.target.value })}
+                  className="input-base"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                <textarea
+                  value={landingContent.features_description}
+                  onChange={(e) => setLandingContent({ ...landingContent, features_description: e.target.value })}
+                  rows={2}
+                  className="input-base"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">Activities Section</h3>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Judul</label>
+                <input
+                  type="text"
+                  value={landingContent.activities_title}
+                  onChange={(e) => setLandingContent({ ...landingContent, activities_title: e.target.value })}
+                  className="input-base"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                <textarea
+                  value={landingContent.activities_description}
+                  onChange={(e) => setLandingContent({ ...landingContent, activities_description: e.target.value })}
+                  rows={2}
+                  className="input-base"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-800">CTA Section</h3>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Judul</label>
+                <input
+                  type="text"
+                  value={landingContent.cta_title}
+                  onChange={(e) => setLandingContent({ ...landingContent, cta_title: e.target.value })}
+                  className="input-base"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                <textarea
+                  value={landingContent.cta_description}
+                  onChange={(e) => setLandingContent({ ...landingContent, cta_description: e.target.value })}
+                  rows={2}
+                  className="input-base"
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">CTA Primary</label>
+                  <input
+                    type="text"
+                    value={landingContent.cta_primary}
+                    onChange={(e) => setLandingContent({ ...landingContent, cta_primary: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">CTA Secondary</label>
+                  <input
+                    type="text"
+                    value={landingContent.cta_secondary}
+                    onChange={(e) => setLandingContent({ ...landingContent, cta_secondary: e.target.value })}
+                    className="input-base"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await updateDoc(doc(db, 'landing_page', landingContent.id), {
+                      ...landingContent,
+                      diperbarui_pada: new Date().toISOString(),
+                    });
+                    toast('Konten landing page berhasil diperbarui', 'success');
+                  } catch (err) {
+                    console.error(err);
+                    toast('Gagal memperbarui konten', 'error');
+                  }
+                }}
+                className="btn-primary"
+              >
+                <Save className="h-4 w-4" /> Simpan Perubahan
+              </button>
+            </div>
           </div>
         )}
 

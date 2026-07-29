@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   FlaskConical, Leaf, Atom, BarChart3, MessagesSquare, UploadCloud,
   CheckCircle2, FileEdit, Award, BookOpen, ArrowRight, Sparkles,
@@ -7,8 +8,53 @@ import {
 import { KEGIATAN_CONTENT } from '@/content/kegiatanContent';
 import { Footer } from '@/components/layout/Footer';
 import { SDGBadgeChip } from '@/components/ui';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, type LandingPageContent } from '@/lib/firebase';
 
 export function LandingPage() {
+  const [content, setContent] = useState<LandingPageContent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const docRef = doc(db, 'landing_page', 'default');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setContent({ id: docSnap.id, ...docSnap.data() } as LandingPageContent);
+        }
+      } catch (err) {
+        console.error('Failed to fetch landing page content:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContent();
+  }, []);
+
+  // Use content from Firestore if available, otherwise use defaults
+  const heroTitle = content?.hero_title || 'LajuNalar';
+  const heroSubtitle = content?.hero_subtitle || 'E-LKPD Interaktif Laju Reaksi Berbasis PBL-ESD';
+  const heroDescription = content?.hero_description || 'Belajar laju reaksi lewat masalah dunia nyata — food waste, limbah cair, biomassa, dan biodiesel B35. Latih penalaran kimia tingkat makroskopik, submikroskopik, & simbolik, plus argumentasi ilmiah kerangka TAP.';
+  const heroBadge = content?.hero_badge || 'Penelitian Tesis Magister UNS 2026';
+  const heroCtaPrimary = content?.hero_cta_primary || 'Mulai Belajar';
+  const heroCtaSecondary = content?.hero_cta_secondary || 'Tentang Produk';
+  const featuresTitle = content?.features_title || 'Komponen Interaktif';
+  const featuresDescription = content?.features_description || 'Bukan PDF statis — siswa mengisi, mengunggah, & berargumentasi langsung.';
+  const activitiesTitle = content?.activities_title || '4 Kegiatan Belajar';
+  const activitiesDescription = content?.activities_description || 'Tiap kegiatan berbasis masalah ESD dengan warna identitas sendiri.';
+  const ctaTitle = content?.cta_title || 'Siap mengasah penalaran kimiamu?';
+  const ctaDescription = content?.cta_description || 'Buat akun dan mulai perjalanan belajar PBL-ESD sekarang.';
+  const ctaPrimary = content?.cta_primary || 'Daftar Gratis';
+  const ctaSecondary = content?.cta_secondary || 'Sudah punya akun';
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-bg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green" />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-neutral-bg">
       {/* Nav */}
@@ -44,23 +90,22 @@ export function LandingPage() {
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div className="animate-fade-in">
               <span className="badge bg-white/70 text-brand-green-dark shadow-soft">
-                <Sparkles className="h-3.5 w-3.5" /> Penelitian Tesis Magister UNS 2026
+                <Sparkles className="h-3.5 w-3.5" /> {heroBadge}
               </span>
               <h1 className="mt-4 text-4xl font-extrabold leading-tight text-brand-green-dark sm:text-5xl">
-                LajuNalar
+                {heroTitle}
               </h1>
               <p className="mt-2 text-lg font-semibold text-brand-teal-dark">
-                E-LKPD Interaktif Laju Reaksi Berbasis PBL-ESD
+                {heroSubtitle}
               </p>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-600">
-                Belajar laju reaksi lewat masalah dunia nyata — food waste, limbah cair, biomassa, dan biodiesel B35.
-                Latih penalaran kimia tingkat makroskopik, submikroskopik, & simbolik, plus argumentasi ilmiah kerangka TAP.
+                {heroDescription}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link to="/daftar" className="btn-primary text-base px-5 py-3">
-                  Mulai Belajar <ArrowRight className="h-4 w-4" />
+                  {heroCtaPrimary} <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/tentang" className="btn-outline text-base px-5 py-3">Tentang Produk</Link>
+                <Link to="/tentang" className="btn-outline text-base px-5 py-3">{heroCtaSecondary}</Link>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                 <span className="inline-flex items-center gap-1.5"><Leaf className="h-4 w-4 text-brand-green" /> Berbasis ESD</span>
@@ -106,8 +151,8 @@ export function LandingPage() {
       <section id="fitur" className="bg-white py-14">
         <div className="mx-auto max-w-content px-4 sm:px-6">
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-brand-green-dark sm:text-3xl">Komponen Interaktif</h2>
-            <p className="mt-2 text-slate-500">Bukan PDF statis — siswa mengisi, mengunggah, & berargumentasi langsung.</p>
+            <h2 className="text-2xl font-bold text-brand-green-dark sm:text-3xl">{featuresTitle}</h2>
+            <p className="mt-2 text-slate-500">{featuresDescription}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <FeatureMini icon={<FileEdit className="h-5 w-5" />} title="Isian Otomatis" desc="Textarea auto-resize dengan autosave" />
@@ -125,8 +170,8 @@ export function LandingPage() {
       {/* Activities roadmap */}
       <section id="kegiatan" className="mx-auto max-w-content px-4 py-14 sm:px-6">
         <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-brand-green-dark sm:text-3xl">4 Kegiatan Belajar</h2>
-          <p className="mt-2 text-slate-500">Tiap kegiatan berbasis masalah ESD dengan warna identitas sendiri.</p>
+          <h2 className="text-2xl font-bold text-brand-green-dark sm:text-3xl">{activitiesTitle}</h2>
+          <p className="mt-2 text-slate-500">{activitiesDescription}</p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {KEGIATAN_CONTENT.map((k, i) => (
@@ -162,13 +207,13 @@ export function LandingPage() {
       {/* CTA */}
       <section className="bg-gradient-to-r from-brand-green to-brand-teal py-14">
         <div className="mx-auto max-w-content px-4 text-center sm:px-6">
-          <h2 className="text-2xl font-bold text-white sm:text-3xl">Siap mengasah penalaran kimiamu?</h2>
-          <p className="mt-2 text-white/80">Buat akun dan mulai perjalanan belajar PBL-ESD sekarang.</p>
+          <h2 className="text-2xl font-bold text-white sm:text-3xl">{ctaTitle}</h2>
+          <p className="mt-2 text-white/80">{ctaDescription}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link to="/daftar" className="btn bg-white text-brand-green-dark hover:bg-white/90 text-base px-5 py-3">
-              Daftar Gratis <ArrowRight className="h-4 w-4" />
+              {ctaPrimary} <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/login" className="btn border border-white/40 text-white hover:bg-white/10 text-base px-5 py-3">Sudah punya akun</Link>
+            <Link to="/login" className="btn border border-white/40 text-white hover:bg-white/10 text-base px-5 py-3">{ctaSecondary}</Link>
           </div>
         </div>
       </section>

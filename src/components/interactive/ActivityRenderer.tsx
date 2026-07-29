@@ -30,11 +30,10 @@ import {
 import {
   type AnswerValue,
   type Jawaban,
-  type UploadedFile,
 } from "@/lib/firebase";
 import { TextAnswer } from "./TextAnswer";
 import { EditableTable } from "./EditableTable";
-import { FileUpload } from "./FileUpload";
+import { UrlInput } from "./UrlInput";
 import { ArgumentationTAP } from "./ArgumentationTAP";
 import { RadioCardSelector } from "./RadioCardSelector";
 import { EAssessment } from "./EAssessment";
@@ -1285,16 +1284,14 @@ function BlockRenderer({
               {block.allowImage && (
                 <div>
                   <p className="mb-2 text-xs font-medium text-slate-500">
-                    Unggah foto grafik/perhitungan tulis tangan (opsional)
+                    URL foto grafik/perhitungan tulis tangan (opsional)
                   </p>
-                  <FileUpload
-                    value={
-                      (answers[`${block.id}_img`] as { files: UploadedFile[] })
-                        ?.files || []
-                    }
-                    onChange={(files) => onUpdate(`${block.id}_img`, { files })}
+                  <UrlInput
+                    value={(answers[`${block.id}_img`] as string) || ""}
+                    onChange={(url) => onUpdate(`${block.id}_img`, url)}
                     disabled={readOnly}
-                    pathPrefix={`kegiatan-${kegiatan.nomor}`}
+                    placeholder="https://drive.google.com/file/d/..."
+                    label="URL Foto"
                   />
                 </div>
               )}
@@ -1390,16 +1387,14 @@ function BlockRenderer({
               {block.allowImage && (
                 <div className="mt-3">
                   <p className="mb-2 text-xs font-medium text-slate-500">
-                    Unggah foto grafik/perhitungan tulis tangan (opsional)
+                    URL foto grafik/perhitungan tulis tangan (opsional)
                   </p>
-                  <FileUpload
-                    value={
-                      (answers[`${block.id}_img`] as { files: UploadedFile[] })
-                        ?.files || []
-                    }
-                    onChange={(files) => onUpdate(`${block.id}_img`, { files })}
+                  <UrlInput
+                    value={(answers[`${block.id}_img`] as string) || ""}
+                    onChange={(url) => onUpdate(`${block.id}_img`, url)}
                     disabled={readOnly}
-                    pathPrefix={`kegiatan-${kegiatan.nomor}`}
+                    placeholder="https://drive.google.com/file/d/..."
+                    label="URL Foto"
                   />
                 </div>
               )}
@@ -1478,13 +1473,12 @@ function BlockRenderer({
                 {block.title}
               </p>
               <p className="mb-3 text-xs text-slate-500">{block.body}</p>
-              <FileUpload
-                value={
-                  (answers[block.id] as { files: UploadedFile[] })?.files || []
-                }
-                onChange={(files) => onUpdate(block.id, { files })}
+              <UrlInput
+                value={(answers[block.id] as string) || ""}
+                onChange={(url) => onUpdate(block.id, url)}
                 disabled={readOnly}
-                pathPrefix={`kegiatan-${kegiatan.nomor}`}
+                placeholder="https://drive.google.com/file/d/..."
+                label="URL File"
               />
             </>
           )}

@@ -31,7 +31,7 @@ export type Profile = {
 
 // lib/firebase.ts - Tambahkan tipe berikut
 
-export type QuestionType = 'pilihan_ganda' | 'essay';
+export type QuestionType = "pilihan_ganda" | "essay";
 
 export type QuestionOption = {
   id: string;
@@ -43,7 +43,7 @@ export type QuestionOption = {
 export type Question = {
   id: string;
   kegiatan_id: string; // Wajib ada
-  test_type: 'pretest' | 'posttest';
+  test_type: "pretest" | "posttest";
   question_type: QuestionType;
   question_text: string;
   options?: QuestionOption[];
@@ -58,7 +58,7 @@ export type TestAnswer = {
   id: string;
   siswa_id: string;
   kegiatan_id: string;
-  test_type: 'pretest' | 'posttest';
+  test_type: "pretest" | "posttest";
   answers: Record<string, string | string[]>; // question_id -> answer
   score: number | null;
   submitted_at: string | null;
@@ -103,7 +103,6 @@ export type AnswerValue =
   | string
   | string[]
   | { rows: string[][] }
-  | { files: UploadedFile[] }
   | { tap: Record<string, string> }
   | null;
 
@@ -132,4 +131,23 @@ export type StatusKuisSiswa = {
   skor_manual: number | null;
   catatan_guru: string | null;
   waktu_ditandai: string | null;
+};
+
+export type LandingPageContent = {
+  id: string;
+  hero_title: string;
+  hero_subtitle: string;
+  hero_description: string;
+  hero_badge: string;
+  hero_cta_primary: string;
+  hero_cta_secondary: string;
+  features_title: string;
+  features_description: string;
+  activities_title: string;
+  activities_description: string;
+  cta_title: string;
+  cta_description: string;
+  cta_primary: string;
+  cta_secondary: string;
+  diperbarui_pada: string;
 };
