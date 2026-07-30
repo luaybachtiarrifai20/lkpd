@@ -29,7 +29,7 @@ export type ContentBlock =
   | { kind: 'analisis-efisiensi'; id: string; title: string; headers: string[]; rows: { cells: string[] }[]; pertanyaanId: string; pertanyaanText: string }
   | { kind: 'tabel-integrasi'; id: string; title: string; headers: string[]; leftCol: string[]; rowCount: number }
   | { kind: 'analisis-prediksi'; id: string; title: string; kondisi: string[]; pertanyaanText: string }
-  | { kind: 'penalaran-level'; makroskopik: string; submikroskopik: string; simbolik: string };
+  | { kind: 'penalaran-level'; makroskopik: string; submikroskopik: string; simbolik: string; levels?: { title: string; desc: string; color?: string }[] };
 
 export type KegiatanContent = {
   nomor: number;

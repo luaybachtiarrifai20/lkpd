@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,16 +22,16 @@ import {
   X,
   Check,
   FileQuestion,
+  Trash2,
+  Plus,
+  ChevronDown,
 } from "lucide-react";
 import {
   type KegiatanContent,
   type ContentBlock,
   type PBLStep,
 } from "@/content/types";
-import {
-  type AnswerValue,
-  type Jawaban,
-} from "@/lib/firebase";
+import { type AnswerValue, type Jawaban } from "@/lib/firebase";
 import { TextAnswer } from "./TextAnswer";
 import { EditableTable } from "./EditableTable";
 import { UrlInput } from "./UrlInput";
@@ -61,14 +62,8 @@ export interface ActivityRendererProps {
   assessmentJudul?: string | null;
   kuisDone?: boolean;
   onTandaiKuis?: (done: boolean) => void;
-  /**
-   * Mode Super Admin: konten bisa diedit per bagian (bukan JSON).
-   * Perubahan dikirim lewat onContentChange.
-   */
   editMode?: boolean;
-  /** Dipanggil setiap konten kegiatan berubah (hanya jika editMode) */
   onContentChange?: (next: KegiatanContent) => void;
-  /** Simpan konten ke database (tombol di action bar) */
   onSaveContent?: () => void;
   contentSaving?: boolean;
 }
@@ -96,7 +91,7 @@ export function ActivityRenderer({
   const readOnly =
     status === "terkumpul" || status === "dinilai" || status === "preview";
 
-  const steps = kegiatan.steps || [];
+  const steps = Array.isArray(kegiatan.steps) ? kegiatan.steps : [];
   const current = steps[activeStep];
 
   const stepCompletion = steps.map((s) => {
@@ -115,7 +110,6 @@ export function ActivityRenderer({
     ((completedCount + (kuisDone ? 1 : 0)) / totalSteps) * 100,
   );
 
-  /** Helper: patch field di root kegiatan */
   const patchRoot = <K extends keyof KegiatanContent>(
     key: K,
     value: KegiatanContent[K],
@@ -124,7 +118,6 @@ export function ActivityRenderer({
     onContentChange({ ...kegiatan, [key]: value });
   };
 
-  /** Helper: patch step by index */
   const patchStep = (stepIndex: number, patch: Partial<PBLStep>) => {
     if (!editMode || !onContentChange) return;
     const nextSteps = steps.map((s, i) =>
@@ -133,7 +126,6 @@ export function ActivityRenderer({
     onContentChange({ ...kegiatan, steps: nextSteps });
   };
 
-  /** Helper: patch block di dalam step */
   const patchBlock = (
     stepIndex: number,
     blockIndex: number,
@@ -147,6 +139,31 @@ export function ActivityRenderer({
         return { ...b, ...patch } as ContentBlock;
       });
       return { ...s, blocks: nextBlocks };
+    });
+    onContentChange({ ...kegiatan, steps: nextSteps });
+  };
+
+  const addBlock = (
+    stepIndex: number,
+    block: ContentBlock,
+    afterIndex?: number,
+  ) => {
+    if (!editMode || !onContentChange) return;
+    const nextSteps = steps.map((s, si) => {
+      if (si !== stepIndex) return s;
+      const nextBlocks = [...s.blocks];
+      const pos = afterIndex != null ? afterIndex + 1 : nextBlocks.length;
+      nextBlocks.splice(pos, 0, block);
+      return { ...s, blocks: nextBlocks };
+    });
+    onContentChange({ ...kegiatan, steps: nextSteps });
+  };
+
+  const removeBlock = (stepIndex: number, blockIndex: number) => {
+    if (!editMode || !onContentChange) return;
+    const nextSteps = steps.map((s, si) => {
+      if (si !== stepIndex) return s;
+      return { ...s, blocks: s.blocks.filter((_, bi) => bi !== blockIndex) };
     });
     onContentChange({ ...kegiatan, steps: nextSteps });
   };
@@ -410,6 +427,8 @@ export function ActivityRenderer({
               editMode={editMode}
               onPatchStep={patchStep}
               onPatchBlock={patchBlock}
+              onAddBlock={addBlock}
+              onRemoveBlock={removeBlock}
             />
           ) : steps.length > 0 ? (
             <div className="card animate-fade-in">
@@ -540,6 +559,8 @@ export function ActivityRenderer({
 
 /* ========== Step content ========== */
 
+/* ========== Step content ========== */
+
 function StepContent({
   step,
   stepIndex,
@@ -551,6 +572,8 @@ function StepContent({
   editMode,
   onPatchStep,
   onPatchBlock,
+  onAddBlock,
+  onRemoveBlock,
 }: {
   step: PBLStep;
   stepIndex: number;
@@ -566,7 +589,62 @@ function StepContent({
     blockIndex: number,
     patch: Partial<ContentBlock> & Record<string, unknown>,
   ) => void;
+  onAddBlock: (
+    stepIndex: number,
+    block: ContentBlock,
+    afterIndex?: number,
+  ) => void;
+  onRemoveBlock: (stepIndex: number, blockIndex: number) => void;
 }) {
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+
+  // --- LOGIKA PORTAL ---
+  const updateMenuPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4, // langsung di bawah tombol
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (addMenuOpen) {
+      updateMenuPosition();
+
+      const handleScrollResize = () => updateMenuPosition();
+      window.addEventListener("scroll", handleScrollResize, true);
+      window.addEventListener("resize", handleScrollResize);
+
+      return () => {
+        window.removeEventListener("scroll", handleScrollResize, true);
+        window.removeEventListener("resize", handleScrollResize);
+      };
+    }
+  }, [addMenuOpen]);
+  // --- AKHIR LOGIKA PORTAL ---
+
+  /** Generate unique ID for new blocks */
+  const genId = (prefix: string) => {
+    const existing = (step.blocks || [])
+      .map((b) => ("id" in b ? (b as { id: string }).id : ""))
+      .filter(Boolean);
+    let n = existing.length + 1;
+    while (existing.includes(`k${kegiatan.nomor}_${prefix}${n}`)) n++;
+    return `k${kegiatan.nomor}_${prefix}${n}`;
+  };
+
+  /** Add-block options */
+  const addOptions = getAddBlockOptions(step.sintaks, genId);
+
   return (
     <div className="animate-fade-in space-y-5">
       <div className="banner" style={{ backgroundColor: kegiatan.warna }}>
@@ -596,22 +674,287 @@ function StepContent({
       )}
 
       {step.blocks?.map((block, i) => (
-        <BlockRenderer
-          key={i}
-          block={block}
-          blockIndex={i}
-          stepIndex={stepIndex}
-          kegiatan={kegiatan}
-          answers={answers}
-          onUpdate={onUpdate}
-          readOnly={readOnly}
-          savedAt={savedAt}
-          editMode={editMode}
-          onPatchBlock={onPatchBlock}
-        />
+        <div key={i} className="relative group/block">
+          {editMode && (
+            <div className="absolute -top-2 -right-2 z-10 opacity-0 group-hover/block:opacity-100 transition-opacity">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Hapus blok ini?")) {
+                    onRemoveBlock(stepIndex, i);
+                  }
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors"
+                title="Hapus blok">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+          <BlockRenderer
+            block={block}
+            blockIndex={i}
+            stepIndex={stepIndex}
+            kegiatan={kegiatan}
+            answers={answers}
+            onUpdate={onUpdate}
+            readOnly={readOnly}
+            savedAt={savedAt}
+            editMode={editMode}
+            onPatchBlock={onPatchBlock}
+          />
+        </div>
       ))}
+
+      {/* Add Block buttons — Menggunakan Portal */}
+      {editMode && addOptions.length > 0 && (
+        <div className="relative">
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => setAddMenuOpen((v) => !v)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-200 bg-purple-50/30 px-4 py-3.5 text-sm font-semibold text-purple-600 transition-all hover:border-purple-400 hover:bg-purple-50">
+            <Plus className="h-4 w-4" />
+            Tambah Blok
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${addMenuOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {/* PERBAIKAN PORTAL DI SINI */}
+          {addMenuOpen &&
+            typeof document !== "undefined" &&
+            createPortal(
+              <div
+                className="fixed z-[999] max-h-[350px] overflow-y-auto rounded-xl border border-purple-100 bg-white shadow-2xl animate-fade-in min-w-[200px]"
+                style={{
+                  top: menuPosition.top,
+                  left: menuPosition.left,
+                  width: menuPosition.width || 250, // Fallback jika width 0
+                }}>
+                {/* Pastikan addOptions terdefinisi */}
+                {addOptions && addOptions.length > 0 ? (
+                  addOptions.map((opt) => (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => {
+                        onAddBlock(stepIndex, opt.block);
+                        setAddMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-purple-50 border-b border-purple-50 last:border-0">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                        {opt.icon}
+                      </span>
+                      <span>
+                        <span className="block font-semibold">{opt.label}</span>
+                        <span className="block text-xs text-slate-400">
+                          {opt.desc}
+                        </span>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-sm text-slate-500 text-center">
+                    Tidak ada opsi blok untuk sintaks ini
+                  </div>
+                )}
+              </div>,
+              document.body,
+            )}
+        </div>
+      )}
     </div>
   );
+}
+
+/** Returns add-block menu options based on sintaks number */
+function getAddBlockOptions(
+  sintaks: number,
+  genId: (prefix: string) => string,
+): {
+  label: string;
+  desc: string;
+  icon: React.ReactNode;
+  block: ContentBlock;
+}[] {
+  switch (sintaks) {
+    case 1:
+      return [
+        {
+          label: "Pertanyaan Pemantik",
+          desc: "Pertanyaan teks dengan kolom jawaban",
+          icon: <AlertTriangle className="h-4 w-4" />,
+          block: { kind: "pertanyaan", id: genId("p"), text: "", hint: "" },
+        },
+        {
+          label: "Stimulus",
+          desc: "Teks stimulus / konteks masalah",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: { kind: "stimulus", title: "Amati dan Simak", body: "" },
+        },
+        {
+          label: "Narasi Masalah",
+          desc: "Deskripsi narasi masalah",
+          icon: <AlertTriangle className="h-4 w-4" />,
+          block: { kind: "masalah", title: "Narasi Masalah", body: "" },
+        },
+      ];
+    case 2:
+      return [
+        {
+          label: "Tabel Organisasi (Aktivitas)",
+          desc: "Tabel diagnosis / perencanaan",
+          icon: <ClipboardList className="h-4 w-4" />,
+          block: {
+            kind: "tabel-org",
+            id: genId("org"),
+            headers: [
+              "Apa yang sudah diketahui?",
+              "Apa yang perlu diketahui?",
+              "Hipotesis",
+            ],
+            rowCount: 3,
+            title: "Aktivitas Baru",
+            perencanaanId: genId("rencana"),
+            perencanaanText: "",
+          },
+        },
+      ];
+    case 3:
+      return [
+        {
+          label: "Bagian Header",
+          desc: "Pemisah judul bagian (mis. Bagian A)",
+          icon: <Target className="h-4 w-4" />,
+          block: { kind: "bagian-header", label: "Bagian Baru" },
+        },
+        {
+          label: "Pertanyaan Analisis",
+          desc: "Pertanyaan analisis teks panjang",
+          icon: <Microscope className="h-4 w-4" />,
+          block: {
+            kind: "analitis",
+            id: genId("a"),
+            text: "",
+            allowImage: false,
+          },
+        },
+        {
+          label: "Input Perhitungan",
+          desc: "Input dengan label dan satuan",
+          icon: <BarChart3 className="h-4 w-4" />,
+          block: {
+            kind: "input-hitung",
+            id: genId("h"),
+            label: "",
+            unit: "",
+            allowImage: false,
+          },
+        },
+        {
+          label: "Data Eksperimen",
+          desc: "Tabel data percobaan",
+          icon: <FlaskConical className="h-4 w-4" />,
+          block: {
+            kind: "data-eksperimen",
+            title: "Data Percobaan Baru",
+            headers: ["Kolom 1", "Kolom 2", "Kolom 3"],
+            rows: [{ cells: ["", "", ""] }],
+          },
+        },
+        {
+          label: "Diagram Submikroskopik",
+          desc: "Diagram perbandingan kiri-kanan",
+          icon: <Atom className="h-4 w-4" />,
+          block: {
+            kind: "diagram-submikro",
+            title: "Diagram Baru",
+            kiri: { label: "Kondisi A", deskripsi: "" },
+            kanan: { label: "Kondisi B", deskripsi: "" },
+          },
+        },
+      ];
+    case 4:
+      return [
+        {
+          label: "Instruksi Pengembangan",
+          desc: "Instruksi tugas dengan bullet points",
+          icon: <UploadCloud className="h-4 w-4" />,
+          block: {
+            kind: "instruksi-pengembangan",
+            title: "Instruksi Baru",
+            body: "",
+            bullets: [],
+          },
+        },
+        {
+          label: "Upload Hasil",
+          desc: "Kolom upload karya / file",
+          icon: <UploadCloud className="h-4 w-4" />,
+          block: {
+            kind: "upload-hasil",
+            id: genId("up"),
+            title: "Unggah Karya",
+            body: "",
+          },
+        },
+      ];
+    case 5:
+      return [
+        {
+          label: "Studi Kasus / Alternatif",
+          desc: "Pilihan alternatif dengan alasan",
+          icon: <ClipboardList className="h-4 w-4" />,
+          block: {
+            kind: "alternatif-kasus",
+            id: genId("alt"),
+            title: "Studi Kasus Baru",
+            options: [
+              { id: "a", label: "Alternatif A", deskripsi: "" },
+              { id: "b", label: "Alternatif B", deskripsi: "" },
+            ],
+            alasanId: genId("alt_alasan"),
+          },
+        },
+        {
+          label: "Argumentasi TAP",
+          desc: "Kerangka argumentasi Toulmin",
+          icon: <MessagesSquare className="h-4 w-4" />,
+          block: {
+            kind: "argumentasi-tap",
+            id: genId("tap"),
+            title: "Argumentasi Ilmiah (TAP)",
+            kasus: "",
+          },
+        },
+        {
+          label: "Penalaran Level (3 Representasi)",
+          desc: "Makroskopik, Submikroskopik, Simbolik",
+          icon: <Atom className="h-4 w-4" />,
+          block: {
+            kind: "penalaran-level",
+            makroskopik: "",
+            submikroskopik: "",
+            simbolik: "",
+          },
+        },
+      ];
+    default:
+      return [
+        {
+          label: "Pertanyaan",
+          desc: "Pertanyaan teks umum",
+          icon: <AlertTriangle className="h-4 w-4" />,
+          block: { kind: "pertanyaan", id: genId("q"), text: "" },
+        },
+        {
+          label: "Bagian Header",
+          desc: "Pemisah judul bagian",
+          icon: <Target className="h-4 w-4" />,
+          block: { kind: "bagian-header", label: "Bagian Baru" },
+        },
+      ];
+  }
 }
 
 function blockKey(b: ContentBlock): string | null {
@@ -725,7 +1068,6 @@ function AdminTextArea({
   );
 }
 
-/** Panel edit media (YouTube / image) — selalu tampil di editMode */
 function AdminMediaFields({
   block,
   onPatch,
@@ -795,17 +1137,10 @@ function AdminMediaFields({
   );
 }
 
-// ActivityRenderer.tsx - Tambahkan di atas component atau di dalam file
-
-// ActivityRenderer.tsx - Perbaiki renderRows function
-
 function renderRows(rows: unknown) {
   console.log("renderRows called with:", rows);
-  console.log("Type of rows:", typeof rows);
-  console.log("Is array:", Array.isArray(rows));
 
   if (!rows) {
-    console.log("Rows is null/undefined");
     return (
       <tr>
         <td
@@ -817,20 +1152,15 @@ function renderRows(rows: unknown) {
     );
   }
 
-  // Jika rows bukan array, coba konversi atau tampilkan error
   if (!Array.isArray(rows)) {
     console.error("Rows is not an array:", rows);
-
-    // Coba cek apakah rows adalah object dengan properti tertentu
     if (typeof rows === "object" && rows !== null) {
-      // Jika rows adalah object dengan keys numerik (seperti array-like object)
       const values = Object.values(rows);
       if (values.length > 0) {
         console.log("Converting object to array:", values);
         return renderRows(values);
       }
     }
-
     return (
       <tr>
         <td colSpan={99} className="px-3 py-6 text-center text-sm text-red-500">
@@ -841,7 +1171,6 @@ function renderRows(rows: unknown) {
   }
 
   if (rows.length === 0) {
-    console.log("Rows is empty array");
     return (
       <tr>
         <td
@@ -854,20 +1183,14 @@ function renderRows(rows: unknown) {
   }
 
   try {
-    // Cek struktur rows
     const firstRow = rows[0];
-    console.log("First row:", firstRow);
-    console.log("First row type:", typeof firstRow);
 
-    // Kasus 1: rows adalah array of objects dengan properti 'cells'
     if (
       typeof firstRow === "object" &&
       firstRow !== null &&
       "cells" in firstRow
     ) {
-      console.log("Rows has cells structure");
       return (rows as { cells: string[] }[]).map((row, index) => {
-        // Pastikan row.cells adalah array
         if (!Array.isArray(row.cells)) {
           console.error("Row.cells is not an array:", row);
           return (
@@ -878,7 +1201,6 @@ function renderRows(rows: unknown) {
             </tr>
           );
         }
-
         return (
           <tr key={index} className={index % 2 ? "bg-slate-50/40" : ""}>
             {row.cells.map((cell: string, c: number) => (
@@ -893,11 +1215,8 @@ function renderRows(rows: unknown) {
       });
     }
 
-    // Kasus 2: rows adalah array of arrays (string[][])
     if (Array.isArray(firstRow)) {
-      console.log("Rows is array of arrays");
       return (rows as string[][]).map((row, index) => {
-        // Pastikan row adalah array
         if (!Array.isArray(row)) {
           console.error("Row is not an array:", row);
           return (
@@ -908,7 +1227,6 @@ function renderRows(rows: unknown) {
             </tr>
           );
         }
-
         return (
           <tr key={index} className={index % 2 ? "bg-slate-50/40" : ""}>
             {row.map((cell: string, c: number) => (
@@ -923,14 +1241,10 @@ function renderRows(rows: unknown) {
       });
     }
 
-    // Kasus 3: rows adalah array of objects dengan properti lain
     if (typeof firstRow === "object" && firstRow !== null) {
       console.log("Rows is array of objects, trying to extract values");
       const keys = Object.keys(firstRow);
-      console.log("Object keys:", keys);
-
       return (rows as Record<string, any>[]).map((row, index) => {
-        // Coba ambil nilai dari object
         const values = keys.map((key) => row[key] ?? "-");
         return (
           <tr key={index} className={index % 2 ? "bg-slate-50/40" : ""}>
@@ -946,7 +1260,6 @@ function renderRows(rows: unknown) {
       });
     }
 
-    // Kasus 4: rows adalah array of primitive values
     console.log("Rows is array of primitives");
     return (
       <tr>
@@ -1495,18 +1808,64 @@ function BlockRenderer({
                 value={block.title || ""}
                 onChange={(v) => patch({ title: v })}
               />
-              <AdminTextArea
-                label="Opsi (satu baris = satu opsi)"
-                value={(block.options || []).join("\n")}
-                onChange={(v) =>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-600">
+                Pilihan Alternatif
+              </p>
+              {(block.options || []).map((opt, i) => (
+                <div
+                  key={i}
+                  className="space-y-2 rounded-xl border border-dashed border-purple-200 p-3 relative group/opt">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [...(block.options || [])];
+                      next.splice(i, 1);
+                      patch({ options: next });
+                    }}
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 group-hover/opt:opacity-100 transition-opacity shadow">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                  <AdminTextInput
+                    label={`Label Opsi ${i + 1}`}
+                    value={opt.label || ""}
+                    onChange={(v) => {
+                      const next = [...(block.options || [])];
+                      next[i] = { ...next[i], label: v };
+                      patch({ options: next });
+                    }}
+                  />
+                  <AdminTextArea
+                    label={`Deskripsi Opsi ${i + 1}`}
+                    value={opt.deskripsi || ""}
+                    onChange={(v) => {
+                      const next = [...(block.options || [])];
+                      next[i] = { ...next[i], deskripsi: v };
+                      patch({ options: next });
+                    }}
+                    rows={2}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextId = String.fromCharCode(
+                    97 + (block.options?.length || 0),
+                  ); // a, b, c...
                   patch({
-                    options: v
-                      .split("\n")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-              />
+                    options: [
+                      ...(block.options || []),
+                      {
+                        id: nextId,
+                        label: `Alternatif ${nextId.toUpperCase()}`,
+                        deskripsi: "",
+                      },
+                    ],
+                  });
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-200 px-3 py-2.5 text-xs font-semibold text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition">
+                <Plus className="h-3.5 w-3.5" /> Tambah Opsi
+              </button>
             </div>
           ) : (
             <>
@@ -1577,34 +1936,121 @@ function BlockRenderer({
         </div>
       );
 
-    case "penalaran-level":
+    case "penalaran-level": {
+      const extraLevels = block.levels || [];
+      const defaultLevelColors = [
+        "bg-purple-100 text-purple-600",
+        "bg-rose-100 text-rose-600",
+        "bg-cyan-100 text-cyan-600",
+        "bg-indigo-100 text-indigo-600",
+      ];
       return (
         <div className="card">
           {editMode ? (
-            <div className="space-y-2">
-              <AdminTextArea
-                label="Makroskopik"
-                value={block.makroskopik || ""}
-                onChange={(v) => patch({ makroskopik: v })}
-              />
-              <AdminTextArea
-                label="Submikroskopik"
-                value={block.submikroskopik || ""}
-                onChange={(v) => patch({ submikroskopik: v })}
-              />
-              <AdminTextArea
-                label="Simbolik"
-                value={block.simbolik || ""}
-                onChange={(v) => patch({ simbolik: v })}
-              />
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-purple-600">
+                Level Representasi — 3 Level Utama
+              </p>
+              {/* Built-in 3 levels */}
+              <div className="space-y-2 rounded-xl border border-slate-200 p-3">
+                <AdminTextInput
+                  label="Judul Level 1"
+                  value="Makroskopik"
+                  onChange={() => {}}
+                />
+                <AdminTextArea
+                  label="Deskripsi Makroskopik"
+                  value={block.makroskopik || ""}
+                  onChange={(v) => patch({ makroskopik: v })}
+                />
+              </div>
+              <div className="space-y-2 rounded-xl border border-slate-200 p-3">
+                <AdminTextInput
+                  label="Judul Level 2"
+                  value="Submikroskopik"
+                  onChange={() => {}}
+                />
+                <AdminTextArea
+                  label="Deskripsi Submikroskopik"
+                  value={block.submikroskopik || ""}
+                  onChange={(v) => patch({ submikroskopik: v })}
+                />
+              </div>
+              <div className="space-y-2 rounded-xl border border-slate-200 p-3">
+                <AdminTextInput
+                  label="Judul Level 3"
+                  value="Simbolik"
+                  onChange={() => {}}
+                />
+                <AdminTextArea
+                  label="Deskripsi Simbolik"
+                  value={block.simbolik || ""}
+                  onChange={(v) => patch({ simbolik: v })}
+                />
+              </div>
+
+              {/* Dynamic extra levels */}
+              {extraLevels.length > 0 && (
+                <p className="text-xs font-semibold uppercase tracking-wide text-purple-600 pt-2">
+                  Level Tambahan
+                </p>
+              )}
+              {extraLevels.map((lvl, li) => (
+                <div
+                  key={li}
+                  className="space-y-2 rounded-xl border border-dashed border-purple-200 bg-purple-50/30 p-3 relative group/lvl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = extraLevels.filter((_, idx) => idx !== li);
+                      patch({ levels: next });
+                    }}
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 group-hover/lvl:opacity-100 transition-opacity shadow"
+                    title="Hapus level">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                  <AdminTextInput
+                    label={`Judul Level ${li + 4}`}
+                    value={lvl.title || ""}
+                    onChange={(v) => {
+                      const next = extraLevels.map((l, idx) =>
+                        idx === li ? { ...l, title: v } : l,
+                      );
+                      patch({ levels: next });
+                    }}
+                  />
+                  <AdminTextArea
+                    label="Deskripsi"
+                    value={lvl.desc || ""}
+                    onChange={(v) => {
+                      const next = extraLevels.map((l, idx) =>
+                        idx === li ? { ...l, desc: v } : l,
+                      );
+                      patch({ levels: next });
+                    }}
+                  />
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() =>
+                  patch({
+                    levels: [...extraLevels, { title: "Level Baru", desc: "" }],
+                  })
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-200 px-3 py-2.5 text-xs font-semibold text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition">
+                <Plus className="h-3.5 w-3.5" /> Tambah Level
+              </button>
             </div>
           ) : (
             <>
               <p className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
                 <Atom className="h-4 w-4 text-brand-teal" /> Integrasi Penalaran
-                Kimia — 3 Level Representasi
+                Kimia — {3 + extraLevels.length} Level Representasi
               </p>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div
+                className={`grid gap-3 ${extraLevels.length > 0 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-3"}`}>
                 <LevelCard
                   icon={<Microscope className="h-5 w-5" />}
                   title="Makroskopik"
@@ -1623,11 +2069,21 @@ function BlockRenderer({
                   desc={block.simbolik}
                   color="bg-brand-amber-light text-brand-amber"
                 />
+                {extraLevels.map((lvl, li) => (
+                  <LevelCard
+                    key={li}
+                    icon={<Atom className="h-5 w-5" />}
+                    title={lvl.title}
+                    desc={lvl.desc}
+                    color={defaultLevelColors[li % defaultLevelColors.length]}
+                  />
+                ))}
               </div>
             </>
           )}
         </div>
       );
+    }
 
     case "bagian-header":
       return editMode ? (

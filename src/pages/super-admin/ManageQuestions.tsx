@@ -8,11 +8,9 @@ import {
   where,
   getDocs,
   doc,
-  setDoc,
   deleteDoc,
   updateDoc,
   addDoc,
-  orderBy,
 } from "firebase/firestore";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
@@ -30,8 +28,6 @@ import {
   Circle,
   Type,
   List,
-  Eye,
-  LayoutDashboard,
   Clock,
   Users,
   BookOpen,
