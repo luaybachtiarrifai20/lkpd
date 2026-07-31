@@ -26,6 +26,7 @@ import type { ReactNode } from "react";
 import { ManageQuestions } from "./pages/super-admin/ManageQuestions";
 import { TestPage } from "./pages/student/TestPage";
 import { SuperAdminKegiatanDetail } from "./pages/super-admin/SuperAdminKegiatanDetail";
+import { ManageAboutPage } from "./pages/super-admin/ManageAboutPage";
 
 function ProtectedRoute({
   role,
@@ -205,6 +206,7 @@ export default function App() {
                 </SuperAdminProtectedRoute>
               }
             />
+            <Route path="/super-admin/about" element={<ManageAboutPage />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

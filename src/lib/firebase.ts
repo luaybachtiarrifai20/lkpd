@@ -29,6 +29,21 @@ export type Profile = {
   dibuat_pada: string;
 };
 
+export type AboutPageContent = {
+  id: string;
+  badge: string;
+  deskripsi_1: string;
+  deskripsi_2: string;
+  // Kartu pendekatan (4 item)
+  approaches: Array<{ title: string; description: string }>;
+  // Peran
+  role_siswa_items: string[];
+  role_guru_items: string[];
+  // Judul section kegiatan (opsional; jumlah dinamis dari DB)
+  kegiatan_section_title: string;
+  diperbarui_pada: string;
+};
+
 // lib/firebase.ts - Tambahkan tipe berikut
 
 export type QuestionType = "pilihan_ganda" | "essay";

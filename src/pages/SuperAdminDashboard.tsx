@@ -4,7 +4,7 @@ import {
   collection, getDocs, doc, updateDoc, deleteDoc, setDoc, query, where, orderBy,
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan, type LandingPageContent } from '@/lib/firebase';
+import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan, type LandingPageContent, AboutPageContent } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Badge, EmptyState } from '@/components/ui';
 
-type TabType = 'pending' | 'profiles' | 'kelas' | 'jawaban' | 'kegiatan' | 'admins' | 'questions' | 'landing';
+type TabType = 'pending' | 'profiles' | 'kelas' | 'jawaban' | 'kegiatan' | 'admins' | 'questions' | 'landing' | 'about';
 
 type EditingItem = {
   id: string;
@@ -61,6 +61,7 @@ const navItems = [
   { to: '/super-admin?tab=admins', label: 'Super Admins', icon: <Shield className="h-5 w-5" /> },
   { to: '/super-admin?tab=landing', label: 'Landing Page', icon: <LayoutDashboard className="h-5 w-5" /> },
   { to: '/super-admin/questions', label: 'Kelola Soal', icon: <FileText className="h-5 w-5" /> },
+  { to: '/super-admin/about', label: 'Kelola About', icon: <FileText className="h-5 w-5" /> }
 ];
 
 const TAB_TITLES: Record<TabType, string> = {
@@ -72,11 +73,12 @@ const TAB_TITLES: Record<TabType, string> = {
   admins: 'Super Admins',
   questions: 'Kelola Soal',
   landing: 'Konten Landing Page',
+  about: 'Konten About Page'
 };
 
 function parseTab(search: string): TabType {
   const q = new URLSearchParams(search).get('tab');
-  const allowed: TabType[] = ['pending', 'profiles', 'kelas', 'jawaban', 'kegiatan', 'admins', 'questions', 'landing'];
+  const allowed: TabType[] = ['pending', 'profiles', 'kelas', 'jawaban', 'kegiatan', 'admins', 'questions', 'landing', 'about'];
   if (q && (allowed as string[]).includes(q)) return q as TabType;
   return 'pending';
 }
@@ -96,6 +98,7 @@ export function SuperAdminDashboard() {
   const [jawaban, setJawaban] = useState<Jawaban[]>([]);
   const [kegiatan, setKegiatan] = useState<Kegiatan[]>([]);
   const [landingContent, setLandingContent] = useState<LandingPageContent | null>(null);
+  const [aboutContent, setAboutContent] = useState<AboutPageContent | null>(null);
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);

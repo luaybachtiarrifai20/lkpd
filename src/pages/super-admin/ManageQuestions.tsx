@@ -33,6 +33,7 @@ import {
   BookOpen,
   Activity,
   Shield,
+  LayoutDashboard,
 } from "lucide-react";
 import type { Question, QuestionOption, QuestionType } from "@/lib/firebase";
 
@@ -74,8 +75,18 @@ const navItems = [
     icon: <Shield className="h-5 w-5" />,
   },
   {
+    to: "/super-admin?tab=landing",
+    label: "Konten Landing Page",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
     to: "/super-admin/questions",
     label: "Kelola Soal",
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    to: "/super-admin/about",
+    label: "Kelola About",
     icon: <FileText className="h-5 w-5" />,
   },
 ];
