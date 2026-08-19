@@ -103,6 +103,36 @@ function buildKegiatanMap(
   return map;
 }
 
+/**
+ * Build a sorted list of kegiatan (nomor, judul, subjudul) from the Firestore
+ * `kegiatan` collection so dropdowns reflect the actual database contents.
+ */
+function buildKegiatanList(
+  docs: { id: string; data: () => Record<string, unknown> }[],
+): { nomor: number; judul: string; subjudul: string }[] {
+  const list: { nomor: number; judul: string; subjudul: string }[] = [];
+  docs.forEach((d) => {
+    const data = d.data() as Record<string, any>;
+    const idMatch = String(d.id || "").match(/kegiatan-(\d+)/);
+    let nomor = idMatch ? Number(idMatch[1]) : undefined;
+    if (nomor === undefined || Number.isNaN(nomor)) {
+      const dataNomor = data?.nomor;
+      if (typeof dataNomor === "number") nomor = dataNomor;
+    }
+    if (nomor === undefined || Number.isNaN(nomor)) return;
+    list.push({
+      nomor,
+      judul:
+        (typeof data?.judul === "string" && data.judul) ||
+        `Kegiatan ${nomor}`,
+      subjudul:
+        (typeof data?.subjudul === "string" && data.subjudul) || "",
+    });
+  });
+  list.sort((a, b) => a.nomor - b.nomor);
+  return list;
+}
+
 // ============ Dashboard ============
 export function TeacherDashboard() {
   const { profile } = useAuth();
@@ -503,6 +533,9 @@ export function TeacherRekap() {
   const [loading, setLoading] = useState(false);
   const [loadingKelas, setLoadingKelas] = useState(true);
   const [kegIds, setKegIds] = useState<Record<number, string>>({});
+  const [kegiatanList, setKegiatanList] = useState<
+    { nomor: number; judul: string; subjudul: string }[]
+  >([]);
 
   useEffect(() => {
     // Tunggu profile siap; pakai profile.id ATAU auth.uid
@@ -543,7 +576,11 @@ export function TeacherRekap() {
 
         const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
         const map = buildKegiatanMap(kegsSnapshot.docs);
-        if (!cancelled) setKegIds(map);
+        const list = buildKegiatanList(kegsSnapshot.docs);
+        if (!cancelled) {
+          setKegIds(map);
+          setKegiatanList(list);
+        }
       } catch (err) {
         console.error("[TeacherRekap] load error:", err);
         toast(
@@ -671,7 +708,7 @@ export function TeacherRekap() {
 
   const handleExportRekap = () => {
     const k = kelas.find((x) => x.id === selKelas);
-    const keg = KEGIATAN_CONTENT.find((c) => c.nomor === Number(selKeg));
+    const keg = kegiatanList.find((c) => c.nomor === Number(selKeg));
     const data = rows.map((r) => ({
       nama: r.siswa.nama,
       kelas: k?.nama_kelas || "",
@@ -727,11 +764,15 @@ export function TeacherRekap() {
               className="input-base min-w-[180px]"
               value={selKeg}
               onChange={(e) => setSelKeg(e.target.value)}>
-              {KEGIATAN_CONTENT.map((k) => (
-                <option key={k.nomor} value={k.nomor}>
-                  Kegiatan {k.nomor} — {k.subjudul}
-                </option>
-              ))}
+              {kegiatanList.length === 0 ? (
+                <option value="">— Belum ada kegiatan —</option>
+              ) : (
+                kegiatanList.map((k) => (
+                  <option key={k.nomor} value={k.nomor}>
+                    Kegiatan {k.nomor} — {k.subjudul || k.judul}
+                  </option>
+                ))
+              )}
             </select>
           </div>
           <button

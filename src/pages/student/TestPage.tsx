@@ -40,12 +40,13 @@ const navItems = [
 type TestMode = 'pretest' | 'posttest';
 
 export function TestPage() {
-  const { kegiatanId } = useParams<{ kegiatanId: string }>();
+  const { kegiatanId, testType } = useParams<{ kegiatanId: string; testType: string }>();
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { toast } = useToast();
+  // Derive mode from the URL so `/posttest` actually opens the posttest.
+  const mode: TestMode = testType === 'posttest' ? 'posttest' : 'pretest';
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<TestMode>('pretest');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -63,6 +64,13 @@ export function TestPage() {
 
   const loadQuestions = async () => {
     setLoading(true);
+    // Reset per-test state so switching pretest/posttest doesn't leak stale data
+    setSubmitted(false);
+    setStartedAt(null);
+    setTestAnswerDoc(null);
+    setAnswers({});
+    setCurrentIndex(0);
+    setQuestions([]);
     try {
       const kegiatanRef = `kegiatan-${kegiatanId}`;
       const q = query(
