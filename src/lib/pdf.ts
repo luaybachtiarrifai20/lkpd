@@ -306,13 +306,25 @@ function renderAnswer(doc: jsPDF, ans: unknown, write: (text: string) => void) {
   }
   if (typeof ans === "object") {
     const a = ans as {
-      rows?: string[][];
+      rows?: unknown;
       files?: { name: string; url: string }[];
       tap?: Record<string, string>;
     };
-    if (a.rows) {
+    if (a.rows && Array.isArray(a.rows)) {
       write(`[Tabel ${a.rows.length} baris]`);
-      a.rows.forEach((r) => write(r.join(" | ")));
+      a.rows.forEach((row) => {
+        if (Array.isArray(row)) {
+          write(row.map((c) => String(c ?? "")).join(" | "));
+        } else if (row && typeof row === "object" && "cells" in row) {
+          write(
+            ((row as { cells?: unknown[] }).cells || [])
+              .map((c) => String(c ?? ""))
+              .join(" | "),
+          );
+        } else {
+          write(String(row ?? ""));
+        }
+      });
       return;
     }
     if (a.files) {

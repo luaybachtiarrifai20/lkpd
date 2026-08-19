@@ -76,6 +76,7 @@ export type TestAnswer = {
   test_type: "pretest" | "posttest";
   answers: Record<string, string | string[]>; // question_id -> answer
   score: number | null;
+  feedback_guru?: string | null;
   submitted_at: string | null;
   started_at: string | null;
   completed: boolean;

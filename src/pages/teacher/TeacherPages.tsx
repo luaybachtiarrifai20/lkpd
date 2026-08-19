@@ -27,6 +27,7 @@ import {
   type Kelas,
   type Profile,
   type Jawaban,
+  type TestAnswer,
   type StatusKuisSiswa,
   type AssessmentEksternal,
 } from "@/lib/firebase";
@@ -46,6 +47,7 @@ import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
 import { Badge, EmptyState } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
 import { exportJawabanPDF, exportRekapPDF } from "@/lib/pdf";
+import { restoreIsiJawaban } from "@/lib/answers";
 
 const navItems = [
   {
@@ -79,6 +81,27 @@ const navItems = [
     icon: <UserCircle className="h-5 w-5" />,
   },
 ];
+
+/**
+ * Build a mapping of kegiatan nomor -> Firestore doc id.
+ * Prefer the document id pattern `kegiatan-<n>` (source of truth), and fall
+ * back to the `nomor` field if the id has no number.
+ */
+function buildKegiatanMap(
+  docs: { id: string; data: () => Record<string, unknown> }[],
+): Record<number, string> {
+  const map: Record<number, string> = {};
+  docs.forEach((d) => {
+    const idMatch = String(d.id || "").match(/kegiatan-(\d+)/);
+    let nomor = idMatch ? Number(idMatch[1]) : undefined;
+    if (nomor === undefined || Number.isNaN(nomor)) {
+      const dataNomor = d.data()?.nomor;
+      if (typeof dataNomor === "number") nomor = dataNomor;
+    }
+    if (nomor !== undefined && !Number.isNaN(nomor)) map[nomor] = d.id;
+  });
+  return map;
+}
 
 // ============ Dashboard ============
 export function TeacherDashboard() {
@@ -475,7 +498,7 @@ export function TeacherRekap() {
   const [selKelas, setSelKelas] = useState<string>("");
   const [selKeg, setSelKeg] = useState<string>("1");
   const [rows, setRows] = useState<
-    { siswa: Profile; jawaban?: Jawaban; kuis?: StatusKuisSiswa }[]
+    { siswa: Profile; jawaban?: Jawaban; kuis?: StatusKuisSiswa; pretest?: TestAnswer | null; posttest?: TestAnswer | null }[]
   >([]);
   const [loading, setLoading] = useState(false);
   const [loadingKelas, setLoadingKelas] = useState(true);
@@ -519,11 +542,7 @@ export function TeacherRekap() {
         if (!cancelled) setKelas(kList);
 
         const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
-        const map: Record<number, string> = {};
-        kegsSnapshot.docs.forEach((d) => {
-          const g = d.data() as { nomor: number };
-          map[g.nomor] = d.id;
-        });
+        const map = buildKegiatanMap(kegsSnapshot.docs);
         if (!cancelled) setKegIds(map);
       } catch (err) {
         console.error("[TeacherRekap] load error:", err);
@@ -565,6 +584,8 @@ export function TeacherRekap() {
       // Tetap tampilkan siswa meski kegiatan belum ada di Firestore
       const jByS: Record<string, Jawaban> = {};
       const kByS: Record<string, StatusKuisSiswa> = {};
+      const preByS: Record<string, TestAnswer> = {};
+      const postByS: Record<string, TestAnswer> = {};
 
       if (kegId && sIds.length > 0) {
         // Firestore 'in' max 30 item — chunk jika perlu
@@ -574,7 +595,7 @@ export function TeacherRekap() {
           );
 
         for (const ids of chunk(sIds, 30)) {
-          const [jSnapshot, kSnapshot] = await Promise.all([
+          const [jSnapshot, kSnapshot, preSnapshot, postSnapshot] = await Promise.all([
             getDocs(
               query(
                 collection(db, "jawaban"),
@@ -589,6 +610,22 @@ export function TeacherRekap() {
                 where("siswa_id", "in", ids),
               ),
             ),
+            getDocs(
+              query(
+                collection(db, "test_answers"),
+                where("kegiatan_id", "==", kegId),
+                where("siswa_id", "in", ids),
+                where("test_type", "==", "pretest"),
+              ),
+            ),
+            getDocs(
+              query(
+                collection(db, "test_answers"),
+                where("kegiatan_id", "==", kegId),
+                where("siswa_id", "in", ids),
+                where("test_type", "==", "posttest"),
+              ),
+            ),
           ]);
           jSnapshot.docs.forEach((d) => {
             const data = { id: d.id, ...d.data() } as Jawaban;
@@ -598,11 +635,25 @@ export function TeacherRekap() {
             const data = { id: d.id, ...d.data() } as StatusKuisSiswa;
             kByS[data.siswa_id] = data;
           });
+          preSnapshot.docs.forEach((d) => {
+            const data = { id: d.id, ...d.data() } as TestAnswer;
+            preByS[data.siswa_id] = data;
+          });
+          postSnapshot.docs.forEach((d) => {
+            const data = { id: d.id, ...d.data() } as TestAnswer;
+            postByS[data.siswa_id] = data;
+          });
         }
       }
 
       setRows(
-        siswa.map((s) => ({ siswa: s, jawaban: jByS[s.id], kuis: kByS[s.id] })),
+        siswa.map((s) => ({
+          siswa: s,
+          jawaban: jByS[s.id],
+          kuis: kByS[s.id],
+          pretest: preByS[s.id] ?? null,
+          posttest: postByS[s.id] ?? null,
+        })),
       );
     } catch (err) {
       console.error("[TeacherRekap] loadRekap error:", err);
@@ -724,6 +775,12 @@ export function TeacherRekap() {
                     Kuis
                   </th>
                   <th className="px-3 py-2.5 font-semibold text-slate-700">
+                    Pretest
+                  </th>
+                  <th className="px-3 py-2.5 font-semibold text-slate-700">
+                    Posttest
+                  </th>
+                  <th className="px-3 py-2.5 font-semibold text-slate-700">
                     Skor Kuis
                   </th>
                   <th className="px-3 py-2.5 font-semibold text-slate-700">
@@ -760,6 +817,12 @@ export function TeacherRekap() {
                       ) : (
                         <Circle className="h-4 w-4 text-slate-300" />
                       )}
+                    </td>
+                    <td className="px-3 py-2.5 text-sm">
+                      {r.pretest?.score != null ? r.pretest.score : "-"}
+                    </td>
+                    <td className="px-3 py-2.5 text-sm">
+                      {r.posttest?.score != null ? r.posttest.score : "-"}
                     </td>
                     <td className="px-3 py-2.5">
                       {r.kuis?.skor_manual ?? "-"}
@@ -806,6 +869,28 @@ export function TeacherSiswaDetail() {
   const [skor, setSkor] = useState("");
   const [skorKuis, setSkorKuis] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [testPre, setTestPre] = useState<TestAnswer | null>(null);
+  const [testPost, setTestPost] = useState<TestAnswer | null>(null);
+  const [skorPre, setSkorPre] = useState<string>("");
+  const [feedbackPre, setFeedbackPre] = useState<string>("");
+  const [skorPost, setSkorPost] = useState<string>("");
+  const [feedbackPost, setFeedbackPost] = useState<string>("");
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugData, setDebugData] = useState<{
+    jawabanDocs?: { id: string; data: any }[];
+    pretestDocs?: { id: string; data: any }[];
+    posttestDocs?: { id: string; data: any }[];
+    allJawabanDocs?: { id: string; data: any }[];
+    allTestDocs?: { id: string; data: any }[];
+    selectedKegId?: string | null;
+    selKeg?: number | string;
+    siswaId?: string;
+  }>({});
+
+  // Ensure debugData has current selKeg and siswaId even before queries finish
+  useEffect(() => {
+    setDebugData((prev) => ({ ...prev, selKeg, siswaId }));
+  }, [selKeg, siswaId]);
 
   useEffect(() => {
     (async () => {
@@ -818,65 +903,135 @@ export function TeacherSiswaDetail() {
         setKelasNama(kDoc.exists() ? kDoc.data().nama_kelas || "-" : "-");
       }
       const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
-      const map: Record<number, string> = {};
-      kegsSnapshot.docs.forEach((doc) => {
-        const g = doc.data() as { id: string; nomor: number };
-        map[g.nomor] = g.id;
-      });
+      const map = buildKegiatanMap(kegsSnapshot.docs);
       setKegIds(map);
       setLoading(false);
     })();
   }, [siswaId]);
 
   useEffect(() => {
-    if (!siswaId || !kegIds[selKeg]) return;
+    if (!siswaId) return;
     (async () => {
-      const kegId = kegIds[selKeg];
-      const [jSnapshot, kSnapshot] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "jawaban"),
-            where("kegiatan_id", "==", kegId),
-            where("siswa_id", "==", siswaId),
-          ),
+      const kegCandidateIds = Array.from(
+        new Set(
+          [kegIds[selKeg], `kegiatan-${selKeg}`].filter(Boolean) as string[],
         ),
-        getDocs(
-          query(
-            collection(db, "status_kuis_siswa"),
-            where("kegiatan_id", "==", kegId),
+      );
+
+      // helper to run queries for a field equality across multiple keg ids and combine results
+      const runCombinedQuery = async (coll: string, extraWhere: Array<[string, any]> = []) => {
+        const snaps = [] as any[];
+        for (const kid of kegCandidateIds) {
+          const q = query(
+            collection(db, coll),
+            where("kegiatan_id", "==", kid),
             where("siswa_id", "==", siswaId),
-          ),
-        ),
+            ...extraWhere.map(([k, v]) => where(k, "==", v)),
+          );
+          const s = await getDocs(q);
+          snaps.push(s);
+        }
+        // combine docs, dedupe by id
+        const docsMap = new Map<string, any>();
+        snaps.forEach((s) => s.docs.forEach((d: any) => docsMap.set(d.id, d)));
+        return Array.from(docsMap.values());
+      };
+
+      const [jDocs, kDocs, preDocs, postDocs] = await Promise.all([
+        runCombinedQuery("jawaban"),
+        // status_kuis_siswa likely only stored by keg doc id, but try both
+        (async () => {
+          const s = await runCombinedQuery("status_kuis_siswa");
+          return s;
+        })(),
+        runCombinedQuery("test_answers", [["test_type", "pretest"] as any]),
+        runCombinedQuery("test_answers", [["test_type", "posttest"] as any]),
       ]);
+      // pick first jawaban/status/test if any
+      const jDoc = jDocs.length ? jDocs[0] : null;
+      const kDoc = kDocs.length ? kDocs[0] : null;
+      const preDoc = preDocs.length ? preDocs[0] : null;
+      const postDoc = postDocs.length ? postDocs[0] : null;
+
       setJawaban(
-        jSnapshot.empty
-          ? null
-          : ({
-              id: jSnapshot.docs[0].id,
-              ...jSnapshot.docs[0].data(),
-            } as Jawaban),
+        jDoc
+          ? ({
+              id: jDoc.id,
+              ...jDoc.data(),
+              isi_jawaban: restoreIsiJawaban(jDoc.data().isi_jawaban),
+            } as Jawaban)
+          : null,
       );
-      setKuis(
-        kSnapshot.empty
-          ? null
-          : ({
-              id: kSnapshot.docs[0].id,
-              ...kSnapshot.docs[0].data(),
-            } as StatusKuisSiswa),
+      setKuis(kDoc ? ({ id: kDoc.id, ...kDoc.data() } as StatusKuisSiswa) : null);
+      setSkor(jDoc && jDoc.data().skor != null ? String(jDoc.data().skor) : "");
+      setSkorKuis(kDoc && kDoc.data().skor_manual != null ? String(kDoc.data().skor_manual) : "");
+      setFeedback(jDoc ? jDoc.data().feedback_guru || "" : "");
+
+      setTestPre(preDoc ? ({ id: preDoc.id, ...preDoc.data() } as TestAnswer) : null);
+      setTestPost(postDoc ? ({ id: postDoc.id, ...postDoc.data() } as TestAnswer) : null);
+      setSkorPre(preDoc && preDoc.data().score != null ? String(preDoc.data().score) : "");
+      setFeedbackPre(preDoc ? preDoc.data().feedback_guru || "" : "");
+      setSkorPost(postDoc && postDoc.data().score != null ? String(postDoc.data().score) : "");
+      setFeedbackPost(postDoc ? postDoc.data().feedback_guru || "" : "");
+
+      // Also fetch all jawaban/test_answers for this siswa (no kegiatan filter)
+      const allJawSnapshot = await getDocs(
+        query(collection(db, "jawaban"), where("siswa_id", "==", siswaId)),
       );
-      setSkor(
-        jSnapshot.empty || jSnapshot.docs[0].data().skor == null
-          ? ""
-          : String(jSnapshot.docs[0].data().skor),
+      const allTestSnapshot = await getDocs(
+        query(collection(db, "test_answers"), where("siswa_id", "==", siswaId)),
       );
-      setSkorKuis(
-        kSnapshot.empty || kSnapshot.docs[0].data().skor_manual == null
-          ? ""
-          : String(kSnapshot.docs[0].data().skor_manual),
-      );
-      setFeedback(
-        jSnapshot.empty ? "" : jSnapshot.docs[0].data().feedback_guru || "",
-      );
+
+      // Save raw debug snapshots for inspection
+      // Auto-select the kegiatan that actually contains the found answers.
+      const foundKegId =
+        (jDocs.length > 0 && jDocs[0].data().kegiatan_id) ||
+        (preDocs.length > 0 && preDocs[0].data().kegiatan_id) ||
+        (postDocs.length > 0 && postDocs[0].data().kegiatan_id);
+
+      const resolveKegNomor = (kegId: unknown): number | undefined => {
+        const m = String(kegId ?? "").match(/kegiatan-(\d+)/);
+        if (m) return Number(m[1]);
+        const match = Object.entries(kegIds).find(([, v]) => v === kegId);
+        return match ? Number(match[0]) : undefined;
+      };
+
+      let displaySelKeg = selKeg;
+      if (foundKegId) {
+        const n = resolveKegNomor(foundKegId);
+        if (n != null) displaySelKeg = n;
+      } else if (
+        jDocs.length === 0 &&
+        preDocs.length === 0 &&
+        postDocs.length === 0 &&
+        allJawSnapshot.docs.length > 0
+      ) {
+        // Current kegiatan has no answers, but this student has answers
+        // in another kegiatan — jump there so the teacher sees them.
+        const n = resolveKegNomor(allJawSnapshot.docs[0].data().kegiatan_id);
+        if (n != null) displaySelKeg = n;
+      }
+
+      if (displaySelKeg !== selKeg) setSelKeg(displaySelKeg);
+
+      setDebugData({
+        jawabanDocs: jDocs.map((d: any) => ({ id: d.id, data: d.data() })),
+        pretestDocs: preDocs.map((d: any) => ({ id: d.id, data: d.data() })),
+        posttestDocs: postDocs.map((d: any) => ({ id: d.id, data: d.data() })),
+        allJawabanDocs: allJawSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
+        allTestDocs: allTestSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
+        selectedKegId: (foundKegId as string) || (kegCandidateIds.length ? kegCandidateIds[0] : null),
+        selKeg: displaySelKeg,
+        siswaId,
+      });
+      console.debug("[TeacherSiswaDetail] debugData:", {
+        jawaban: jDocs.map((d: any) => ({ id: d.id, data: d.data() })),
+        pretest: preDocs.map((d: any) => ({ id: d.id, data: d.data() })),
+        posttest: postDocs.map((d: any) => ({ id: d.id, data: d.data() })),
+        allJawaban: allJawSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
+        allTest: allTestSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
+        kegCandidates: kegCandidateIds,
+      });
     })();
   }, [siswaId, selKeg, kegIds]);
 
@@ -907,13 +1062,37 @@ export function TeacherSiswaDetail() {
     toast("Nilai & feedback tersimpan", "success");
   };
 
+  const saveTestFeedback = async (type: "pretest" | "posttest") => {
+    try {
+      const docRef = type === "pretest" ? testPre : testPost;
+      if (!docRef) {
+        toast("Belum ada jawaban test untuk disimpan", "warning");
+        return;
+      }
+      const id = docRef.id;
+      const payload: any = {};
+      if (type === "pretest") {
+        payload.score = skorPre ? Number(skorPre) : null;
+        payload.feedback_guru = feedbackPre || null;
+      } else {
+        payload.score = skorPost ? Number(skorPost) : null;
+        payload.feedback_guru = feedbackPost || null;
+      }
+      await updateDoc(doc(db, "test_answers", id), payload);
+      toast(`Feedback ${type} tersimpan`, "success");
+    } catch (err) {
+      console.error("saveTestFeedback error:", err);
+      toast("Gagal menyimpan feedback test", "error");
+    }
+  };
+
   const handleExport = () => {
     if (!jawaban || !siswa) return;
     exportJawabanPDF(jawaban, siswa, kelasNama, selKeg, kuis);
   };
 
   // Helper function to safely render block content
-  const renderBlockContent = (block: any, jawabanData: Jawaban) => {
+  const renderBlockContent = (block: any, jawabanData: Jawaban | null, testPre?: TestAnswer | null, testPost?: TestAnswer | null) => {
     const ansId = "id" in block ? block.id : null;
     const altId = "alasanId" in block ? block.alasanId : null;
     const efId = "pertanyaanId" in block ? block.pertanyaanId : null;
@@ -937,7 +1116,7 @@ export function TeacherSiswaDetail() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50">
-                  {block.headers.map((h: string) => (
+                  {(block.headers || []).map((h: string) => (
                     <th key={h} className="px-2 py-1.5 text-left font-semibold text-slate-600">
                       {h}
                     </th>
@@ -945,9 +1124,9 @@ export function TeacherSiswaDetail() {
                 </tr>
               </thead>
               <tbody>
-                {block.rows.map((row: { cells: string[] }, ri: number) => (
+                {(block.rows || []).map((row: { cells: string[] }, ri: number) => (
                   <tr key={ri} className="border-t border-slate-100">
-                    {row.cells.map((cell: string, ci: number) => (
+                    {(row.cells || []).map((cell: string, ci: number) => (
                       <td key={ci} className="px-2 py-1.5 text-slate-600">
                         {cell}
                       </td>
@@ -1015,17 +1194,17 @@ export function TeacherSiswaDetail() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-50">
-                  {block.headers.map((h: string) => (
-                    <th key={h} className="px-2 py-1.5 text-left font-semibold text-slate-600">
-                      {h}
-                    </th>
-                  ))}
+                  {(block.headers || []).map((h: string) => (
+                        <th key={h} className="px-2 py-1.5 text-left font-semibold text-slate-600">
+                          {h}
+                        </th>
+                      ))}
                 </tr>
               </thead>
               <tbody>
-                {block.rows.map((row: { cells: string[] }, ri: number) => (
+                {(block.rows || []).map((row: { cells: string[] }, ri: number) => (
                   <tr key={ri} className="border-t border-slate-100">
-                    {row.cells.map((cell: string, ci: number) => (
+                    {(row.cells || []).map((cell: string, ci: number) => (
                       <td key={ci} className="px-2 py-1.5 text-slate-600">
                         {cell}
                       </td>
@@ -1038,7 +1217,7 @@ export function TeacherSiswaDetail() {
           {efId && (
             <AnswerView
               label={block.pertanyaanText}
-              ans={jawabanData.isi_jawaban[efId]}
+              ans={jawabanData?.isi_jawaban?.[efId]}
             />
           )}
         </div>
@@ -1052,13 +1231,22 @@ export function TeacherSiswaDetail() {
           : "label" in block
             ? block.label
             : block.title || "";
-      return (
-        <AnswerView
-          key={ansId}
-          label={label}
-          ans={jawabanData.isi_jawaban[ansId]}
-        />
-      );
+      // try jawaban data first
+      const fromJawaban = jawabanData?.isi_jawaban?.[ansId];
+      if (fromJawaban !== undefined && fromJawaban !== null && String(fromJawaban).trim() !== "") {
+        return <AnswerView key={ansId} label={label} ans={fromJawaban} />;
+      }
+      // fallback: check test pre/post answers which store by question doc id
+      const fromPre = testPre?.answers?.[ansId];
+      if (fromPre !== undefined && fromPre !== null && String(fromPre).trim() !== "") {
+        return <AnswerView key={ansId} label={label} ans={fromPre} />;
+      }
+      const fromPost = testPost?.answers?.[ansId];
+      if (fromPost !== undefined && fromPost !== null && String(fromPost).trim() !== "") {
+        return <AnswerView key={ansId} label={label} ans={fromPost} />;
+      }
+      // last resort: show whatever is present (may be empty)
+      return <AnswerView key={ansId} label={label} ans={jawabanData?.isi_jawaban?.[ansId]} />;
     }
 
     if (perId) {
@@ -1066,7 +1254,7 @@ export function TeacherSiswaDetail() {
         <AnswerView
           key={perId}
           label="Perencanaan Penyelidikan"
-          ans={jawabanData.isi_jawaban[perId]}
+          ans={jawabanData?.isi_jawaban?.[perId]}
         />
       );
     }
@@ -1076,7 +1264,7 @@ export function TeacherSiswaDetail() {
         <AnswerView
           key={altId}
           label="Alasan pemilihan kasus"
-          ans={jawabanData.isi_jawaban[altId]}
+          ans={jawabanData?.isi_jawaban?.[altId]}
         />
       );
     }
@@ -1138,6 +1326,40 @@ export function TeacherSiswaDetail() {
           </div>
         </div>
 
+        <div className="mt-4">
+          <button
+            onClick={() => setDebugOpen((v) => !v)}
+            className="btn-outline">
+            {debugOpen ? "Sembunyikan Debug" : "Tampilkan Debug"}
+          </button>
+          {debugOpen && (
+            <div className="card mt-3">
+              <p className="text-xs text-slate-500 font-semibold">Debug: hasil query mentah</p>
+              <div className="mt-2 text-xs text-slate-700">
+                  <p className="font-semibold">Selected keg mapping</p>
+                  <p className="text-xs text-slate-500">selKeg: {String(debugData.selKeg)}</p>
+                  <p className="text-xs text-slate-500">selectedKegId: {String(debugData.selectedKegId)}</p>
+                  <p className="text-xs text-slate-500">siswaId: {String(debugData.siswaId)}</p>
+
+                  <p className="font-semibold mt-2">Jawaban documents ({debugData.jawabanDocs?.length || 0})</p>
+                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.jawabanDocs || [], null, 2)}</pre>
+
+                  <p className="font-semibold mt-3">All jawaban for siswa ({debugData.allJawabanDocs?.length || 0})</p>
+                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.allJawabanDocs || [], null, 2)}</pre>
+
+                  <p className="font-semibold mt-3">Pretest documents ({debugData.pretestDocs?.length || 0})</p>
+                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.pretestDocs || [], null, 2)}</pre>
+
+                  <p className="font-semibold mt-3">Posttest documents ({debugData.posttestDocs?.length || 0})</p>
+                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.posttestDocs || [], null, 2)}</pre>
+
+                  <p className="font-semibold mt-3">All test_answers for siswa ({debugData.allTestDocs?.length || 0})</p>
+                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.allTestDocs || [], null, 2)}</pre>
+              </div>
+            </div>
+          )}
+        </div>
+
         {!jawaban ? (
           <EmptyState
             icon={<FileText className="h-7 w-7" />}
@@ -1175,7 +1397,7 @@ export function TeacherSiswaDetail() {
                 </div>
                 {step.blocks.map((block, index) => (
                   <div key={index}>
-                    {renderBlockContent(block, jawaban)}
+                    {renderBlockContent(block, jawaban, testPre, testPost)}
                   </div>
                 ))}
               </div>
@@ -1218,6 +1440,54 @@ export function TeacherSiswaDetail() {
                   />
                 </div>
               </div>
+              {/* Pretest / Posttest feedback */}
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="card">
+                  <p className="text-xs font-semibold text-slate-400">Pretest</p>
+                  <div className="mt-2">
+                    <label className="label-base">Skor Pretest</label>
+                    <input
+                      type="number"
+                      className="input-base"
+                      value={skorPre}
+                      onChange={(e) => setSkorPre(e.target.value)}
+                      placeholder="Skor pretest"
+                    />
+                    <label className="label-base mt-2">Feedback Pretest</label>
+                    <textarea
+                      className="input-base"
+                      rows={3}
+                      value={feedbackPre}
+                      onChange={(e) => setFeedbackPre(e.target.value)}
+                      placeholder="Feedback untuk pretest"
+                    />
+                    <button onClick={() => saveTestFeedback("pretest")} className="btn-outline mt-3">Simpan Pretest</button>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <p className="text-xs font-semibold text-slate-400">Posttest</p>
+                  <div className="mt-2">
+                    <label className="label-base">Skor Posttest</label>
+                    <input
+                      type="number"
+                      className="input-base"
+                      value={skorPost}
+                      onChange={(e) => setSkorPost(e.target.value)}
+                      placeholder="Skor posttest"
+                    />
+                    <label className="label-base mt-2">Feedback Posttest</label>
+                    <textarea
+                      className="input-base"
+                      rows={3}
+                      value={feedbackPost}
+                      onChange={(e) => setFeedbackPost(e.target.value)}
+                      placeholder="Feedback untuk posttest"
+                    />
+                    <button onClick={() => saveTestFeedback("posttest")} className="btn-outline mt-3">Simpan Posttest</button>
+                  </div>
+                </div>
+              </div>
               <button onClick={saveNilai} className="btn-primary mt-4">
                 <Save className="h-4 w-4" /> Simpan Nilai
               </button>
@@ -1235,12 +1505,25 @@ function AnswerView({ label, ans }: { label: string; ans: unknown }) {
   else if (Array.isArray(ans) && ans.length) content = ans.join(", ");
   else if (ans && typeof ans === "object") {
     const a = ans as {
-      rows?: string[][];
+      rows?: unknown;
       files?: { name: string; url: string }[];
       tap?: Record<string, string>;
     };
-    if (a.rows) content = a.rows.map((r) => r.join(" | ")).join("\n");
-    else if (a.files) content = a.files.map((f) => f.name).join("\n");
+    if (a.rows && Array.isArray(a.rows)) {
+      content = a.rows
+        .map((row) => {
+          if (Array.isArray(row)) {
+            return row.map((c) => String(c ?? "")).join(" | ");
+          }
+          if (row && typeof row === "object" && "cells" in row) {
+            return ((row as { cells?: unknown[] }).cells || [])
+              .map((c) => String(c ?? ""))
+              .join(" | ");
+          }
+          return String(row ?? "");
+        })
+        .join("\n");
+    } else if (a.files) content = a.files.map((f) => f.name).join("\n");
     else if (a.tap)
       content = Object.entries(a.tap)
         .map(([k, v]) => `${k}: ${v}`)
@@ -1271,11 +1554,7 @@ export function TeacherAssessment() {
   useEffect(() => {
     (async () => {
       const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
-      const map: Record<number, string> = {};
-      kegsSnapshot.docs.forEach((doc) => {
-        const g = doc.data() as { id: string; nomor: number };
-        map[g.nomor] = g.id;
-      });
+      const map = buildKegiatanMap(kegsSnapshot.docs);
       setKegIds(map);
       // fetch all assessments at once
       const assesSnapshot = await getDocs(
@@ -1532,12 +1811,7 @@ export function TeacherEkspor() {
       try {
         const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
         if (!cancelled) {
-          const map: Record<number, string> = {};
-          kegsSnapshot.docs.forEach((doc) => {
-            const g = doc.data() as { nomor: number };
-            map[g.nomor] = doc.id;
-          });
-          setKegIds(map);
+          setKegIds(buildKegiatanMap(kegsSnapshot.docs));
         }
       } catch (err) {
         console.error("[TeacherEkspor] load kegiatan error:", err);

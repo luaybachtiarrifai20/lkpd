@@ -4,6 +4,7 @@ import { db, auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
+import { seedQuestions } from "@/content/seedQuestions";
 
 export function SetupSuperAdmin() {
   const { user } = useAuth();
@@ -297,6 +298,22 @@ export function SetupSuperAdmin() {
     setJsonInput(JSON.stringify(dataToEdit, null, 2));
   };
 
+  const handleSeedQuestions = async () => {
+    setLoading(true);
+    try {
+      const count = await seedQuestions();
+      toast(
+        `${count} soal pretest & posttest berhasil dimasukkan ke database`,
+        "success",
+      );
+    } catch (err: any) {
+      console.error(err);
+      toast("Gagal menyimpan soal: " + (err.message || ""), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveJson = async () => {
     if (!editingKegiatan) return;
     setLoading(true);
@@ -373,12 +390,20 @@ export function SetupSuperAdmin() {
                 Migrasi dan edit data JSON konten kegiatan
               </p>
             </div>
-            <button
-              onClick={handleSeedKegiatan}
-              disabled={loading}
-              className="mt-4 sm:mt-0 bg-brand-green text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-green-dark transition disabled:opacity-50">
-              Migrasi Data Kegiatan (Seeding)
-            </button>
+            <div className="mt-4 sm:mt-0 flex flex-wrap justify-end gap-2">
+              <button
+                onClick={handleSeedKegiatan}
+                disabled={loading}
+                className="bg-brand-green text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-green-dark transition disabled:opacity-50">
+                Migrasi Data Kegiatan (Seeding)
+              </button>
+              <button
+                onClick={handleSeedQuestions}
+                disabled={loading}
+                className="bg-brand-teal text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-teal-dark transition disabled:opacity-50">
+                Seed Soal Pretest & Posttest
+              </button>
+            </div>
           </div>
 
           {!editingKegiatan ? (

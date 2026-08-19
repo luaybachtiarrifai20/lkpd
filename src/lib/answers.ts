@@ -18,6 +18,84 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
+/**
+ * Firestore does NOT support nested arrays (e.g. `string[][]`).
+ * Table answers are stored as `{ rows: string[][] }`, so before writing we
+ * convert each row array into a `{ cells: string[] }` map (arrays of maps are
+ * allowed). On read we convert them back to `string[][]`.
+ */
+
+function sanitizeAnswerValue(value: AnswerValue): AnswerValue {
+  if (value === null || value === undefined) return null;
+  if (Array.isArray(value)) {
+    return value.map((v) => sanitizeAnswerValue(v as AnswerValue)) as string[];
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (
+        k === "rows" &&
+        Array.isArray(v) &&
+        v.some((row) => Array.isArray(row))
+      ) {
+        out[k] = v.map((row) =>
+          Array.isArray(row) ? { cells: row.map((c) => String(c ?? "")) } : row,
+        );
+      } else {
+        out[k] = sanitizeAnswerValue(v as AnswerValue);
+      }
+    }
+    return out as AnswerValue;
+  }
+  return value;
+}
+
+function restoreAnswerValue(value: AnswerValue): AnswerValue {
+  if (value === null || value === undefined) return null;
+  if (Array.isArray(value)) {
+    return value.map((v) => restoreAnswerValue(v as AnswerValue)) as string[];
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (k === "rows" && Array.isArray(v)) {
+        out[k] = v.map((row) => {
+          if (Array.isArray(row)) return row.map((c) => String(c ?? ""));
+          if (row && typeof row === "object") {
+            const r = row as Record<string, unknown>;
+            if (Array.isArray(r.cells)) {
+              return (r.cells as unknown[]).map((c) => String(c ?? ""));
+            }
+            return Object.values(r).map((x) => String(x ?? ""));
+          }
+          return row;
+        });
+      } else {
+        out[k] = restoreAnswerValue(v as AnswerValue);
+      }
+    }
+    return out as AnswerValue;
+  }
+  return value;
+}
+
+function sanitizeIsiJawaban(isi: Record<string, AnswerValue>) {
+  const out: Record<string, AnswerValue> = {};
+  for (const [k, v] of Object.entries(isi)) out[k] = sanitizeAnswerValue(v);
+  return out;
+}
+
+export function restoreIsiJawaban(
+  isi: Record<string, AnswerValue> | null | undefined,
+): Record<string, AnswerValue> {
+  if (!isi) return {};
+  const out: Record<string, AnswerValue> = {};
+  for (const [k, v] of Object.entries(isi)) out[k] = restoreAnswerValue(v);
+  return out;
+}
+
 export async function fetchJawaban(kegiatanId: string, siswaId: string) {
   const q = query(
     collection(db, "jawaban"),
@@ -27,7 +105,12 @@ export async function fetchJawaban(kegiatanId: string, siswaId: string) {
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() } as Jawaban;
+  const data = doc.data();
+  return {
+    id: doc.id,
+    ...data,
+    isi_jawaban: restoreIsiJawaban(data.isi_jawaban),
+  } as Jawaban;
 }
 
 export async function upsertJawabanDraft(
@@ -36,19 +119,33 @@ export async function upsertJawabanDraft(
   isi: Record<string, AnswerValue>,
 ) {
   const existing = await fetchJawaban(kegiatanId, siswaId);
-  const payload = {
-    kegiatan_id: kegiatanId,
-    siswa_id: siswaId,
-    isi_jawaban: isi,
-    status: "draft" as const,
-    waktu_disimpan: new Date().toISOString(),
-  };
+  const now = new Date().toISOString();
+  const safeIsi = sanitizeIsiJawaban(isi);
 
   if (existing) {
+    // Preserve existing status (do not downgrade 'terkumpul'/'dinilai' back to 'draft')
+    const payload = {
+      isi_jawaban: safeIsi,
+      waktu_disimpan: now,
+      ...(existing.status === "draft" ? { status: "draft" as const } : {}),
+    };
     await updateDoc(doc(db, "jawaban", existing.id), payload);
+    console.debug(
+      "[upsertJawabanDraft] updated jawaban:",
+      existing.id,
+      payload,
+    );
     return { ...existing, ...payload } as Jawaban;
   } else {
+    const payload = {
+      kegiatan_id: kegiatanId,
+      siswa_id: siswaId,
+      isi_jawaban: safeIsi,
+      status: "draft" as const,
+      waktu_disimpan: now,
+    };
     const docRef = await addDoc(collection(db, "jawaban"), payload);
+    console.debug("[upsertJawabanDraft] created jawaban:", docRef.id, payload);
     return { id: docRef.id, ...payload } as Jawaban;
   }
 }
@@ -62,7 +159,7 @@ export async function submitJawaban(
   const payload = {
     kegiatan_id: kegiatanId,
     siswa_id: siswaId,
-    isi_jawaban: isi,
+    isi_jawaban: sanitizeIsiJawaban(isi),
     status: "terkumpul" as const,
     waktu_dikumpulkan: new Date().toISOString(),
     waktu_disimpan: new Date().toISOString(),
@@ -70,9 +167,11 @@ export async function submitJawaban(
 
   if (existing) {
     await updateDoc(doc(db, "jawaban", existing.id), payload);
+    console.debug("[submitJawaban] updated jawaban:", existing.id, payload);
     return { ...existing, ...payload } as Jawaban;
   } else {
     const docRef = await addDoc(collection(db, "jawaban"), payload);
+    console.debug("[submitJawaban] created jawaban:", docRef.id, payload);
     return { id: docRef.id, ...payload } as Jawaban;
   }
 }
@@ -125,10 +224,14 @@ export async function upsertStatusKuis(
 export async function fetchAllJawabanSiswa(siswaId: string) {
   const q = query(collection(db, "jawaban"), where("siswa_id", "==", siswaId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Jawaban[];
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      isi_jawaban: restoreIsiJawaban(data.isi_jawaban),
+    } as Jawaban;
+  });
 }
 
 export async function fetchAllStatusKuisSiswa(siswaId: string) {
@@ -176,10 +279,14 @@ export async function fetchJawabanKelas(
     where("siswa_id", "in", siswaIds),
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Jawaban[];
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      isi_jawaban: restoreIsiJawaban(data.isi_jawaban),
+    } as Jawaban;
+  });
 }
 
 export async function fetchStatusKuisKelas(

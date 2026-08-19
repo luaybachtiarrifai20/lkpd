@@ -24,6 +24,7 @@ import {
   FileQuestion,
   Trash2,
   Plus,
+  Award,
   ChevronDown,
 } from "lucide-react";
 import {
@@ -240,6 +241,8 @@ export interface ActivityRendererProps {
   assessmentJudul?: string | null;
   kuisDone?: boolean;
   onTandaiKuis?: (done: boolean) => void;
+  skor?: number | null;
+  feedback?: string | null;
   editMode?: boolean;
   onContentChange?: (next: KegiatanContent) => void;
   onSaveContent?: () => void;
@@ -263,6 +266,8 @@ export function ActivityRenderer({
   onContentChange,
   onSaveContent,
   contentSaving = false,
+  skor = null,
+  feedback = null,
 }: ActivityRendererProps) {
   const [activeStep, setActiveStep] = useState(0);
 
@@ -426,6 +431,29 @@ export function ActivityRenderer({
                   style={{ width: `${overallPct}%` }}
                 />
               </div>
+            </div>
+          )}
+
+          {/* Teacher's score & feedback (visible when collected or graded) */}
+          {!editMode && (skor != null || (feedback && feedback.trim())) && (
+            <div className="card">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Penilaian Guru
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                {skor != null ? (
+                  <Badge color="teal">
+                    <Award className="h-3.5 w-3.5" /> Skor: {skor}
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-slate-500">Belum dinilai</span>
+                )}
+              </div>
+              {feedback && feedback.trim() && (
+                <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
+                  {feedback}
+                </div>
+              )}
             </div>
           )}
         </div>

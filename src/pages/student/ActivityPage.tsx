@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ClipboardList, Atom } from 'lucide-react';
 import { type KegiatanContent } from '@/content/types';
@@ -32,6 +32,8 @@ export function ActivityPage() {
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [status, setStatus] = useState<Jawaban['status']>('draft');
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [skor, setSkor] = useState<number | null>(null);
+  const [feedbackGuru, setFeedbackGuru] = useState<string | null>(null);
   
   const [submitOpen, setSubmitOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,10 @@ export function ActivityPage() {
   const [kuisDone, setKuisDone] = useState(false);
 
   const readOnly = status === 'terkumpul' || status === 'dinilai';
+
+  // Refs for autosave: keep latest answers in sync & allow cancelling the timer
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const answersRef = useRef<Record<string, AnswerValue>>({});
 
   // Load kegiatan id + existing jawaban + assessment
   useEffect(() => {
@@ -74,9 +80,17 @@ export function ActivityPage() {
         if (!active) return;
         
         if (j) {
-          setAnswers(j.isi_jawaban || {});
+          const loaded = j.isi_jawaban || {};
+          setAnswers(loaded);
+          answersRef.current = loaded;
           setStatus(j.status);
           setSavedAt(j.waktu_disimpan);
+          setSkor(j.skor ?? null);
+          setFeedbackGuru(j.feedback_guru ?? null);
+        } else {
+          setSkor(null);
+          setFeedbackGuru(null);
+          answersRef.current = {};
         }
         setAssessmentUrl(a?.url_kuis || null);
         setAssessmentJudul(a?.judul_kuis || null);
@@ -90,38 +104,51 @@ export function ActivityPage() {
     return () => { active = false; };
   }, [profile, nomorNum]);
 
-  // Debounced autosave
-  const debouncedSave = useMemo(() => {
-    let t: ReturnType<typeof setTimeout>;
-    return (val: Record<string, AnswerValue>) => {
-      clearTimeout(t);
-      t = setTimeout(async () => {
+  // Debounced autosave (timer kept in a ref so it can be cancelled on submit/save)
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
+  const scheduleAutosave = useCallback(
+    (val: Record<string, AnswerValue>) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        saveTimerRef.current = null;
         if (!kegiatanId || !profile || readOnly) return;
         setSaving(true);
-        try {
-          await upsertJawabanDraft(kegiatanId, profile.id, val);
-          setSavedAt(new Date().toISOString());
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setSaving(false);
-        }
+        upsertJawabanDraft(kegiatanId, profile.id, val)
+          .then(() => setSavedAt(new Date().toISOString()))
+          .catch((err) => console.error(err))
+          .finally(() => setSaving(false));
       }, 2000);
-    };
-  }, [kegiatanId, profile, readOnly]);
+    },
+    [kegiatanId, profile, readOnly],
+  );
 
-  const updateAnswer = useCallback((key: string, val: AnswerValue) => {
-    setAnswers((prev) => {
-      const next = { ...prev, [key]: val };
-      debouncedSave(next);
-      return next;
-    });
-  }, [debouncedSave]);
+  const updateAnswer = useCallback(
+    (key: string, val: AnswerValue) => {
+      const next = { ...answersRef.current, [key]: val };
+      answersRef.current = next;
+      setAnswers(next);
+      scheduleAutosave(next);
+    },
+    [scheduleAutosave],
+  );
+
+  const cancelAutosave = () => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+  };
 
   const handleSaveDraft = async () => {
     if (!kegiatanId || !profile || readOnly) return;
+    cancelAutosave();
     try {
-      await upsertJawabanDraft(kegiatanId, profile.id, answers);
+      await upsertJawabanDraft(kegiatanId, profile.id, answersRef.current);
       setSavedAt(new Date().toISOString());
       toast('Draft tersimpan', 'success');
     } catch { toast('Gagal menyimpan', 'error'); }
@@ -129,8 +156,9 @@ export function ActivityPage() {
 
   const handleSubmit = async () => {
     if (!kegiatanId || !profile) return;
+    cancelAutosave();
     try {
-      await submitJawaban(kegiatanId, profile.id, answers);
+      await submitJawaban(kegiatanId, profile.id, answersRef.current);
       setStatus('terkumpul');
       setSubmitOpen(false);
       toast('Jawaban berhasil dikumpulkan!', 'success');
@@ -193,6 +221,8 @@ export function ActivityPage() {
         assessmentJudul={assessmentJudul}
         kuisDone={kuisDone}
         onTandaiKuis={handleTandaiKuis}
+        skor={skor}
+        feedback={feedbackGuru}
       />
 
       <ConfirmModal

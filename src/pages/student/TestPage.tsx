@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { db } from '@/lib/firebase';
+import { fetchJawaban, submitJawaban } from '@/lib/answers';
 import {
   collection,
   query,
@@ -121,7 +122,7 @@ export function TestPage() {
       );
 
       if (existing.empty) {
-        await addDoc(collection(db, 'test_answers'), {
+        const docRef = await addDoc(collection(db, 'test_answers'), {
           siswa_id: profile.id,
           kegiatan_id: kegiatanRef,
           test_type: mode,
@@ -131,6 +132,7 @@ export function TestPage() {
           submitted_at: null,
           completed: false,
         });
+        console.debug('[TestPage] created test_answers', docRef.id, { siswa_id: profile.id, kegiatan_id: kegiatanRef, test_type: mode });
       } else {
         await updateDoc(doc(db, 'test_answers', existing.docs[0].id), {
           started_at: now,
@@ -150,6 +152,8 @@ export function TestPage() {
   };
 
   const handleSubmit = async () => {
+    if (!profile || !kegiatanId) return;
+
     // Check if all questions answered
     const unanswered = questions.filter((q) => !answers[q.id]);
     if (unanswered.length > 0) {
@@ -179,6 +183,17 @@ export function TestPage() {
           submitted_at: new Date().toISOString(),
           completed: true,
         });
+        console.debug('[TestPage] updated test_answers', answerSnapshot.docs[0].id, { submitted_at: new Date().toISOString() });
+        // Also upsert jawaban document to include these test answers (normalize by question id)
+        try {
+          const kegRef = kegiatanRef;
+          const existingJaw = await fetchJawaban(kegRef, profile.id);
+          const mergedIsi = { ...(existingJaw?.isi_jawaban || {}), ...answers };
+          await submitJawaban(kegRef, profile.id, mergedIsi);
+          console.debug('[TestPage] merged test answers into jawaban', { kegiatan_id: kegRef, siswa_id: profile.id, mergedKeys: Object.keys(mergedIsi) });
+        } catch (e) {
+          console.error('[TestPage] failed to merge test answers into jawaban', e);
+        }
       }
 
       setSubmitted(true);
@@ -241,6 +256,12 @@ export function TestPage() {
                 <span className="block mt-2 text-lg">
                   Skor: <strong className="text-brand-green">{testAnswerDoc?.score}</strong>
                 </span>
+              )}
+              {testAnswerDoc?.feedback_guru && (
+                <div className="mt-3 text-left">
+                  <p className="text-xs font-semibold text-slate-400">Feedback Guru</p>
+                  <p className="whitespace-pre-wrap text-sm text-slate-700 mt-1">{testAnswerDoc.feedback_guru}</p>
+                </div>
               )}
             </p>
           </div>
