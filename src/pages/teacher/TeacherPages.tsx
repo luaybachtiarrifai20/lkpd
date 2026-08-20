@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -30,6 +30,7 @@ import {
   type TestAnswer,
   type StatusKuisSiswa,
   type AssessmentEksternal,
+  type Question,
 } from "@/lib/firebase";
 import {
   collection,
@@ -899,6 +900,7 @@ export function TeacherSiswaDetail() {
   const { toast } = useToast();
   const path = window.location.pathname;
   const siswaId = path.split("/").pop() || "";
+  const autoSelectDone = useRef<string | null>(null);
 
   const [siswa, setSiswa] = useState<Profile | null>(null);
   const [kelasNama, setKelasNama] = useState("");
@@ -916,6 +918,8 @@ export function TeacherSiswaDetail() {
   const [feedbackPre, setFeedbackPre] = useState<string>("");
   const [skorPost, setSkorPost] = useState<string>("");
   const [feedbackPost, setFeedbackPost] = useState<string>("");
+  const [pretestQuestions, setPretestQuestions] = useState<Question[]>([]);
+  const [posttestQuestions, setPosttestQuestions] = useState<Question[]>([]);
   const [debugOpen, setDebugOpen] = useState(false);
   const [debugData, setDebugData] = useState<{
     jawabanDocs?: { id: string; data: any }[];
@@ -953,82 +957,17 @@ export function TeacherSiswaDetail() {
   useEffect(() => {
     if (!siswaId) return;
     (async () => {
-      const kegCandidateIds = Array.from(
-        new Set(
-          [kegIds[selKeg], `kegiatan-${selKeg}`].filter(Boolean) as string[],
-        ),
-      );
-
-      // helper to run queries for a field equality across multiple keg ids and combine results
-      const runCombinedQuery = async (coll: string, extraWhere: Array<[string, any]> = []) => {
-        const snaps = [] as any[];
-        for (const kid of kegCandidateIds) {
-          const q = query(
-            collection(db, coll),
-            where("kegiatan_id", "==", kid),
-            where("siswa_id", "==", siswaId),
-            ...extraWhere.map(([k, v]) => where(k, "==", v)),
-          );
-          const s = await getDocs(q);
-          snaps.push(s);
-        }
-        // combine docs, dedupe by id
-        const docsMap = new Map<string, any>();
-        snaps.forEach((s) => s.docs.forEach((d: any) => docsMap.set(d.id, d)));
-        return Array.from(docsMap.values());
-      };
-
-      const [jDocs, kDocs, preDocs, postDocs] = await Promise.all([
-        runCombinedQuery("jawaban"),
-        // status_kuis_siswa likely only stored by keg doc id, but try both
-        (async () => {
-          const s = await runCombinedQuery("status_kuis_siswa");
-          return s;
-        })(),
-        runCombinedQuery("test_answers", [["test_type", "pretest"] as any]),
-        runCombinedQuery("test_answers", [["test_type", "posttest"] as any]),
+      // Fetch ALL data for this student once, then select by kegiatan in-memory
+      // to avoid mismatches between different kegiatan id formats.
+      const [allJawSnapshot, allTestSnapshot, allKuisSnapshot] = await Promise.all([
+        getDocs(query(collection(db, "jawaban"), where("siswa_id", "==", siswaId))),
+        getDocs(query(collection(db, "test_answers"), where("siswa_id", "==", siswaId))),
+        getDocs(query(collection(db, "status_kuis_siswa"), where("siswa_id", "==", siswaId))),
       ]);
-      // pick first jawaban/status/test if any
-      const jDoc = jDocs.length ? jDocs[0] : null;
-      const kDoc = kDocs.length ? kDocs[0] : null;
-      const preDoc = preDocs.length ? preDocs[0] : null;
-      const postDoc = postDocs.length ? postDocs[0] : null;
 
-      setJawaban(
-        jDoc
-          ? ({
-              id: jDoc.id,
-              ...jDoc.data(),
-              isi_jawaban: restoreIsiJawaban(jDoc.data().isi_jawaban),
-            } as Jawaban)
-          : null,
-      );
-      setKuis(kDoc ? ({ id: kDoc.id, ...kDoc.data() } as StatusKuisSiswa) : null);
-      setSkor(jDoc && jDoc.data().skor != null ? String(jDoc.data().skor) : "");
-      setSkorKuis(kDoc && kDoc.data().skor_manual != null ? String(kDoc.data().skor_manual) : "");
-      setFeedback(jDoc ? jDoc.data().feedback_guru || "" : "");
-
-      setTestPre(preDoc ? ({ id: preDoc.id, ...preDoc.data() } as TestAnswer) : null);
-      setTestPost(postDoc ? ({ id: postDoc.id, ...postDoc.data() } as TestAnswer) : null);
-      setSkorPre(preDoc && preDoc.data().score != null ? String(preDoc.data().score) : "");
-      setFeedbackPre(preDoc ? preDoc.data().feedback_guru || "" : "");
-      setSkorPost(postDoc && postDoc.data().score != null ? String(postDoc.data().score) : "");
-      setFeedbackPost(postDoc ? postDoc.data().feedback_guru || "" : "");
-
-      // Also fetch all jawaban/test_answers for this siswa (no kegiatan filter)
-      const allJawSnapshot = await getDocs(
-        query(collection(db, "jawaban"), where("siswa_id", "==", siswaId)),
-      );
-      const allTestSnapshot = await getDocs(
-        query(collection(db, "test_answers"), where("siswa_id", "==", siswaId)),
-      );
-
-      // Save raw debug snapshots for inspection
-      // Auto-select the kegiatan that actually contains the found answers.
-      const foundKegId =
-        (jDocs.length > 0 && jDocs[0].data().kegiatan_id) ||
-        (preDocs.length > 0 && preDocs[0].data().kegiatan_id) ||
-        (postDocs.length > 0 && postDocs[0].data().kegiatan_id);
+      const allJaw = allJawSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+      const allTest = allTestSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+      const allKuis = allKuisSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
 
       const resolveKegNomor = (kegId: unknown): number | undefined => {
         const m = String(kegId ?? "").match(/kegiatan-(\d+)/);
@@ -1037,41 +976,98 @@ export function TeacherSiswaDetail() {
         return match ? Number(match[0]) : undefined;
       };
 
-      let displaySelKeg = selKeg;
-      if (foundKegId) {
-        const n = resolveKegNomor(foundKegId);
-        if (n != null) displaySelKeg = n;
-      } else if (
-        jDocs.length === 0 &&
-        preDocs.length === 0 &&
-        postDocs.length === 0 &&
-        allJawSnapshot.docs.length > 0
-      ) {
-        // Current kegiatan has no answers, but this student has answers
-        // in another kegiatan — jump there so the teacher sees them.
-        const n = resolveKegNomor(allJawSnapshot.docs[0].data().kegiatan_id);
-        if (n != null) displaySelKeg = n;
+      // Auto-select a sensible default kegiatan ONCE per siswa. Prefer a
+      // kegiatan that has a non-empty activity jawaban.
+      if (autoSelectDone.current !== siswaId) {
+        autoSelectDone.current = siswaId;
+        const nonEmpty = allJaw.find(
+          (j) =>
+            j.isi_jawaban &&
+            typeof j.isi_jawaban === "object" &&
+            Object.keys(j.isi_jawaban).length > 0,
+        );
+        const pick = nonEmpty || allJaw[0] || allTest[0];
+        const n = pick ? resolveKegNomor(pick.kegiatan_id) : undefined;
+        if (n != null && n !== selKeg) setSelKeg(n);
       }
 
-      if (displaySelKeg !== selKeg) setSelKeg(displaySelKeg);
+      // Select jawaban/test/kuis for the current selKeg.
+      const primaryKegId = `kegiatan-${selKeg}`;
+      const altKegId = kegIds[selKeg];
+      const matchKeg = (rec: any) =>
+        rec &&
+        (rec.kegiatan_id === primaryKegId ||
+          (altKegId && rec.kegiatan_id === altKegId));
+
+      const jDoc = allJaw.find(matchKeg) || null;
+      const kDoc = allKuis.find(matchKeg) || null;
+      const preDoc = allTest.find((t) => t.test_type === "pretest" && matchKeg(t)) || null;
+      const postDoc = allTest.find((t) => t.test_type === "posttest" && matchKeg(t)) || null;
+
+      setJawaban(
+        jDoc
+          ? ({
+              id: jDoc.id,
+              ...jDoc,
+              isi_jawaban: restoreIsiJawaban(jDoc.isi_jawaban),
+            } as Jawaban)
+          : null,
+      );
+      setKuis(kDoc ? ({ id: kDoc.id, ...kDoc } as StatusKuisSiswa) : null);
+      setSkor(jDoc && jDoc.skor != null ? String(jDoc.skor) : "");
+      setSkorKuis(kDoc && kDoc.skor_manual != null ? String(kDoc.skor_manual) : "");
+      setFeedback(jDoc ? jDoc.feedback_guru || "" : "");
+
+      setTestPre(preDoc ? ({ id: preDoc.id, ...preDoc } as TestAnswer) : null);
+      setTestPost(postDoc ? ({ id: postDoc.id, ...postDoc } as TestAnswer) : null);
+      setSkorPre(preDoc && preDoc.score != null ? String(preDoc.score) : "");
+      setFeedbackPre(preDoc ? preDoc.feedback_guru || "" : "");
+      setSkorPost(postDoc && postDoc.score != null ? String(postDoc.score) : "");
+      setFeedbackPost(postDoc ? postDoc.feedback_guru || "" : "");
+
+      // Fetch pretest & posttest questions for the selected kegiatan
+      const [preQSnapshot, postQSnapshot] = await Promise.all([
+        getDocs(
+          query(
+            collection(db, "questions"),
+            where("kegiatan_id", "==", primaryKegId),
+            where("test_type", "==", "pretest"),
+          ),
+        ),
+        getDocs(
+          query(
+            collection(db, "questions"),
+            where("kegiatan_id", "==", primaryKegId),
+            where("test_type", "==", "posttest"),
+          ),
+        ),
+      ]);
+      const preQs = preQSnapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Question))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      const postQs = postQSnapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Question))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      setPretestQuestions(preQs);
+      setPosttestQuestions(postQs);
 
       setDebugData({
-        jawabanDocs: jDocs.map((d: any) => ({ id: d.id, data: d.data() })),
-        pretestDocs: preDocs.map((d: any) => ({ id: d.id, data: d.data() })),
-        posttestDocs: postDocs.map((d: any) => ({ id: d.id, data: d.data() })),
-        allJawabanDocs: allJawSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
-        allTestDocs: allTestSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
-        selectedKegId: (foundKegId as string) || (kegCandidateIds.length ? kegCandidateIds[0] : null),
-        selKeg: displaySelKeg,
+        jawabanDocs: jDoc ? [{ id: jDoc.id, data: jDoc }] : [],
+        pretestDocs: preDoc ? [{ id: preDoc.id, data: preDoc }] : [],
+        posttestDocs: postDoc ? [{ id: postDoc.id, data: postDoc }] : [],
+        allJawabanDocs: allJaw.map((d) => ({ id: d.id, data: d })),
+        allTestDocs: allTest.map((d) => ({ id: d.id, data: d })),
+        selectedKegId: primaryKegId,
+        selKeg,
         siswaId,
       });
       console.debug("[TeacherSiswaDetail] debugData:", {
-        jawaban: jDocs.map((d: any) => ({ id: d.id, data: d.data() })),
-        pretest: preDocs.map((d: any) => ({ id: d.id, data: d.data() })),
-        posttest: postDocs.map((d: any) => ({ id: d.id, data: d.data() })),
-        allJawaban: allJawSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
-        allTest: allTestSnapshot.docs.map((d) => ({ id: d.id, data: d.data() })),
-        kegCandidates: kegCandidateIds,
+        jawaban: jDoc ? [{ id: jDoc.id, data: jDoc }] : [],
+        pretest: preDoc ? [{ id: preDoc.id, data: preDoc }] : [],
+        posttest: postDoc ? [{ id: postDoc.id, data: postDoc }] : [],
+        allJawaban: allJaw.map((d) => ({ id: d.id, data: d })),
+        allTest: allTest.map((d) => ({ id: d.id, data: d })),
+        primaryKegId,
       });
     })();
   }, [siswaId, selKeg, kegIds]);
@@ -1535,9 +1531,67 @@ export function TeacherSiswaDetail() {
             </div>
           </div>
         )}
+
+        {/* Jawaban Pretest & Posttest siswa */}
+        {(pretestQuestions.length > 0 || posttestQuestions.length > 0) && (
+          <div className="space-y-4">
+            {pretestQuestions.length > 0 && (
+              <div className="card">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Jawaban Pretest Siswa
+                </p>
+                <div className="space-y-3">
+                  {pretestQuestions.map((q, i) => (
+                    <div
+                      key={q.id}
+                      className="border-b border-slate-100 pb-3 last:border-0">
+                      <p className="text-sm font-medium text-slate-700">
+                        {i + 1}. {q.question_text}
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">
+                        {formatTestAnswer(q, testPre?.answers?.[q.id])}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {posttestQuestions.length > 0 && (
+              <div className="card">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Jawaban Posttest Siswa
+                </p>
+                <div className="space-y-3">
+                  {posttestQuestions.map((q, i) => (
+                    <div
+                      key={q.id}
+                      className="border-b border-slate-100 pb-3 last:border-0">
+                      <p className="text-sm font-medium text-slate-700">
+                        {i + 1}. {q.question_text}
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">
+                        {formatTestAnswer(q, testPost?.answers?.[q.id])}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
+}
+
+function formatTestAnswer(q: Question, ans: unknown): string {
+  if (ans == null || ans === "") return "(belum dijawab)";
+  if (Array.isArray(ans)) return ans.map((v) => String(v)).join(", ");
+  if (q.question_type === "pilihan_ganda" && q.options?.length) {
+    const opt = q.options.find((o) => o.id === ans);
+    if (opt) return `${opt.id}. ${opt.text}`;
+  }
+  return String(ans);
 }
 
 function AnswerView({ label, ans }: { label: string; ans: unknown }) {

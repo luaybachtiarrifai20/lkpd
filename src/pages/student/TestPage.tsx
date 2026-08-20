@@ -5,7 +5,6 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { db } from '@/lib/firebase';
-import { fetchJawaban, submitJawaban } from '@/lib/answers';
 import {
   collection,
   query,
@@ -54,6 +53,9 @@ export function TestPage() {
   const [submitted, setSubmitted] = useState(false);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [testAnswerDoc, setTestAnswerDoc] = useState<TestAnswer | null>(null);
+  const [kegiatanRef, setKegiatanRef] = useState<string>(
+    `kegiatan-${kegiatanId}`,
+  );
 
   const kegiatan = KEGIATAN_CONTENT.find((k) => k.nomor === Number(kegiatanId));
 
@@ -72,23 +74,30 @@ export function TestPage() {
     setCurrentIndex(0);
     setQuestions([]);
     try {
-      const kegiatanRef = `kegiatan-${kegiatanId}`;
+      const qKegId = `kegiatan-${kegiatanId}`;
       const q = query(
         collection(db, 'questions'),
-        where('kegiatan_id', '==', kegiatanRef),
+        where('kegiatan_id', '==', qKegId),
         where('test_type', '==', mode),
         // orderBy('order', 'asc')
       );
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Question);
       setQuestions(data);
+      // Use the kegiatan_id from the questions themselves (source of truth)
+      const resolvedKegId = (data.length > 0 && data[0].kegiatan_id) || qKegId;
+      setKegiatanRef(resolvedKegId);
+      console.debug('[TestPage] resolved kegiatan_id:', resolvedKegId, {
+        qKegId,
+        firstQuestionKegId: data[0]?.kegiatan_id,
+      });
 
       // Check if already submitted
       const answerSnapshot = await getDocs(
         query(
           collection(db, 'test_answers'),
           where('siswa_id', '==', profile?.id || ''),
-          where('kegiatan_id', '==', kegiatanRef),
+          where('kegiatan_id', '==', resolvedKegId),
           where('test_type', '==', mode)
         )
       );
@@ -117,14 +126,14 @@ export function TestPage() {
     if (!profile || !kegiatanId) return;
     try {
       const now = new Date().toISOString();
-      const kegiatanRef = `kegiatan-${kegiatanId}`;
+      const kegId = questions[0]?.kegiatan_id || kegiatanRef || `kegiatan-${kegiatanId}`;
 
       // Check if already started
       const existing = await getDocs(
         query(
           collection(db, 'test_answers'),
           where('siswa_id', '==', profile.id),
-          where('kegiatan_id', '==', kegiatanRef),
+          where('kegiatan_id', '==', kegId),
           where('test_type', '==', mode)
         )
       );
@@ -132,7 +141,7 @@ export function TestPage() {
       if (existing.empty) {
         const docRef = await addDoc(collection(db, 'test_answers'), {
           siswa_id: profile.id,
-          kegiatan_id: kegiatanRef,
+          kegiatan_id: kegId,
           test_type: mode,
           answers: {},
           score: null,
@@ -140,7 +149,7 @@ export function TestPage() {
           submitted_at: null,
           completed: false,
         });
-        console.debug('[TestPage] created test_answers', docRef.id, { siswa_id: profile.id, kegiatan_id: kegiatanRef, test_type: mode });
+        console.debug('[TestPage] created test_answers', docRef.id, { siswa_id: profile.id, kegiatan_id: kegId, test_type: mode });
       } else {
         await updateDoc(doc(db, 'test_answers', existing.docs[0].id), {
           started_at: now,
@@ -175,12 +184,12 @@ export function TestPage() {
     }
 
     try {
-      const kegiatanRef = `kegiatan-${kegiatanId}`;
+      const kegId = questions[0]?.kegiatan_id || kegiatanRef || `kegiatan-${kegiatanId}`;
       const answerSnapshot = await getDocs(
         query(
           collection(db, 'test_answers'),
           where('siswa_id', '==', profile?.id),
-          where('kegiatan_id', '==', kegiatanRef),
+          where('kegiatan_id', '==', kegId),
           where('test_type', '==', mode)
         )
       );
@@ -192,16 +201,6 @@ export function TestPage() {
           completed: true,
         });
         console.debug('[TestPage] updated test_answers', answerSnapshot.docs[0].id, { submitted_at: new Date().toISOString() });
-        // Also upsert jawaban document to include these test answers (normalize by question id)
-        try {
-          const kegRef = kegiatanRef;
-          const existingJaw = await fetchJawaban(kegRef, profile.id);
-          const mergedIsi = { ...(existingJaw?.isi_jawaban || {}), ...answers };
-          await submitJawaban(kegRef, profile.id, mergedIsi);
-          console.debug('[TestPage] merged test answers into jawaban', { kegiatan_id: kegRef, siswa_id: profile.id, mergedKeys: Object.keys(mergedIsi) });
-        } catch (e) {
-          console.error('[TestPage] failed to merge test answers into jawaban', e);
-        }
       }
 
       setSubmitted(true);
