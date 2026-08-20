@@ -57,7 +57,12 @@ export function TestPage() {
     `kegiatan-${kegiatanId}`,
   );
 
-  const kegiatan = KEGIATAN_CONTENT.find((k) => k.nomor === Number(kegiatanId));
+  // Support both numeric `nomor` (e.g. "2") and slug form (e.g. "kegiatan-2")
+  const parsedNomor = kegiatanId
+    ? Number(String(kegiatanId).replace(/^kegiatan-/, ''))
+    : NaN;
+  const kegiatan = KEGIATAN_CONTENT.find((k) => k.nomor === parsedNomor);
+  console.debug('[TestPage] kegiatan lookup:', { kegiatanId, parsedNomor, kegiatan: kegiatan?.nomor });
 
   useEffect(() => {
     if (!profile || !kegiatanId) return;
@@ -74,21 +79,71 @@ export function TestPage() {
     setCurrentIndex(0);
     setQuestions([]);
     try {
-      const qKegId = `kegiatan-${kegiatanId}`;
-      const q = query(
-        collection(db, 'questions'),
-        where('kegiatan_id', '==', qKegId),
-        where('test_type', '==', mode),
-        // orderBy('order', 'asc')
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Question);
+      // Build candidate kegiatan_id values: accept raw param and `kegiatan-<id>` form
+      const candidates: string[] = [];
+      if (kegiatanId) {
+        candidates.push(kegiatanId);
+        const prefixed = kegiatanId.startsWith('kegiatan-') ? kegiatanId : `kegiatan-${kegiatanId}`;
+        if (!candidates.includes(prefixed)) candidates.push(prefixed);
+      }
+
+      console.debug('[TestPage] loadQuestions params:', { rawKegiatanId: kegiatanId, mode });
+      console.debug('[TestPage] loadQuestions candidates for kegiatan_id:', candidates);
+
+      let q;
+      if (candidates.length === 1) {
+        q = query(
+          collection(db, 'questions'),
+          where('kegiatan_id', '==', candidates[0]),
+          where('test_type', '==', mode),
+        );
+      } else {
+        // Use Firestore `in` to match either form when available
+        q = query(
+          collection(db, 'questions'),
+          where('kegiatan_id', 'in', candidates),
+          where('test_type', '==', mode),
+        );
+      }
+
+      let snapshot = await getDocs(q);
+      console.debug('[TestPage] loadQuestions snapshot.size:', snapshot.size, 'docs:', snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      let data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Question);
+
+      // If nothing found, try fallback: find kegiatan document by `nomor` and query by its doc id
+      if (data.length === 0 && !isNaN(parsedNomor)) {
+        try {
+          console.debug('[TestPage] attempting fallback: lookup kegiatan doc by nomor', parsedNomor);
+          const kegQ = query(collection(db, 'kegiatan'), where('nomor', '==', parsedNomor));
+          const kegSnap = await getDocs(kegQ);
+          if (!kegSnap.empty) {
+            const kegDoc = kegSnap.docs[0];
+            const kegDocId = kegDoc.id; // e.g. 'kegiatan-2'
+            console.debug('[TestPage] found kegiatan doc id for nomor', parsedNomor, kegDocId);
+            const q2 = query(
+              collection(db, 'questions'),
+              where('kegiatan_id', '==', kegDocId),
+              where('test_type', '==', mode),
+            );
+            snapshot = await getDocs(q2);
+            console.debug('[TestPage] fallback questions snapshot.size:', snapshot.size, 'docs:', snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+            data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Question);
+            // Update candidates/resolvedKegId to reflect doc id
+            if (data.length > 0) {
+              candidates.unshift(kegDocId);
+            }
+          }
+        } catch (err) {
+          console.error('Fallback kegiatan lookup error:', err);
+        }
+      }
       setQuestions(data);
       // Use the kegiatan_id from the questions themselves (source of truth)
-      const resolvedKegId = (data.length > 0 && data[0].kegiatan_id) || qKegId;
+      const fallbackKeg = candidates[0] || (kegiatanId && (kegiatanId.startsWith('kegiatan-') ? kegiatanId : `kegiatan-${kegiatanId}`));
+      const resolvedKegId = (data.length > 0 && data[0].kegiatan_id) || fallbackKeg || '';
       setKegiatanRef(resolvedKegId);
       console.debug('[TestPage] resolved kegiatan_id:', resolvedKegId, {
-        qKegId,
+        candidates,
         firstQuestionKegId: data[0]?.kegiatan_id,
       });
 
@@ -126,7 +181,7 @@ export function TestPage() {
     if (!profile || !kegiatanId) return;
     try {
       const now = new Date().toISOString();
-      const kegId = questions[0]?.kegiatan_id || kegiatanRef || `kegiatan-${kegiatanId}`;
+      const kegId = questions[0]?.kegiatan_id || kegiatanRef || (kegiatanId && kegiatanId.startsWith('kegiatan-') ? kegiatanId : `kegiatan-${kegiatanId}`);
 
       // Check if already started
       const existing = await getDocs(
@@ -184,7 +239,7 @@ export function TestPage() {
     }
 
     try {
-      const kegId = questions[0]?.kegiatan_id || kegiatanRef || `kegiatan-${kegiatanId}`;
+      const kegId = questions[0]?.kegiatan_id || kegiatanRef || (kegiatanId && kegiatanId.startsWith('kegiatan-') ? kegiatanId : `kegiatan-${kegiatanId}`);
       const answerSnapshot = await getDocs(
         query(
           collection(db, 'test_answers'),
