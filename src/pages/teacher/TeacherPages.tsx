@@ -359,17 +359,22 @@ export function TeacherKelas() {
 
   const createKelas = async () => {
     if (!profile || !namaKelas.trim()) return;
-    // const kode = Math.random().toString(36).slice(2, 8).toUpperCase();
-    // const docRef = await addDoc(collection(db, 'kelas'), {
-    //   nama_kelas: namaKelas,
-    //   guru_id: profile.id,
-    //   kode_undangan: kode,
-    //   dibuat_pada: new Date().toISOString(),
-    // });
-    toast("Kelas dibuat", "success");
-    setNamaKelas("");
-    setOpen(false);
-    loadKelas();
+    try {
+      const kode = Math.random().toString(36).slice(2, 8).toUpperCase();
+      await addDoc(collection(db, "kelas"), {
+        nama_kelas: namaKelas.trim(),
+        guru_id: profile.id,
+        kode_undangan: kode,
+        dibuat_pada: new Date().toISOString(),
+      });
+      toast(`Kelas dibuat. Kode undangan: ${kode}`, "success");
+      setNamaKelas("");
+      setOpen(false);
+      await loadKelas();
+    } catch (err) {
+      console.error('[TeacherKelas] createKelas error:', err);
+      toast(err instanceof Error ? err.message : 'Gagal membuat kelas', 'error');
+    }
   };
 
   const copyKode = (kode: string) => {
