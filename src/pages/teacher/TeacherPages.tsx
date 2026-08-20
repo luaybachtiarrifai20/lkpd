@@ -539,9 +539,10 @@ export function TeacherRekap() {
   const [loading, setLoading] = useState(false);
   const [loadingKelas, setLoadingKelas] = useState(true);
   const [kegIds, setKegIds] = useState<Record<number, string>>({});
-  const [kegiatanList, setKegiatanList] = useState<
-    { nomor: number; judul: string; subjudul: string }[]
-  >([]);
+  const [kegiatanList, setKegiatanList] = useState<{ nomor: number; judul: string; subjudul: string }[]>([]);
+  // const [kegiatanList, setKegiatanList] = useState<
+  //   { nomor: number; judul: string; subjudul: string }[]
+  // >([]);
 
   useEffect(() => {
     // Tunggu profile siap; pakai profile.id ATAU auth.uid
@@ -914,6 +915,7 @@ export function TeacherSiswaDetail() {
   const [kuis, setKuis] = useState<StatusKuisSiswa | null>(null);
   const [kegIds, setKegIds] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
+  const [kegiatanList, setKegiatanList] = useState<{ nomor: number; judul: string; subjudul: string }[]>([]);
   const [skor, setSkor] = useState("");
   const [skorKuis, setSkorKuis] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -954,7 +956,9 @@ export function TeacherSiswaDetail() {
       }
       const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
       const map = buildKegiatanMap(kegsSnapshot.docs);
+      const list = buildKegiatanList(kegsSnapshot.docs);
       setKegIds(map);
+      setKegiatanList(list);
       setLoading(false);
     })();
   }, [siswaId]);
@@ -1352,11 +1356,15 @@ export function TeacherSiswaDetail() {
                 className="input-base"
                 value={selKeg}
                 onChange={(e) => setSelKeg(Number(e.target.value))}>
-                {KEGIATAN_CONTENT.map((k) => (
-                  <option key={k.nomor} value={k.nomor}>
-                    Kegiatan {k.nomor} — {k.subjudul}
-                  </option>
-                ))}
+                {kegiatanList.length === 0 ? (
+                  <option value={selKeg}>— Belum ada kegiatan di database —</option>
+                ) : (
+                  kegiatanList.map((k) => (
+                    <option key={k.nomor} value={k.nomor}>
+                      Kegiatan {k.nomor} — {k.subjudul || k.judul}
+                    </option>
+                  ))
+                )}
               </select>
               <button
                 onClick={handleExport}
