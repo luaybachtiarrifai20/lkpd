@@ -34,6 +34,7 @@ import {
 } from "@/content/types";
 import { type AnswerValue, type Jawaban } from "@/lib/firebase";
 import { TextAnswer } from "./TextAnswer";
+import { MultiTextAnswer } from "./MultiTextAnswer";
 import { EditableTable } from "./EditableTable";
 import { UrlInput } from "./UrlInput";
 import { ArgumentationTAP } from "./ArgumentationTAP";
@@ -1845,9 +1846,8 @@ function BlockRenderer({
               <p className="mb-2.5 text-sm font-medium text-slate-700">
                 {block.text}
               </p>
-              <TextAnswer
-                id={block.id}
-                value={(answers[block.id] as string) || ""}
+              <MultiTextAnswer
+                value={(answers[block.id] as string | string[]) || ""}
                 onChange={(v) => onUpdate(block.id, v)}
                 disabled={readOnly}
                 hint={block.hint}
@@ -1892,15 +1892,21 @@ function BlockRenderer({
             <>
               <div className="card">
                 <EditableTable
-                  headers={block.headers}
+                  headers={
+                    (answers[block.id] as { headers?: string[] } | undefined)
+                      ?.headers || block.headers
+                  }
                   title={block.title}
                   rows={
-                    (answers[block.id] as { rows: string[][] })?.rows ||
+                    (answers[block.id] as { rows?: string[][] } | undefined)
+                      ?.rows ||
                     Array.from({ length: block.rowCount }, () =>
                       block.headers.map(() => ""),
                     )
                   }
-                  onChange={(rows) => onUpdate(block.id, { rows })}
+                  onChange={(rows, headers) =>
+                    onUpdate(block.id, { rows, headers })
+                  }
                   disabled={readOnly}
                 />
               </div>
@@ -1909,9 +1915,8 @@ function BlockRenderer({
                   <p className="mb-2.5 text-sm font-medium text-slate-700">
                     {block.perencanaanText}
                   </p>
-                  <TextAnswer
-                    id={block.perencanaanId}
-                    value={(answers[block.perencanaanId] as string) || ""}
+                  <MultiTextAnswer
+                    value={(answers[block.perencanaanId] as string | string[]) || ""}
                     onChange={(v) => onUpdate(block.perencanaanId!, v)}
                     disabled={readOnly}
                     rows={4}
@@ -2109,9 +2114,8 @@ function BlockRenderer({
                 <Microscope className="mt-0.5 h-4 w-4 shrink-0 text-brand-teal" />{" "}
                 {block.text}
               </p>
-              <TextAnswer
-                id={block.id}
-                value={(answers[block.id] as string) || ""}
+              <MultiTextAnswer
+                value={(answers[block.id] as string | string[]) || ""}
                 onChange={(v) => onUpdate(block.id, v)}
                 disabled={readOnly}
                 rows={4}
@@ -2302,9 +2306,8 @@ function BlockRenderer({
                 <p className="mb-1.5 text-xs font-medium text-slate-500">
                   Alasan pilihanmu
                 </p>
-                <TextAnswer
-                  id={block.alasanId}
-                  value={(answers[block.alasanId] as string) || ""}
+                <MultiTextAnswer
+                  value={(answers[block.alasanId] as string | string[]) || ""}
                   onChange={(v) => onUpdate(block.alasanId, v)}
                   disabled={readOnly}
                   rows={3}
@@ -2565,9 +2568,8 @@ function BlockRenderer({
                 <p className="mb-2.5 text-sm font-medium text-slate-700">
                   {block.pertanyaanText}
                 </p>
-                <TextAnswer
-                  id={block.pertanyaanId}
-                  value={(answers[block.pertanyaanId] as string) || ""}
+                <MultiTextAnswer
+                  value={(answers[block.pertanyaanId] as string | string[]) || ""}
                   onChange={(v) => onUpdate(block.pertanyaanId, v)}
                   disabled={readOnly}
                   rows={4}
@@ -2700,9 +2702,8 @@ function BlockRenderer({
                 <p className="mb-2.5 text-sm font-medium text-slate-700">
                   {block.pertanyaanText}
                 </p>
-                <TextAnswer
-                  id={block.id}
-                  value={(answers[block.id] as string) || ""}
+                <MultiTextAnswer
+                  value={(answers[block.id] as string | string[]) || ""}
                   onChange={(v) => onUpdate(block.id, v)}
                   disabled={readOnly}
                   rows={4}

@@ -714,6 +714,15 @@ export function StudentRiwayat() {
     }
   }
 
+  const formatTestAns = (ans: unknown): string => {
+    if (ans == null || ans === "") return "(belum dijawab)";
+    if (Array.isArray(ans)) {
+      const parts = ans.map((v) => String(v)).filter((s) => s.trim() !== "");
+      return parts.length > 0 ? parts.join("\n") : "(kosong)";
+    }
+    return String(ans);
+  };
+
   return (
     <DashboardLayout items={navItems} role="siswa">
       <div className="space-y-6">
@@ -796,7 +805,7 @@ export function StudentRiwayat() {
                   {detailPreQs.map((q) => (
                     <div key={q.id} className="mb-2">
                       <div className="text-sm font-medium">{q.question_text}</div>
-                      <div className="text-sm text-slate-600">Jawaban: {String(detailPre?.answers?.[q.id] ?? "(belum)")}</div>
+                      <div className="whitespace-pre-wrap text-sm text-slate-600">Jawaban: {formatTestAns(detailPre?.answers?.[q.id])}</div>
                     </div>
                   ))}
                 </div>
@@ -809,7 +818,7 @@ export function StudentRiwayat() {
                   {detailPostQs.map((q) => (
                     <div key={q.id} className="mb-2">
                       <div className="text-sm font-medium">{q.question_text}</div>
-                      <div className="text-sm text-slate-600">Jawaban: {String(detailPost?.answers?.[q.id] ?? "(belum)")}</div>
+                      <div className="whitespace-pre-wrap text-sm text-slate-600">Jawaban: {formatTestAns(detailPost?.answers?.[q.id])}</div>
                     </div>
                   ))}
                 </div>

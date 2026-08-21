@@ -307,10 +307,14 @@ function renderAnswer(doc: jsPDF, ans: unknown, write: (text: string) => void) {
   if (typeof ans === "object") {
     const a = ans as {
       rows?: unknown;
+      headers?: string[];
       files?: { name: string; url: string }[];
       tap?: Record<string, string>;
     };
     if (a.rows && Array.isArray(a.rows)) {
+      if (Array.isArray(a.headers) && a.headers.length > 0) {
+        write(a.headers.map((h) => String(h ?? "")).join(" | "));
+      }
       write(`[Tabel ${a.rows.length} baris]`);
       a.rows.forEach((row) => {
         if (Array.isArray(row)) {

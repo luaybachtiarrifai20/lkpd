@@ -118,7 +118,7 @@ export type Jawaban = {
 export type AnswerValue =
   | string
   | string[]
-  | { rows: string[][] }
+  | { rows: string[][]; headers?: string[] }
   | { tap: Record<string, string> }
   | null;
 

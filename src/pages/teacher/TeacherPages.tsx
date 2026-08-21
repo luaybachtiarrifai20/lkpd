@@ -1616,39 +1616,98 @@ function formatTestAnswer(q: Question, ans: unknown): string {
 }
 
 function AnswerView({ label, ans }: { label: string; ans: unknown }) {
-  let content = "(kosong)";
-  if (typeof ans === "string" && ans) content = ans;
-  else if (Array.isArray(ans) && ans.length) content = ans.join(", ");
-  else if (ans && typeof ans === "object") {
+  let body: React.ReactNode = null;
+
+  if (typeof ans === "string" && ans) {
+    body = <p className="whitespace-pre-wrap text-sm text-slate-700">{ans}</p>;
+  } else if (Array.isArray(ans) && ans.length) {
+    const parts = ans.map((v) => String(v)).filter((s) => s.trim() !== "");
+    body = (
+      <ol className="ml-5 list-decimal space-y-1 text-sm text-slate-700">
+        {parts.map((p, i) => (
+          <li key={i} className="whitespace-pre-wrap">
+            {p}
+          </li>
+        ))}
+      </ol>
+    );
+  } else if (ans && typeof ans === "object") {
     const a = ans as {
       rows?: unknown;
+      headers?: string[];
       files?: { name: string; url: string }[];
       tap?: Record<string, string>;
     };
     if (a.rows && Array.isArray(a.rows)) {
-      content = a.rows
-        .map((row) => {
-          if (Array.isArray(row)) {
-            return row.map((c) => String(c ?? "")).join(" | ");
-          }
-          if (row && typeof row === "object" && "cells" in row) {
-            return ((row as { cells?: unknown[] }).cells || [])
-              .map((c) => String(c ?? ""))
-              .join(" | ");
-          }
-          return String(row ?? "");
-        })
-        .join("\n");
-    } else if (a.files) content = a.files.map((f) => f.name).join("\n");
-    else if (a.tap)
-      content = Object.entries(a.tap)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join("\n");
+      const headers = Array.isArray(a.headers) ? a.headers : undefined;
+      body = (
+        <div className="overflow-x-auto rounded-lg border border-slate-100">
+          <table className="w-full text-xs">
+            {headers && (
+              <thead>
+                <tr className="bg-slate-50">
+                  {headers.map((h, i) => (
+                    <th
+                      key={i}
+                      className="border-b border-slate-100 px-2 py-1.5 text-left font-semibold text-slate-600">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {a.rows.map((row, ri) => {
+                const cells = Array.isArray(row)
+                  ? row.map((c) => String(c ?? ""))
+                  : row && typeof row === "object" && "cells" in row
+                    ? ((row as { cells?: unknown[] }).cells || []).map((c) =>
+                        String(c ?? ""),
+                      )
+                    : [String(row ?? "")];
+                return (
+                  <tr key={ri} className={ri % 2 ? "bg-slate-50/40" : ""}>
+                    {cells.map((cell, ci) => (
+                      <td
+                        key={ci}
+                        className="whitespace-pre-wrap border-b border-slate-100 px-2 py-1.5 text-slate-700">
+                        {cell || "-"}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    } else if (a.files) {
+      body = (
+        <p className="whitespace-pre-wrap text-sm text-slate-700">
+          {a.files.map((f) => f.name).join("\n")}
+        </p>
+      );
+    } else if (a.tap) {
+      body = (
+        <div className="space-y-1 text-sm text-slate-700">
+          {Object.entries(a.tap).map(([k, v]) => (
+            <p key={k} className="whitespace-pre-wrap">
+              {k}: {v}
+            </p>
+          ))}
+        </div>
+      );
+    }
   }
+
+  if (body === null) {
+    body = <p className="text-sm text-slate-400">(kosong)</p>;
+  }
+
   return (
     <div className="mb-3 border-b border-slate-100 pb-3 last:border-0">
       <p className="mb-1 text-xs font-semibold text-slate-500">{label}</p>
-      <p className="whitespace-pre-wrap text-sm text-slate-700">{content}</p>
+      {body}
     </div>
   );
 }

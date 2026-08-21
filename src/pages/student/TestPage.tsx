@@ -29,6 +29,8 @@ import {
   AlertTriangle,
   Send,
   LayoutDashboard,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import type { Question, TestAnswer } from '@/lib/firebase';
 
@@ -213,11 +215,43 @@ export function TestPage() {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  // Essay answers are stored as string[] so students can add/remove columns.
+  const getEssayAnswers = (questionId: string): string[] => {
+    const val = answers[questionId];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string' && val !== '') return [val];
+    return [''];
+  };
+
+  const updateEssayColumn = (questionId: string, index: number, value: string) => {
+    const cols = getEssayAnswers(questionId);
+    const next = [...cols];
+    next[index] = value;
+    handleAnswer(questionId, next);
+  };
+
+  const addEssayColumn = (questionId: string) => {
+    const cols = getEssayAnswers(questionId);
+    handleAnswer(questionId, [...cols, '']);
+  };
+
+  const removeEssayColumn = (questionId: string, index: number) => {
+    const cols = getEssayAnswers(questionId);
+    if (cols.length <= 1) return;
+    handleAnswer(questionId, cols.filter((_, i) => i !== index));
+  };
+
+  const isAnswered = (q: Question): boolean => {
+    const val = answers[q.id];
+    if (Array.isArray(val)) return val.some((v) => v && String(v).trim() !== '');
+    return typeof val === 'string' && val.trim() !== '';
+  };
+
   const handleSubmit = async () => {
     if (!profile || !kegiatanId) return;
 
     // Check if all questions answered
-    const unanswered = questions.filter((q) => !answers[q.id]);
+    const unanswered = questions.filter((q) => !isAnswered(q));
     if (unanswered.length > 0) {
       if (!confirm(`Masih ada ${unanswered.length} soal yang belum dijawab. Yakin ingin mengumpulkan?`)) {
         return;
@@ -257,7 +291,7 @@ export function TestPage() {
   };
 
   const getProgress = () => {
-    const answered = questions.filter((q) => answers[q.id]).length;
+    const answered = questions.filter(isAnswered).length;
     return { answered, total: questions.length };
   };
 
@@ -434,13 +468,41 @@ export function TestPage() {
           )}
 
           {currentQuestion.question_type === 'essay' && (
-            <textarea
-              className="input-base w-full"
-              rows={5}
-              value={(answers[currentQuestion.id] as string) || ''}
-              onChange={(e) => handleAnswer(currentQuestion.id, e.target.value)}
-              placeholder="Tulis jawabanmu di sini..."
-            />
+            <div className="space-y-3">
+              {getEssayAnswers(currentQuestion.id).map((col, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <label className="mb-1 block text-xs font-semibold text-slate-500">
+                      Jawaban {idx + 1}
+                    </label>
+                    <textarea
+                      className="input-base w-full"
+                      rows={3}
+                      value={col}
+                      onChange={(e) => updateEssayColumn(currentQuestion.id, idx, e.target.value)}
+                      placeholder={`Tulis jawaban ke-${idx + 1} di sini...`}
+                    />
+                  </div>
+                  {getEssayAnswers(currentQuestion.id).length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeEssayColumn(currentQuestion.id, idx)}
+                      className="mt-6 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                      title="Hapus kolom jawaban"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addEssayColumn(currentQuestion.id)}
+                className="btn-outline text-sm"
+              >
+                <Plus className="h-4 w-4" /> Tambah Kolom Jawaban
+              </button>
+            </div>
           )}
         </div>
 
