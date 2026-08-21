@@ -14,7 +14,6 @@ import {
   KeyRound,
   Loader2,
   LogIn,
-  ArrowLeft,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +24,8 @@ import {
   type Jawaban,
   type StatusKuisSiswa,
   type Kelas,
+  type TestAnswer,
+  type Question,
 } from "@/lib/firebase";
 import {
   collection,
@@ -36,6 +37,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { SDGBadgeChip, EmptyState, Badge } from "@/components/ui";
+import { Modal } from "@/components/ui/Modal";
 
 const navItems = [
   {
@@ -80,8 +82,6 @@ type ProgresKeseluruhanProps = {
 export function ProgresKeseluruhan({
   rows,
   loading,
-  kelas,
-  onBack,
   kegiatanList,
 }: ProgresKeseluruhanProps) {
   const statusMeta = (status?: Jawaban["status"]) => {
@@ -380,6 +380,8 @@ export function StudentDashboard() {
     };
   }, [profile]);
 
+  
+
   const joinKelas = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !kodeInput.trim()) return;
@@ -547,9 +549,25 @@ export function StudentDashboard() {
 export function StudentRiwayat() {
   const { profile } = useAuth();
   const [list, setList] = useState<
-    { nomor: number; jawaban?: Jawaban; kuis?: StatusKuisSiswa }[]
+    {
+      id: string;
+      nomor: number;
+      judul: string;
+      subjudul: string;
+      warna: string;
+      jawaban?: Jawaban;
+      kuis?: StatusKuisSiswa;
+    }[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailNomor, setDetailNomor] = useState<number | null>(null);
+  const [detailJawaban, setDetailJawaban] = useState<Jawaban | null>(null);
+  const [detailPre, setDetailPre] = useState<TestAnswer | null>(null);
+  const [detailPost, setDetailPost] = useState<TestAnswer | null>(null);
+  const [detailPreQs, setDetailPreQs] = useState<Question[]>([]);
+  const [detailPostQs, setDetailPostQs] = useState<Question[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -572,6 +590,9 @@ export function StudentRiwayat() {
           ),
         ]);
         if (!active) return;
+        console.debug("[StudentRiwayat] kegiatan docs:", kegsSnapshot.docs.map((d) => ({ id: d.id, nomor: d.data().nomor })));
+        console.debug("[StudentRiwayat] jawaban docs:", jSnapshot.docs.map((d) => ({ id: d.id, kegiatan_id: d.data().kegiatan_id, skor: d.data().skor, status: d.data().status })));
+        console.debug("[StudentRiwayat] test_answers docs:", (await getDocs(query(collection(db, "test_answers"), where("siswa_id", "==", profile.id)))).docs.map((d) => ({ id: d.id, kegiatan_id: d.data().kegiatan_id, test_type: d.data().test_type, score: d.data().score })));
         const jByKeg = jSnapshot.docs.reduce<Record<string, Jawaban>>(
           (a, d) => {
             const data = { id: d.id, ...d.data() } as Jawaban;
@@ -589,8 +610,25 @@ export function StudentRiwayat() {
           {},
         );
         const items = kegsSnapshot.docs.map((d) => {
-          const k = d.data() as { nomor: number };
-          return { nomor: k.nomor, jawaban: jByKeg[d.id], kuis: kByKeg[d.id] };
+          const k = d.data() as {
+            nomor: number;
+            judul?: string;
+            subjudul?: string;
+            warna?: string;
+          };
+          const nomor = k.nomor;
+          return {
+            id: d.id,
+            nomor,
+            judul:
+              (typeof k.judul === "string" && k.judul) ||
+              `Kegiatan ${nomor}`,
+            subjudul:
+              (typeof k.subjudul === "string" && k.subjudul) || "",
+            warna: (typeof k.warna === "string" && k.warna) || "#2E7D32",
+            jawaban: jByKeg[d.id] || jByKeg[`kegiatan-${nomor}`],
+            kuis: kByKeg[d.id] || kByKeg[`kegiatan-${nomor}`],
+          };
         });
         items.sort((a, b) => a.nomor - b.nomor);
         setList(items);
@@ -604,6 +642,77 @@ export function StudentRiwayat() {
       active = false;
     };
   }, [profile]);
+
+  async function openDetail(nomor: number, kegiatanDocId?: string) {
+    if (!profile) return;
+    setDetailNomor(nomor);
+    setDetailLoading(true);
+    setDetailOpen(true);
+    setDetailJawaban(null);
+    setDetailPre(null);
+    setDetailPost(null);
+    setDetailPreQs([]);
+    setDetailPostQs([]);
+    try {
+      const candidates: string[] = [];
+      if (kegiatanDocId) candidates.push(kegiatanDocId);
+      candidates.push(`kegiatan-${nomor}`);
+      candidates.push(String(nomor));
+      // dedupe & keep order
+      const unique = Array.from(new Set(candidates));
+      console.debug("[StudentRiwayat] openDetail:", { nomor, kegiatanDocId, candidates: unique });
+
+      const jawSnap = await getDocs(
+        query(
+          collection(db, "jawaban"),
+          where("siswa_id", "==", profile.id),
+          where("kegiatan_id", "in", unique),
+        ),
+      );
+      if (!jawSnap.empty) {
+        const j = jawSnap.docs[0];
+        setDetailJawaban({ id: j.id, ...j.data() } as Jawaban);
+      }
+
+      const testSnap = await getDocs(
+        query(
+          collection(db, "test_answers"),
+          where("siswa_id", "==", profile.id),
+          where("kegiatan_id", "in", unique),
+        ),
+      );
+      testSnap.docs.forEach((d) => {
+        const data = { id: d.id, ...d.data() } as TestAnswer;
+        if (data.test_type === "pretest") setDetailPre(data);
+        if (data.test_type === "posttest") setDetailPost(data);
+      });
+
+      const preQSnap = await getDocs(
+        query(
+          collection(db, "questions"),
+          where("kegiatan_id", "in", unique),
+          where("test_type", "==", "pretest"),
+        ),
+      );
+      const postQSnap = await getDocs(
+        query(
+          collection(db, "questions"),
+          where("kegiatan_id", "in", unique),
+          where("test_type", "==", "posttest"),
+        ),
+      );
+      setDetailPreQs(
+        preQSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Question)),
+      );
+      setDetailPostQs(
+        postQSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Question)),
+      );
+    } catch (err) {
+      console.error("[StudentRiwayat] openDetail error:", err);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   return (
     <DashboardLayout items={navItems} role="siswa">
@@ -620,19 +729,17 @@ export function StudentRiwayat() {
         ) : (
           <div className="space-y-3">
             {list.map((item) => {
-              const k = KEGIATAN_CONTENT.find((c) => c.nomor === item.nomor);
-              if (!k) return null;
               return (
                 <div
                   key={item.nomor}
                   className="card flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                  style={{ borderLeft: `4px solid ${k.warna}` }}>
+                  style={{ borderLeft: `4px solid ${item.warna}` }}>
                   <div>
                     <p className="text-xs font-semibold text-slate-400">
                       Kegiatan {item.nomor}
                     </p>
                     <p className="text-sm font-bold text-slate-800">
-                      {k.subjudul}
+                      {item.subjudul || item.judul}
                     </p>
                     <p className="text-xs text-slate-500">
                       Jawaban: {item.jawaban?.status || "Belum dikerjakan"} •
@@ -652,17 +759,64 @@ export function StudentRiwayat() {
                         {item.kuis.skor_manual}
                       </Badge>
                     )}
-                    <Link
-                      to={`/siswa/kegiatan/${item.nomor}`}
-                      className="btn-outline">
-                      Lihat
-                    </Link>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openDetail(item.nomor, item.id)}
+                        className="btn-outline">
+                        Lihat Hasil
+                      </button>
+                      <Link
+                        to={`/siswa/kegiatan/${item.nomor}`}
+                        className="btn-ghost">
+                        Buka Kegiatan
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+        {/* Detail modal */}
+        <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title={detailNomor ? `Hasil Kegiatan ${detailNomor}` : "Hasil Kegiatan"}>
+          <div className="space-y-4">
+            {detailLoading ? (
+              <div className="card animate-pulse h-40" />
+            ) : (
+              <div>
+                <h3 className="text-lg font-semibold">Activity</h3>
+                <p className="text-sm">Skor: {detailJawaban?.skor ?? "-"}</p>
+                <p className="text-sm whitespace-pre-wrap mt-2">Feedback Guru: {detailJawaban?.feedback_guru || "-"}</p>
+
+                <hr className="my-3" />
+                <h3 className="text-lg font-semibold">Pretest</h3>
+                <p className="text-sm">Skor: {detailPre?.score ?? "-"}</p>
+                <p className="text-sm whitespace-pre-wrap mt-2">Feedback Guru: {detailPre?.feedback_guru || "-"}</p>
+                <div className="mt-2">
+                  {detailPreQs.map((q) => (
+                    <div key={q.id} className="mb-2">
+                      <div className="text-sm font-medium">{q.question_text}</div>
+                      <div className="text-sm text-slate-600">Jawaban: {String(detailPre?.answers?.[q.id] ?? "(belum)")}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <hr className="my-3" />
+                <h3 className="text-lg font-semibold">Posttest</h3>
+                <p className="text-sm">Skor: {detailPost?.score ?? "-"}</p>
+                <p className="text-sm whitespace-pre-wrap mt-2">Feedback Guru: {detailPost?.feedback_guru || "-"}</p>
+                <div className="mt-2">
+                  {detailPostQs.map((q) => (
+                    <div key={q.id} className="mb-2">
+                      <div className="text-sm font-medium">{q.question_text}</div>
+                      <div className="text-sm text-slate-600">Jawaban: {String(detailPost?.answers?.[q.id] ?? "(belum)")}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
       </div>
     </DashboardLayout>
   );

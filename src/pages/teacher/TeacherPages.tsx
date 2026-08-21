@@ -85,19 +85,21 @@ const navItems = [
 
 /**
  * Build a mapping of kegiatan nomor -> Firestore doc id.
- * Prefer the document id pattern `kegiatan-<n>` (source of truth), and fall
- * back to the `nomor` field if the id has no number.
+ * Prefer the `nomor` field (the actual ordering/identity), and fall back to
+ * the document id pattern `kegiatan-<n>` only when the field is missing.
  */
 function buildKegiatanMap(
   docs: { id: string; data: () => Record<string, unknown> }[],
 ): Record<number, string> {
   const map: Record<number, string> = {};
   docs.forEach((d) => {
-    const idMatch = String(d.id || "").match(/kegiatan-(\d+)/);
-    let nomor = idMatch ? Number(idMatch[1]) : undefined;
-    if (nomor === undefined || Number.isNaN(nomor)) {
-      const dataNomor = d.data()?.nomor;
-      if (typeof dataNomor === "number") nomor = dataNomor;
+    let nomor: number | undefined;
+    const dataNomor = d.data()?.nomor;
+    if (typeof dataNomor === "number" && !Number.isNaN(dataNomor)) {
+      nomor = dataNomor;
+    } else {
+      const idMatch = String(d.id || "").match(/kegiatan-(\d+)/);
+      if (idMatch) nomor = Number(idMatch[1]);
     }
     if (nomor !== undefined && !Number.isNaN(nomor)) map[nomor] = d.id;
   });
@@ -107,6 +109,7 @@ function buildKegiatanMap(
 /**
  * Build a sorted list of kegiatan (nomor, judul, subjudul) from the Firestore
  * `kegiatan` collection so dropdowns reflect the actual database contents.
+ * Prefer the `nomor` field over the document id pattern.
  */
 function buildKegiatanList(
   docs: { id: string; data: () => Record<string, unknown> }[],
@@ -114,11 +117,13 @@ function buildKegiatanList(
   const list: { nomor: number; judul: string; subjudul: string }[] = [];
   docs.forEach((d) => {
     const data = d.data() as Record<string, any>;
-    const idMatch = String(d.id || "").match(/kegiatan-(\d+)/);
-    let nomor = idMatch ? Number(idMatch[1]) : undefined;
-    if (nomor === undefined || Number.isNaN(nomor)) {
-      const dataNomor = data?.nomor;
-      if (typeof dataNomor === "number") nomor = dataNomor;
+    let nomor: number | undefined;
+    const dataNomor = data?.nomor;
+    if (typeof dataNomor === "number" && !Number.isNaN(dataNomor)) {
+      nomor = dataNomor;
+    } else {
+      const idMatch = String(d.id || "").match(/kegiatan-(\d+)/);
+      if (idMatch) nomor = Number(idMatch[1]);
     }
     if (nomor === undefined || Number.isNaN(nomor)) return;
     list.push({
@@ -979,10 +984,13 @@ export function TeacherSiswaDetail() {
       const allKuis = allKuisSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
 
       const resolveKegNomor = (kegId: unknown): number | undefined => {
+        // Prefer reverse lookup via the nomor->docId map (source of truth),
+        // so renaming/renumbering nomor does not cause a mismatch.
+        const match = Object.entries(kegIds).find(([, v]) => v === kegId);
+        if (match) return Number(match[0]);
         const m = String(kegId ?? "").match(/kegiatan-(\d+)/);
         if (m) return Number(m[1]);
-        const match = Object.entries(kegIds).find(([, v]) => v === kegId);
-        return match ? Number(match[0]) : undefined;
+        return undefined;
       };
 
       // Auto-select a sensible default kegiatan ONCE per siswa. Prefer a

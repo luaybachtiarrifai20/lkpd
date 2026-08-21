@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  getDocs,
+  deleteDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -298,6 +306,21 @@ export function SetupSuperAdmin() {
     setJsonInput(JSON.stringify(dataToEdit, null, 2));
   };
 
+  const handleDeleteKegiatan = async (id: string) => {
+    if (!confirm(`Hapus kegiatan dengan Document ID "${id}"?`)) return;
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, "kegiatan", id));
+      toast("Kegiatan dihapus", "success");
+      await loadKegiatan();
+    } catch (err: any) {
+      console.error(err);
+      toast("Gagal menghapus: " + (err.message || ""), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSeedQuestions = async () => {
     setLoading(true);
     try {
@@ -309,6 +332,82 @@ export function SetupSuperAdmin() {
     } catch (err: any) {
       console.error(err);
       toast("Gagal menyimpan soal: " + (err.message || ""), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Normalisasi data kegiatan: pastikan id dokumen `kegiatan` selalu
+   * `kegiatan-<nomor>`, lalu perbarui referensi `kegiatan_id` pada koleksi
+   * yang memakai id dokumen (jawaban, status_kuis_siswa, assessment_eksternal).
+   * `questions` dan `test_answers` memakai id logis `kegiatan-<n>` yang sudah
+   * sesuai, jadi tidak diubah.
+   */
+  const normalizeKegiatanData = async () => {
+    setLoading(true);
+    try {
+      const kegSnap = await getDocs(collection(db, "kegiatan"));
+      const oldToNew: Record<string, string> = {};
+      const migrations: {
+        oldId: string;
+        newId: string;
+        data: Record<string, unknown>;
+      }[] = [];
+
+      for (const d of kegSnap.docs) {
+        const raw = d.data();
+        const nomor = Number(raw.nomor);
+        if (Number.isNaN(nomor)) continue;
+        const correctId = `kegiatan-${nomor}`;
+        if (d.id !== correctId) {
+          const { id: _omit, ...rest } = raw;
+          migrations.push({ oldId: d.id, newId: correctId, data: rest });
+          oldToNew[d.id] = correctId;
+        }
+      }
+
+      // Tulis dulu ke id yang benar, lalu hapus id lama
+      for (const m of migrations) {
+        await setDoc(doc(db, "kegiatan", m.newId), m.data);
+      }
+      // Jangan hapus id yang juga menjadi target migrasi lain (dipakai ulang),
+      // agar dokumen hasil pindahan tidak ikut terhapus.
+      const newIdSet = new Set(migrations.map((m) => m.newId));
+      for (const m of migrations) {
+        if (!newIdSet.has(m.oldId)) {
+          await deleteDoc(doc(db, "kegiatan", m.oldId));
+        }
+      }
+
+      // Perbarui referensi pada koleksi yang memakai id dokumen kegiatan
+      const remapCollections = [
+        "jawaban",
+        "status_kuis_siswa",
+        "assessment_eksternal",
+      ];
+      let remapped = 0;
+      for (const coll of remapCollections) {
+        const snap = await getDocs(collection(db, coll));
+        for (const d of snap.docs) {
+          const kegId = d.data().kegiatan_id;
+          if (typeof kegId === "string" && oldToNew[kegId]) {
+            await updateDoc(doc(db, coll, d.id), {
+              kegiatan_id: oldToNew[kegId],
+            });
+            remapped++;
+          }
+        }
+      }
+
+      toast(
+        `Normalisasi selesai: ${migrations.length} kegiatan dipindah, ${remapped} referensi diperbarui`,
+        "success",
+      );
+      await loadKegiatan();
+    } catch (err: any) {
+      console.error(err);
+      toast("Gagal normalisasi: " + (err.message || ""), "error");
     } finally {
       setLoading(false);
     }
@@ -403,6 +502,12 @@ export function SetupSuperAdmin() {
                 className="bg-brand-teal text-white px-4 py-2 rounded-lg font-medium hover:bg-brand-teal-dark transition disabled:opacity-50">
                 Seed Soal Pretest & Posttest
               </button>
+              <button
+                onClick={normalizeKegiatanData}
+                disabled={loading}
+                className="bg-amber-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-amber-700 transition disabled:opacity-50">
+                Perbaiki ID Kegiatan (Normalisasi)
+              </button>
             </div>
           </div>
 
@@ -426,11 +531,19 @@ export function SetupSuperAdmin() {
                         Document ID: {k.id}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleEditClick(k)}
-                      className="px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 font-medium transition">
-                      Edit JSON
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditClick(k)}
+                        className="px-3 py-1.5 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 font-medium transition">
+                        Edit JSON
+                      </button>
+                      <button
+                        onClick={() => handleDeleteKegiatan(k.id)}
+                        disabled={loading}
+                        className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium transition disabled:opacity-50">
+                        Hapus
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

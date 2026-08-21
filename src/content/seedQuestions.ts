@@ -515,6 +515,15 @@ export const SEED_QUESTIONS: SeedQuestion[] = [
 export async function seedQuestions(): Promise<number> {
   const now = new Date().toISOString();
 
+  // Resolve actual kegiatan doc id by `nomor` so questions always reference the
+  // real Firestore document id (works even if ids are random/auto-generated).
+  const kegSnapshot = await getDocs(collection(db, "kegiatan"));
+  const nomorToDocId: Record<number, string> = {};
+  kegSnapshot.docs.forEach((d) => {
+    const nomor = Number(d.data().nomor);
+    if (!Number.isNaN(nomor)) nomorToDocId[nomor] = d.id;
+  });
+
   // Ambil soal yang sudah ada untuk mencegah duplikasi
   const existingSnapshot = await getDocs(collection(db, "questions"));
   const existingKeys = new Set<string>();
@@ -529,7 +538,7 @@ export async function seedQuestions(): Promise<number> {
   let inserted = 0;
 
   for (const q of SEED_QUESTIONS) {
-    const kegiatanId = `kegiatan-${q.kegiatan}`;
+    const kegiatanId = nomorToDocId[q.kegiatan] || `kegiatan-${q.kegiatan}`;
     const key = `${kegiatanId}|${q.test_type}|${q.question_text}`;
     if (existingKeys.has(key)) continue;
 
