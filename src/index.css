@@ -4,12 +4,12 @@
 
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Quicksand', system-ui, sans-serif;
     color: #263238;
     line-height: 1.6;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', 'Poppins', system-ui, sans-serif;
+    font-family: 'Fredoka', system-ui, sans-serif;
     line-height: 1.25;
     color: #1B5E20;
   }
@@ -91,5 +91,26 @@
   @keyframes pop {
     0% { transform: scale(0.96); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-float-slow {
+    animation: floatSlow 8s ease-in-out infinite;
+  }
+  .animate-float-slower {
+    animation: floatSlower 12s ease-in-out infinite;
+  }
+  .animate-float-medium {
+    animation: floatMedium 6s ease-in-out infinite;
+  }
+  @keyframes floatSlow {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(3deg); }
+  }
+  @keyframes floatSlower {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-25px) rotate(-4deg); }
+  }
+  @keyframes floatMedium {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
   }
 }

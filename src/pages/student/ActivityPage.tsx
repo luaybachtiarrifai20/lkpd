@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ClipboardList, Atom } from 'lucide-react';
+import { ArrowLeft, BookOpen, ClipboardList, Atom, FlaskConical, Sparkles } from 'lucide-react';
 import { type KegiatanContent } from '@/content/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -202,28 +202,52 @@ export function ActivityPage() {
 
   return (
     <DashboardLayout items={navItems} role="siswa">
-      <div className="mb-5">
-        <Link to="/siswa" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-green">
-          <ArrowLeft className="h-4 w-4" /> Dashboard
-        </Link>
+      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+        {/* Soft Ambient background glows */}
+        <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/40 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/45 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-amber-100/30 rounded-full blur-2xl pointer-events-none" />
+        
+        {/* Dotted sains grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-50 pointer-events-none" />
+        
+        {/* Floating Science Doodles */}
+        <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+          <FlaskConical className="h-16 w-16" />
+        </div>
+        <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+          <Atom className="h-20 w-20" />
+        </div>
+        <div className="absolute -left-4 bottom-48 hidden xl:block text-brand-amber/15 animate-float-medium pointer-events-none">
+          <Sparkles className="h-14 w-14" />
+        </div>
+
+        {/* Content wrapper with higher z-index */}
+        <div className="relative z-10">
+          <div className="mb-5">
+            <Link to="/siswa" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-green">
+              <ArrowLeft className="h-4 w-4" /> Dashboard
+            </Link>
+          </div>
+          
+          <ActivityRenderer 
+            kegiatan={kegiatan}
+            answers={answers}
+            onUpdate={updateAnswer}
+            status={status}
+            savedAt={savedAt}
+            saving={saving}
+            onSaveDraft={handleSaveDraft}
+            onSubmit={() => setSubmitOpen(true)}
+            assessmentUrl={assessmentUrl}
+            assessmentJudul={assessmentJudul}
+            kuisDone={kuisDone}
+            onTandaiKuis={handleTandaiKuis}
+            skor={skor}
+            feedback={feedbackGuru}
+          />
+        </div>
       </div>
-      
-      <ActivityRenderer 
-        kegiatan={kegiatan}
-        answers={answers}
-        onUpdate={updateAnswer}
-        status={status}
-        savedAt={savedAt}
-        saving={saving}
-        onSaveDraft={handleSaveDraft}
-        onSubmit={() => setSubmitOpen(true)}
-        assessmentUrl={assessmentUrl}
-        assessmentJudul={assessmentJudul}
-        kuisDone={kuisDone}
-        onTandaiKuis={handleTandaiKuis}
-        skor={skor}
-        feedback={feedbackGuru}
-      />
 
       <ConfirmModal
         open={submitOpen}

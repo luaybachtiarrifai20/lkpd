@@ -37,8 +37,8 @@ export default {
         },
       },
       fontFamily: {
-        heading: ['"Plus Jakarta Sans"', '"Poppins"', 'system-ui', 'sans-serif'],
-        body: ['"Inter"', '"Source Sans 3"', 'system-ui', 'sans-serif'],
+        heading: ['"Fredoka"', 'system-ui', 'sans-serif'],
+        body: ['"Quicksand"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 2px 8px rgba(0,0,0,0.06)',
