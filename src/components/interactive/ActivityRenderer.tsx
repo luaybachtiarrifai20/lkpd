@@ -356,9 +356,16 @@ export function ActivityRenderer({
     <div className="space-y-5">
       {/* Header banner */}
       <div
-        className="overflow-hidden rounded-2xl shadow-soft"
+        className="overflow-hidden rounded-2xl shadow-soft relative"
         style={{ backgroundColor: kegiatan.warna }}>
-        <div className="px-5 py-6 sm:px-7">
+        {/* Background icon decoration */}
+        <div className="absolute right-6 bottom-[-20px] text-white/10 pointer-events-none">
+          <FlaskConical className="h-28 w-28" />
+        </div>
+        <div className="absolute left-1/3 top-[-10px] text-white/5 pointer-events-none">
+          <Atom className="h-16 w-16 animate-pulse" />
+        </div>
+        <div className="px-5 py-6 sm:px-7 relative z-10">
           <div className="flex flex-wrap items-start justify-between gap-3 text-white">
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-white/70">

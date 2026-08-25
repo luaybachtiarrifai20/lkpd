@@ -31,6 +31,9 @@ import {
   LayoutDashboard,
   Plus,
   Trash2,
+  FlaskConical,
+  Atom,
+  Microscope,
 } from 'lucide-react';
 import type { Question, TestAnswer } from '@/lib/firebase';
 
@@ -326,30 +329,46 @@ export function TestPage() {
   if (submitted) {
     return (
       <DashboardLayout items={navItems} role="siswa">
-        <div className="space-y-6">
-          <button
-            onClick={() => navigate(`/siswa/kegiatan/${kegiatanId}`)}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-green"
-          >
-            <ArrowLeft className="h-4 w-4" /> Kembali ke Kegiatan
-          </button>
-          <div className="card text-center py-12">
-            <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-slate-800">Test Selesai!</h2>
-            <p className="text-slate-500 mt-2">
-              {mode === 'pretest' ? 'Pretest' : 'Posttest'} telah dikumpulkan.
-              {testAnswerDoc?.score !== null && (
-                <span className="block mt-2 text-lg">
-                  Skor: <strong className="text-brand-green">{testAnswerDoc?.score}</strong>
-                </span>
-              )}
-              {testAnswerDoc?.feedback_guru && (
-                <div className="mt-3 text-left">
-                  <p className="text-xs font-semibold text-slate-400">Feedback Guru</p>
-                  <p className="whitespace-pre-wrap text-sm text-slate-700 mt-1">{testAnswerDoc.feedback_guru}</p>
-                </div>
-              )}
-            </p>
+        <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+          {/* Soft Ambient background glows */}
+          <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+          {/* Dotted sains grid pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+          
+          {/* Floating Science Doodles */}
+          <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+            <FlaskConical className="h-16 w-16" />
+          </div>
+          <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+            <Atom className="h-20 w-20" />
+          </div>
+
+          <div className="relative z-10 space-y-6">
+            <button
+              onClick={() => navigate(`/siswa/kegiatan/${kegiatanId}`)}
+              className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-green"
+            >
+              <ArrowLeft className="h-4 w-4" /> Kembali ke Kegiatan
+            </button>
+            <div className="card text-center py-12">
+              <CheckCircle2 className="h-16 w-16 text-success mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-slate-800">Test Selesai!</h2>
+              <p className="text-slate-500 mt-2">
+                {mode === 'pretest' ? 'Pretest' : 'Posttest'} telah dikumpulkan.
+                {testAnswerDoc?.score !== null && (
+                  <span className="block mt-2 text-lg">
+                    Skor: <strong className="text-brand-green">{testAnswerDoc?.score}</strong>
+                  </span>
+                )}
+                {testAnswerDoc?.feedback_guru && (
+                  <div className="mt-3 text-left">
+                    <p className="text-xs font-semibold text-slate-400">Feedback Guru</p>
+                    <p className="whitespace-pre-wrap text-sm text-slate-700 mt-1">{testAnswerDoc.feedback_guru}</p>
+                  </div>
+                )}
+              </p>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -359,32 +378,48 @@ export function TestPage() {
   if (!startedAt) {
     return (
       <DashboardLayout items={navItems} role="siswa">
-        <div className="space-y-6">
-          <button
-            onClick={() => navigate(`/siswa/kegiatan/${kegiatanId}`)}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-green"
-          >
-            <ArrowLeft className="h-4 w-4" /> Kembali
-          </button>
+        <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+          {/* Soft Ambient background glows */}
+          <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+          {/* Dotted sains grid pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+          
+          {/* Floating Science Doodles */}
+          <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+            <FlaskConical className="h-16 w-16" />
+          </div>
+          <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+            <Atom className="h-20 w-20" />
+          </div>
 
-          <div className="card text-center py-12">
-            <div className="mx-auto w-20 h-20 rounded-full bg-brand-green-light flex items-center justify-center mb-4">
-              <FileText className="h-10 w-10 text-brand-green" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800">
-              {mode === 'pretest' ? 'Pretest' : 'Posttest'}
-            </h2>
-            <p className="text-slate-500 mt-2 max-w-md mx-auto">
-              {mode === 'pretest'
-                ? 'Kerjakan pretest sebelum memulai kegiatan untuk mengukur pemahaman awalmu.'
-                : 'Kerjakan posttest setelah menyelesaikan kegiatan untuk mengukur pemahamanmu.'}
-            </p>
-            <p className="text-sm text-slate-500 mt-2">
-              Jumlah soal: <strong>{questions.length}</strong> • Waktu: <strong>30 menit</strong>
-            </p>
-            <button onClick={startTest} className="btn-primary mt-6">
-              Mulai {mode === 'pretest' ? 'Pretest' : 'Posttest'}
+          <div className="relative z-10 space-y-6">
+            <button
+              onClick={() => navigate(`/siswa/kegiatan/${kegiatanId}`)}
+              className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-green"
+            >
+              <ArrowLeft className="h-4 w-4" /> Kembali
             </button>
+
+            <div className="card text-center py-12">
+              <div className="mx-auto w-20 h-20 rounded-full bg-brand-green-light flex items-center justify-center mb-4">
+                <FlaskConical className="h-10 w-10 text-brand-green" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800">
+                {mode === 'pretest' ? 'Pretest' : 'Posttest'}
+              </h2>
+              <p className="text-slate-500 mt-2 max-w-md mx-auto">
+                {mode === 'pretest'
+                  ? 'Kerjakan pretest sebelum memulai kegiatan untuk mengukur pemahaman awalmu.'
+                  : 'Kerjakan posttest setelah menyelesaikan kegiatan untuk mengukur pemahamanmu.'}
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                Jumlah soal: <strong>{questions.length}</strong> • Waktu: <strong>30 menit</strong>
+              </p>
+              <button onClick={startTest} className="btn-primary mt-6">
+                Mulai {mode === 'pretest' ? 'Pretest' : 'Posttest'}
+              </button>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -396,159 +431,175 @@ export function TestPage() {
 
   return (
     <DashboardLayout items={navItems} role="siswa">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <button
-              onClick={() => navigate(`/siswa/kegiatan/${kegiatanId}`)}
-              className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-green"
-            >
-              <ArrowLeft className="h-4 w-4" /> Kembali
-            </button>
-            <h1 className="text-2xl font-bold text-slate-800 mt-2">
-              {mode === 'pretest' ? 'Pretest' : 'Posttest'} - {kegiatan?.subjudul}
-            </h1>
-          </div>
-          <Badge color="teal" className="text-base px-4 py-2">
-            <Clock className="h-4 w-4" /> Soal {currentIndex + 1}/{questions.length}
-          </Badge>
+      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+        {/* Soft Ambient background glows */}
+        <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+        {/* Dotted sains grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+        
+        {/* Floating Science Doodles */}
+        <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+          <FlaskConical className="h-16 w-16" />
+        </div>
+        <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+          <Atom className="h-20 w-20" />
         </div>
 
-        {/* Progress */}
-        <div className="card">
-          <div className="flex justify-between text-sm text-slate-600 mb-2">
-            <span>Progress</span>
-            <span>{progress.answered}/{progress.total} terjawab</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-brand-green transition-all"
-              style={{ width: `${(progress.answered / progress.total) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Question */}
-        <div className="card">
-          <div className="mb-4 flex items-center gap-2">
-            <Badge color={currentQuestion.question_type === 'pilihan_ganda' ? 'blue' : 'purple'}>
-              {currentQuestion.question_type === 'pilihan_ganda' ? 'Pilihan Ganda' : 'Essay'}
+        <div className="relative z-10 space-y-6">
+          {/* Header */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <button
+                onClick={() => navigate(`/siswa/kegiatan/${kegiatanId}`)}
+                className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-green"
+              >
+                <ArrowLeft className="h-4 w-4" /> Kembali
+              </button>
+              <h1 className="text-2xl font-bold text-slate-800 mt-2">
+                {mode === 'pretest' ? 'Pretest' : 'Posttest'} - {kegiatan?.subjudul}
+              </h1>
+            </div>
+            <Badge color="teal" className="text-base px-4 py-2">
+              <Clock className="h-4 w-4" /> Soal {currentIndex + 1}/{questions.length}
             </Badge>
-            <Badge color="slate">Poin: {currentQuestion.points}</Badge>
           </div>
 
-          <p className="text-lg font-medium text-slate-800 mb-4">
-            {currentIndex + 1}. {currentQuestion.question_text}
-          </p>
-
-          {currentQuestion.question_type === 'pilihan_ganda' && currentQuestion.options && (
-            <div className="space-y-2">
-              {currentQuestion.options.map((opt) => (
-                <label
-                  key={opt.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
-                    answers[currentQuestion.id] === opt.id
-                      ? 'border-brand-green bg-brand-green-light'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name={currentQuestion.id}
-                    value={opt.id}
-                    checked={answers[currentQuestion.id] === opt.id}
-                    onChange={() => handleAnswer(currentQuestion.id, opt.id)}
-                    className="radio"
-                  />
-                  <span className="text-sm text-slate-700">{opt.text}</span>
-                </label>
-              ))}
+          {/* Progress */}
+          <div className="card">
+            <div className="flex justify-between text-sm text-slate-600 mb-2">
+              <span>Progress</span>
+              <span>{progress.answered}/{progress.total} terjawab</span>
             </div>
-          )}
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-brand-green transition-all"
+                style={{ width: `${(progress.answered / progress.total) * 100}%` }}
+              />
+            </div>
+          </div>
 
-          {currentQuestion.question_type === 'essay' && (
-            <div className="space-y-3">
-              {getEssayAnswers(currentQuestion.id).map((col, idx) => (
-                <div key={idx} className="flex items-start gap-2">
-                  <div className="flex-1">
-                    <label className="mb-1 block text-xs font-semibold text-slate-500">
-                      Jawaban {idx + 1}
-                    </label>
-                    <textarea
-                      className="input-base w-full"
-                      rows={3}
-                      value={col}
-                      onChange={(e) => updateEssayColumn(currentQuestion.id, idx, e.target.value)}
-                      placeholder={`Tulis jawaban ke-${idx + 1} di sini...`}
+          {/* Question */}
+          <div className="card">
+            <div className="mb-4 flex items-center gap-2">
+              <Badge color={currentQuestion.question_type === 'pilihan_ganda' ? 'blue' : 'purple'}>
+                {currentQuestion.question_type === 'pilihan_ganda' ? 'Pilihan Ganda' : 'Essay'}
+              </Badge>
+              <Badge color="slate">Poin: {currentQuestion.points}</Badge>
+            </div>
+
+            <p className="text-lg font-medium text-slate-800 mb-4">
+              {currentIndex + 1}. {currentQuestion.question_text}
+            </p>
+
+            {currentQuestion.question_type === 'pilihan_ganda' && currentQuestion.options && (
+              <div className="space-y-2">
+                {currentQuestion.options.map((opt) => (
+                  <label
+                    key={opt.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
+                      answers[currentQuestion.id] === opt.id
+                        ? 'border-brand-green bg-brand-green-light'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={currentQuestion.id}
+                      value={opt.id}
+                      checked={answers[currentQuestion.id] === opt.id}
+                      onChange={() => handleAnswer(currentQuestion.id, opt.id)}
+                      className="radio"
                     />
+                    <span className="text-sm text-slate-700">{opt.text}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {currentQuestion.question_type === 'essay' && (
+              <div className="space-y-3">
+                {getEssayAnswers(currentQuestion.id).map((col, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-xs font-semibold text-slate-500">
+                        Jawaban {idx + 1}
+                      </label>
+                      <textarea
+                        className="input-base w-full"
+                        rows={3}
+                        value={col}
+                        onChange={(e) => updateEssayColumn(currentQuestion.id, idx, e.target.value)}
+                        placeholder={`Tulis jawaban ke-${idx + 1} di sini...`}
+                      />
+                    </div>
+                    {getEssayAnswers(currentQuestion.id).length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeEssayColumn(currentQuestion.id, idx)}
+                        className="mt-6 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                        title="Hapus kolom jawaban"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
-                  {getEssayAnswers(currentQuestion.id).length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeEssayColumn(currentQuestion.id, idx)}
-                      className="mt-6 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
-                      title="Hapus kolom jawaban"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addEssayColumn(currentQuestion.id)}
-                className="btn-outline text-sm"
-              >
-                <Plus className="h-4 w-4" /> Tambah Kolom Jawaban
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-            disabled={currentIndex === 0}
-            className="btn-ghost disabled:opacity-40"
-          >
-            <ArrowLeft className="h-4 w-4" /> Sebelumnya
-          </button>
-
-          <div className="flex gap-2">
-            {currentIndex < questions.length - 1 ? (
-              <button
-                onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
-                className="btn-primary"
-              >
-                Selanjutnya <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button onClick={handleSubmit} className="btn-success">
-                <Send className="h-4 w-4" /> Kumpulkan
-              </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addEssayColumn(currentQuestion.id)}
+                  className="btn-outline text-sm"
+                >
+                  <Plus className="h-4 w-4" /> Tambah Kolom Jawaban
+                </button>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Question Navigator */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          {questions.map((q, idx) => (
+          {/* Navigation */}
+          <div className="flex items-center justify-between gap-3">
             <button
-              key={q.id}
-              onClick={() => setCurrentIndex(idx)}
-              className={`w-9 h-9 rounded-lg text-sm font-medium transition ${
-                idx === currentIndex
-                  ? 'bg-brand-green text-white'
-                  : answers[q.id]
-                  ? 'bg-brand-green-light text-brand-green-dark border border-brand-green'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+              disabled={currentIndex === 0}
+              className="btn-ghost disabled:opacity-40"
             >
-              {idx + 1}
+              <ArrowLeft className="h-4 w-4" /> Sebelumnya
             </button>
-          ))}
+
+            <div className="flex gap-2">
+              {currentIndex < questions.length - 1 ? (
+                <button
+                  onClick={() => setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))}
+                  className="btn-primary"
+                >
+                  Selanjutnya <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button onClick={handleSubmit} className="btn-success">
+                  <Send className="h-4 w-4" /> Kumpulkan
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Question Navigator */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {questions.map((q, idx) => (
+              <button
+                key={q.id}
+                onClick={() => setCurrentIndex(idx)}
+                className={`w-9 h-9 rounded-lg text-sm font-medium transition ${
+                  idx === currentIndex
+                    ? 'bg-brand-green text-white'
+                    : answers[q.id]
+                    ? 'bg-brand-green-light text-brand-green-dark border border-brand-green'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {idx + 1}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </DashboardLayout>
