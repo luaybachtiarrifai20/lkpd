@@ -17,6 +17,8 @@ import {
   Save,
   Filter,
   UserCircle,
+  FlaskConical,
+  Atom,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -186,73 +188,89 @@ export function TeacherDashboard() {
 
   return (
     <DashboardLayout items={navItems} role="guru">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru</h1>
-          <p className="text-sm text-slate-500">
-            Selamat datang, {profile?.nama}.
-          </p>
+      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+        {/* Soft Ambient background glows */}
+        <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+        {/* Dotted sains grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+        
+        {/* Floating Science Doodles */}
+        <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+          <FlaskConical className="h-16 w-16" />
+        </div>
+        <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+          <Atom className="h-20 w-20" />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            icon={<Users className="h-6 w-6" />}
-            label="Kelas"
-            value={stats.kelas}
-            color="bg-brand-green-light text-brand-green"
-          />
-          <StatCard
-            icon={<GraduationCap className="h-6 w-6" />}
-            label="Total Siswa"
-            value={stats.siswa}
-            color="bg-brand-teal-light text-brand-teal"
-          />
-          <StatCard
-            icon={<FileText className="h-6 w-6" />}
-            label="Jawaban Masuk"
-            value={stats.jawaban}
-            color="bg-brand-amber-light text-brand-amber"
-          />
-        </div>
-
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-800">Kelas Anda</h2>
-            <Link to="/guru/kelas" className="btn-outline">
-              Kelola Kelas
-            </Link>
+        <div className="relative z-10 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru</h1>
+            <p className="text-sm text-slate-500">
+              Selamat datang, {profile?.nama}.
+            </p>
           </div>
-          {kelas.length === 0 ? (
-            <EmptyState
-              icon={<Users className="h-7 w-7" />}
-              title="Belum ada kelas"
-              description="Buat kelas pertama untuk mulai mengelola siswa."
-              action={
-                <Link to="/guru/kelas" className="btn-primary">
-                  <Plus className="h-4 w-4" /> Buat Kelas
-                </Link>
-              }
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              icon={<Users className="h-6 w-6" />}
+              label="Kelas"
+              value={stats.kelas}
+              color="bg-brand-green-light text-brand-green"
             />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {kelas.map((k) => (
-                <Link
-                  key={k.id}
-                  to="/guru/kelas"
-                  className="card flex items-center justify-between hover:shadow-float transition">
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">
-                      {k.nama_kelas}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Kode: {k.kode_undangan || "-"}
-                    </p>
-                  </div>
-                  <ArrowLeft className="h-4 w-4 rotate-180 text-slate-300" />
-                </Link>
-              ))}
+            <StatCard
+              icon={<GraduationCap className="h-6 w-6" />}
+              label="Total Siswa"
+              value={stats.siswa}
+              color="bg-brand-teal-light text-brand-teal"
+            />
+            <StatCard
+              icon={<FileText className="h-6 w-6" />}
+              label="Jawaban Masuk"
+              value={stats.jawaban}
+              color="bg-brand-amber-light text-brand-amber"
+            />
+          </div>
+
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">Kelas Anda</h2>
+              <Link to="/guru/kelas" className="btn-outline">
+                Kelola Kelas
+              </Link>
             </div>
-          )}
+            {kelas.length === 0 ? (
+              <EmptyState
+                icon={<Users className="h-7 w-7" />}
+                title="Belum ada kelas"
+                description="Buat kelas pertama untuk mulai mengelola siswa."
+                action={
+                  <Link to="/guru/kelas" className="btn-primary">
+                    <Plus className="h-4 w-4" /> Buat Kelas
+                  </Link>
+                }
+              />
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {kelas.map((k) => (
+                  <Link
+                    key={k.id}
+                    to="/guru/kelas"
+                    className="card flex items-center justify-between hover:shadow-float transition">
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">
+                        {k.nama_kelas}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Kode: {k.kode_undangan || "-"}
+                      </p>
+                    </div>
+                    <ArrowLeft className="h-4 w-4 rotate-180 text-slate-300" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

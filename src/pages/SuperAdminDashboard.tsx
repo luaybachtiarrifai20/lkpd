@@ -24,6 +24,8 @@ import {
   Clock,
   LayoutDashboard,
   Eye,
+  FlaskConical,
+  Atom,
 } from 'lucide-react';
 import { Badge, EmptyState } from '@/components/ui';
 
@@ -390,7 +392,22 @@ export function SuperAdminDashboard() {
 
   return (
     <DashboardLayout items={navItems} role="super_admin">
-      <div className="space-y-6">
+      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+        {/* Soft Ambient background glows */}
+        <div className="absolute top-10 left-10 w-72 h-72 bg-purple-100/35 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+        {/* Dotted sains grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+        
+        {/* Floating Science Doodles */}
+        <div className="absolute -left-2 top-32 hidden xl:block text-purple-600/10 animate-float-slow pointer-events-none">
+          <FlaskConical className="h-16 w-16" />
+        </div>
+        <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+          <Atom className="h-20 w-20" />
+        </div>
+
+        <div className="relative z-10 space-y-6">
         {/* Header halaman */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -995,6 +1012,7 @@ export function SuperAdminDashboard() {
           )}
         </div>
       </div>
+    </div>
 
       {/* Modal */}
       {editModalOpen && (

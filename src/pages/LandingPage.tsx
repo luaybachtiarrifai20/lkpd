@@ -13,6 +13,7 @@ import {
   GraduationCap,
   User,
   Target,
+  Microscope,
 } from "lucide-react";
 import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
 import { Footer } from "@/components/layout/Footer";
@@ -247,6 +248,18 @@ export function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-brand-green-light via-white to-brand-teal-light" />
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-green/10 blur-3xl" />
         <div className="absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-brand-teal/10 blur-3xl" />
+
+        {/* Floating Science Doodles */}
+        <div className="absolute left-8 top-16 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+          <FlaskConical className="h-16 w-16" />
+        </div>
+        <div className="absolute right-12 top-24 hidden xl:block text-brand-teal/10 animate-float-slower pointer-events-none">
+          <Atom className="h-20 w-20" />
+        </div>
+        <div className="absolute left-1/4 bottom-12 hidden xl:block text-brand-amber/15 animate-float-medium pointer-events-none">
+          <Sparkles className="h-12 w-12" />
+        </div>
+
         <div className="relative mx-auto max-w-content px-4 py-16 sm:px-6 sm:py-24">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div className="animate-fade-in">
@@ -347,14 +360,27 @@ export function LandingPage() {
             <p className="mt-2 text-slate-500">{featuresDescription}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featureCards.map((card, index) => (
-              <FeatureMini
-                key={index}
-                icon={<FileEdit className="h-5 w-5" />}
-                title={card.title}
-                desc={card.description}
-              />
-            ))}
+            {featureCards.map((card, index) => {
+              const icons = [
+                <FileEdit className="h-5 w-5" />,
+                <FlaskConical className="h-5 w-5" />,
+                <Atom className="h-5 w-5" />,
+                <Microscope className="h-5 w-5" />,
+                <FlaskConical className="h-5 w-5" />,
+                <Sparkles className="h-5 w-5" />,
+                <Target className="h-5 w-5" />,
+                <Leaf className="h-5 w-5" />,
+              ];
+              const icon = icons[index % icons.length];
+              return (
+                <FeatureMini
+                  key={index}
+                  icon={icon}
+                  title={card.title}
+                  desc={card.description}
+                />
+              );
+            })}
           </div>
         </div>
       </section>

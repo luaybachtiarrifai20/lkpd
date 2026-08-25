@@ -14,6 +14,9 @@ import {
   KeyRound,
   Loader2,
   LogIn,
+  FlaskConical,
+  Atom,
+  Microscope,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -125,17 +128,20 @@ export function ProgresKeseluruhan({
     <div className="space-y-6">
       {/* ... header onBack / judul sama ... */}
 
-      <div className="card bg-gradient-to-br from-brand-green to-brand-teal text-white">
-        <div className="flex items-center justify-between">
+      <div className="card relative overflow-hidden bg-gradient-to-br from-brand-green to-brand-teal text-white">
+        <div className="absolute right-4 bottom-[-16px] text-white/10 pointer-events-none">
+          <FlaskConical className="h-32 w-32" />
+        </div>
+        <div className="relative z-10 flex items-center justify-between">
           <div>
             <p className="text-sm text-white/80">Progres Keseluruhan</p>
             <p className="text-3xl font-extrabold">
               {totalDone}/{totalKegiatan} Kegiatan
             </p>
           </div>
-          <Sparkles className="h-10 w-10 text-white/70" />
+          <Atom className="h-10 w-10 text-white/70 animate-pulse" />
         </div>
-        <div className="mt-4">
+        <div className="mt-4 relative z-10">
           <div className="h-2.5 overflow-hidden rounded-full bg-white/25">
             <div
               className="h-full rounded-full bg-white transition-all"
@@ -434,13 +440,31 @@ export function StudentDashboard() {
   if (selectedKelasId && kelas && selectedKelasId === kelas.id) {
     return (
       <DashboardLayout items={navItems} role="siswa">
-        <ProgresKeseluruhan
-          rows={rows}
-          loading={loading}
-          kelas={kelas}
-          onBack={() => setSelectedKelasId(null)}
-          kegiatanList={kegiatanList}
-        />
+        <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+          {/* Soft Ambient background glows */}
+          <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+          {/* Dotted sains grid pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+          
+          {/* Floating Science Doodles */}
+          <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+            <FlaskConical className="h-16 w-16" />
+          </div>
+          <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+            <Atom className="h-20 w-20" />
+          </div>
+
+          <div className="relative z-10">
+            <ProgresKeseluruhan
+              rows={rows}
+              loading={loading}
+              kelas={kelas}
+              onBack={() => setSelectedKelasId(null)}
+              kegiatanList={kegiatanList}
+            />
+          </div>
+        </div>
       </DashboardLayout>
     );
   }
@@ -448,98 +472,114 @@ export function StudentDashboard() {
   // View: List kelas / form gabung
   return (
     <DashboardLayout items={navItems} role="siswa">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            Halo, {profile?.nama?.split(" ")[0]}!
-          </h1>
-          <p className="text-sm text-slate-500">
-            Pilih kelas untuk melihat progres kegiatan, atau gabung dengan kode
-            undangan.
-          </p>
+      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+        {/* Soft Ambient background glows */}
+        <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
+        {/* Dotted sains grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
+        
+        {/* Floating Science Doodles */}
+        <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
+          <FlaskConical className="h-16 w-16" />
+        </div>
+        <div className="absolute -right-2 top-72 hidden xl:block text-brand-teal/15 animate-float-slower pointer-events-none">
+          <Atom className="h-20 w-20" />
         </div>
 
-        <div>
-          <h2 className="mb-3 text-lg font-bold text-slate-800">Kelas Saya</h2>
+        <div className="relative z-10 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">
+              Halo, {profile?.nama?.split(" ")[0]}!
+            </h1>
+            <p className="text-sm text-slate-500">
+              Pilih kelas untuk melihat progres kegiatan, atau gabung dengan kode
+              undangan.
+            </p>
+          </div>
 
-          {kelas ? (
-            <button
-              type="button"
-              onClick={() => setSelectedKelasId(kelas.id)}
-              className="card w-full text-left transition hover:shadow-float border-l-4 border-brand-green group">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-xl bg-brand-green-light text-brand-green">
-                    <BookOpen className="h-6 w-6" />
+          <div>
+            <h2 className="mb-3 text-lg font-bold text-slate-800">Kelas Saya</h2>
+
+            {kelas ? (
+              <button
+                type="button"
+                onClick={() => setSelectedKelasId(kelas.id)}
+                className="card w-full text-left transition hover:shadow-float border-l-4 border-brand-green group">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 place-items-center rounded-xl bg-brand-green-light text-brand-green">
+                      <BookOpen className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">
+                        {kelas.nama_kelas}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Kode:{" "}
+                        <span className="font-mono font-semibold text-brand-green">
+                          {kelas.kode_undangan}
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">
-                      {kelas.nama_kelas}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Kode:{" "}
-                      <span className="font-mono font-semibold text-brand-green">
-                        {kelas.kode_undangan}
-                      </span>
-                    </p>
-                  </div>
+                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-green group-hover:gap-2 transition-all">
+                    Lihat progres <ArrowRight className="h-4 w-4" />
+                  </span>
                 </div>
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-green group-hover:gap-2 transition-all">
-                  Lihat progres <ArrowRight className="h-4 w-4" />
-                </span>
+              </button>
+            ) : (
+              <EmptyState
+                icon={<BookOpen className="h-7 w-7" />}
+                title="Belum ada kelas"
+                description="Gabung ke kelas dengan kode undangan dari guru di bawah."
+              />
+            )}
+          </div>
+
+          {!kelas && (
+            <div className="card border-2 border-dashed border-brand-amber/40 bg-brand-amber-light/30">
+              <div className="mb-3 flex items-center gap-2">
+                <KeyRound className="h-5 w-5 text-brand-amber" />
+                <h2 className="text-sm font-bold text-slate-800">
+                  Gabung ke Kelas
+                </h2>
               </div>
-            </button>
-          ) : (
-            <EmptyState
-              icon={<BookOpen className="h-7 w-7" />}
-              title="Belum ada kelas"
-              description="Gabung ke kelas dengan kode undangan dari guru di bawah."
-            />
+              <p className="mb-3 text-xs text-slate-600">
+                Masukkan <strong>kode undangan</strong> dari guru Anda. Setelah
+                bergabung, kelas muncul di list di atas — klik untuk masuk ke
+                progres.
+              </p>
+              <form
+                onSubmit={joinKelas}
+                className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <label className="label-base">Kode Kelas</label>
+                  <input
+                    className="input-base font-mono uppercase tracking-wider"
+                    value={kodeInput}
+                    onChange={(e) => setKodeInput(e.target.value)}
+                    placeholder="Contoh: ABC12X"
+                    required
+                    maxLength={12}
+                    disabled={joining}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={joining || !kodeInput.trim()}
+                  className="btn-primary shrink-0">
+                  {joining ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogIn className="h-4 w-4" />
+                  )}
+                  {joining ? "Memproses…" : "Gabung Kelas"}
+                </button>
+              </form>
+            </div>
           )}
         </div>
-
-        {!kelas && (
-          <div className="card border-2 border-dashed border-brand-amber/40 bg-brand-amber-light/30">
-            <div className="mb-3 flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-brand-amber" />
-              <h2 className="text-sm font-bold text-slate-800">
-                Gabung ke Kelas
-              </h2>
-            </div>
-            <p className="mb-3 text-xs text-slate-600">
-              Masukkan <strong>kode undangan</strong> dari guru Anda. Setelah
-              bergabung, kelas muncul di list di atas — klik untuk masuk ke
-              progres.
-            </p>
-            <form
-              onSubmit={joinKelas}
-              className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="flex-1">
-                <label className="label-base">Kode Kelas</label>
-                <input
-                  className="input-base font-mono uppercase tracking-wider"
-                  value={kodeInput}
-                  onChange={(e) => setKodeInput(e.target.value)}
-                  placeholder="Contoh: ABC12X"
-                  required
-                  maxLength={12}
-                  disabled={joining}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={joining || !kodeInput.trim()}
-                className="btn-primary shrink-0">
-                {joining ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <LogIn className="h-4 w-4" />
-                )}
-                {joining ? "Memproses…" : "Gabung Kelas"}
-              </button>
-            </form>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
