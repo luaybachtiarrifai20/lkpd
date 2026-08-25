@@ -14,6 +14,8 @@ import {
   User,
   Target,
   Microscope,
+  Menu,
+  X,
 } from "lucide-react";
 import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
 import { Footer } from "@/components/layout/Footer";
@@ -35,6 +37,7 @@ export function LandingPage() {
   const [content, setContent] = useState<LandingPageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [kegiatanList, setKegiatanList] = useState<KegiatanCard[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -210,7 +213,7 @@ export function LandingPage() {
               <p className="text-sm font-bold leading-tight text-brand-green-dark">
                 LajuNalar
               </p>
-              <p className="text-[11px] leading-tight text-slate-400">
+              <p className="hidden text-[11px] leading-tight text-slate-400 sm:block">
                 E-LKPD Laju Reaksi PBL-ESD
               </p>
             </div>
@@ -233,14 +236,51 @@ export function LandingPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login" className="btn-outline">
+            <Link to="/login" className="btn-outline hidden sm:inline-flex">
               Masuk
             </Link>
             <Link to="/daftar" className="btn-primary">
               Daftar
             </Link>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-50 md:hidden"
+              aria-label="Buka menu">
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+        {menuOpen && (
+          <div className="border-t border-slate-100 bg-white px-4 pb-4 pt-2 md:hidden">
+            <nav className="flex flex-col gap-1">
+              <a
+                href="#fitur"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                Fitur
+              </a>
+              <a
+                href="#kegiatan"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                Kegiatan
+              </a>
+              <Link
+                to="/tentang"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                Tentang
+              </Link>
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="btn-outline mt-2 sm:hidden">
+                Masuk
+              </Link>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
@@ -351,7 +391,7 @@ export function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="fitur" className="bg-white py-14">
+      <section id="fitur" className="scroll-mt-16 bg-white py-14">
         <div className="mx-auto max-w-content px-4 sm:px-6">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-brand-green-dark sm:text-3xl">
@@ -388,7 +428,7 @@ export function LandingPage() {
       {/* Activities roadmap */}
       <section
         id="kegiatan"
-        className="mx-auto max-w-content px-4 py-14 sm:px-6">
+        className="mx-auto max-w-content scroll-mt-16 px-4 py-14 sm:px-6">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold text-brand-green-dark sm:text-3xl">
             {activitiesTitle}
