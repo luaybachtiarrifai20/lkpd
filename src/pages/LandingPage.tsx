@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   FlaskConical, Leaf, Atom, BarChart3, MessagesSquare, UploadCloud,
@@ -5,12 +6,58 @@ import {
   GraduationCap, User, Target,
 } from 'lucide-react';
 import { KEGIATAN_CONTENT } from '@/content/kegiatanContent';
+import type { SDGBadge } from '@/content/types';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Footer } from '@/components/layout/Footer';
 import { SDGBadgeChip } from '@/components/ui';
 import { Reveal } from '@/components/ui/Reveal';
 import { MoleculeField, HeroMolecule } from '@/components/ui/Molecule';
 
+type KegiatanCard = {
+  nomor: number;
+  judul: string;
+  subjudul?: string;
+  warna: string;
+  sdg: SDGBadge[];
+  cakupanMateri: string[];
+};
+
 export function LandingPage() {
+  const [kegiatanList, setKegiatanList] = useState<KegiatanCard[]>(KEGIATAN_CONTENT);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, 'kegiatan'));
+        const fromDb = snap.docs
+          .map((d) => {
+            const data = d.data();
+            return {
+              nomor: Number(data.nomor ?? 0),
+              judul: data.judul || '',
+              subjudul: data.subjudul || '',
+              warna: data.warna || '#2E7D32',
+              sdg: Array.isArray(data.sdg) ? data.sdg : [],
+              cakupanMateri: Array.isArray(data.cakupanMateri) ? data.cakupanMateri : [],
+            } as KegiatanCard;
+          })
+          .filter((k) => k.nomor > 0)
+          .sort((a, b) => a.nomor - b.nomor);
+
+        if (active && fromDb.length > 0) {
+          setKegiatanList(fromDb);
+        }
+      } catch (err) {
+        console.error('[LandingPage] gagal memuat kegiatan:', err);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-neutral-bg">
       {/* Nav */}
@@ -146,12 +193,12 @@ export function LandingPage() {
       <section id="kegiatan" className="mx-auto max-w-content px-4 py-14 sm:px-6">
         <Reveal>
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-bold text-lab-teal-dark font-heading sm:text-3xl">2 Kegiatan Belajar</h2>
+            <h2 className="text-2xl font-bold text-lab-teal-dark font-heading sm:text-3xl">{kegiatanList.length} Kegiatan Belajar</h2>
             <p className="mt-2 text-slate-500">Tiap kegiatan berbasis masalah ESD dengan warna identitas sendiri.</p>
           </div>
         </Reveal>
         <div className="grid gap-5 sm:grid-cols-2">
-          {KEGIATAN_CONTENT.map((k, i) => (
+          {kegiatanList.map((k, i) => (
             <Reveal key={k.nomor} delay={i * 80}>
               <div
                 className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-card transition-all duration-300 hover:shadow-float hover:-translate-y-1"
