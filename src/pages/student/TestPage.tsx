@@ -17,7 +17,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { KEGIATAN_CONTENT } from '@/content/kegiatanContent';
-import { Badge, EmptyState } from '@/components/ui';
+import { Badge, EmptyState, MoleculeField } from '@/components/ui';
 import {
   ArrowLeft,
   ArrowRight,
@@ -330,6 +330,7 @@ export function TestPage() {
     return (
       <DashboardLayout items={navItems} role="siswa">
         <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+          <MoleculeField className="opacity-70" />
           {/* Soft Ambient background glows */}
           <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />

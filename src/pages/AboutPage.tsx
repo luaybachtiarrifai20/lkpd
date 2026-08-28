@@ -14,6 +14,7 @@ import { PROJECT_IDENTITY, KEGIATAN_CONTENT } from '@/content/kegiatanContent';
 import { Footer } from '@/components/layout/Footer';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db, type AboutPageContent } from '@/lib/firebase';
+import { MoleculeField } from '@/components/ui';
 
 type KegiatanCard = {
   nomor: number;
@@ -157,6 +158,7 @@ export function AboutPage() {
 
   return (
     <div className="min-h-screen bg-neutral-bg">
+      <MoleculeField className="opacity-70" />
       <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-content items-center justify-between px-4 py-3 sm:px-6">
           <Link to="/" className="flex items-center gap-2">

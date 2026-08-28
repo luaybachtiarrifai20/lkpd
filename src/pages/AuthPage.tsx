@@ -6,6 +6,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
+import { MoleculeField } from '@/components/ui';
 
 export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
   const navigate = useNavigate();
@@ -142,6 +143,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-green-light via-white to-brand-teal-light">
+      <MoleculeField className="opacity-70" />
       <header className="mx-auto flex max-w-content items-center justify-between px-4 py-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-green text-white">
