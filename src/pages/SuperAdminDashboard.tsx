@@ -8,6 +8,7 @@ import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan, type L
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { KegiatanForm } from '@/components/forms/KegiatanForm';
 import {
   Users,
   BookOpen,
@@ -109,6 +110,8 @@ export function SuperAdminDashboard() {
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminName, setNewAdminName] = useState('');
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+
+  const [showKegiatanForm, setShowKegiatanForm] = useState(false);
 
   // Sync tab dari URL (saat klik sidebar Link)
   useEffect(() => {
@@ -767,6 +770,27 @@ export function SuperAdminDashboard() {
 
         {/* Konten tabel */}
         <div className="card overflow-hidden p-0">
+          {activeTab === 'kegiatan' && (
+            <div className="p-4 border-b border-slate-200 flex justify-end">
+              <button
+                onClick={() => setShowKegiatanForm(true)}
+                className="btn-primary text-sm"
+              >
+                <Plus className="h-4 w-4" /> Tambah Kegiatan
+              </button>
+            </div>
+          )}
+          {showKegiatanForm && (
+            <div className="p-6">
+              <KegiatanForm
+                onSuccess={() => {
+                  setShowKegiatanForm(false);
+                  loadData();
+                }}
+                onCancel={() => setShowKegiatanForm(false)}
+              />
+            </div>
+          )}
           {loading ? (
             <div className="animate-pulse h-48 m-6 rounded-xl bg-slate-100" />
           ) : data.length === 0 ? (
