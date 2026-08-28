@@ -7,6 +7,7 @@
     font-family: 'Quicksand', system-ui, sans-serif;
     color: #263238;
     line-height: 1.6;
+    scroll-behavior: smooth;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Fredoka', system-ui, sans-serif;
@@ -27,6 +28,9 @@
   }
   .card-tight {
     @apply bg-white rounded-2xl shadow-soft p-4;
+  }
+  .card-glass {
+    @apply bg-white/70 rounded-2xl shadow-card border border-white/60 backdrop-blur-md;
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
@@ -70,47 +74,75 @@
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
-  }
+  .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(55, 71, 79, 0.25);
+    background-color: rgba(13, 148, 136, 0.25);
     border-radius: 999px;
   }
-  .animate-fade-in {
-    animation: fadeIn 0.35s ease both;
+  .text-gradient-teal {
+    @apply bg-gradient-to-r from-lab-teal to-lab-cyan bg-clip-text text-transparent;
   }
+  .text-gradient-amber {
+    @apply bg-gradient-to-r from-lab-amber to-lab-amber-dark bg-clip-text text-transparent;
+  }
+  .bg-mesh-lab {
+    background-image:
+      radial-gradient(at 20% 20%, rgba(13, 148, 136, 0.12) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, rgba(8, 145, 178, 0.10) 0px, transparent 50%),
+      radial-gradient(at 70% 80%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
+  }
+  .bg-grid-lab {
+    background-image:
+      linear-gradient(rgba(13, 148, 136, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(13, 148, 136, 0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .draw-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawLine 1.5s ease-out forwards;
+  }
+  @keyframes drawLine {
+    to { stroke-dashoffset: 0; }
+  }
+  .bubble-hover::after {
+    content: '';
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    opacity: 0;
+    transform: translate(-50%, 0);
+    pointer-events: none;
+  }
+  .bubble-hover:hover::after {
+    animation: bubbleRise 0.8s ease-out;
+  }
+  @keyframes bubbleRise {
+    0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+    30% { opacity: 0.8; }
+    100% { opacity: 0; transform: translate(-50%, -30px) scale(1.4); }
+  }
+  .animate-fade-in { animation: fadeIn 0.4s ease both; }
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .animate-pop {
-    animation: pop 0.25s ease both;
-  }
+  .animate-pop { animation: pop 0.25s ease both; }
   @keyframes pop {
     0% { transform: scale(0.96); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
-  }
-  .animate-float-slow {
-    animation: floatSlow 8s ease-in-out infinite;
-  }
-  .animate-float-slower {
-    animation: floatSlower 12s ease-in-out infinite;
-  }
-  .animate-float-medium {
-    animation: floatMedium 6s ease-in-out infinite;
-  }
-  @keyframes floatSlow {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-15px) rotate(3deg); }
-  }
-  @keyframes floatSlower {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-25px) rotate(-4deg); }
-  }
-  @keyframes floatMedium {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-10px) rotate(5deg); }
   }
 }

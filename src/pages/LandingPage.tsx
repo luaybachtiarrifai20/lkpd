@@ -183,7 +183,7 @@ export function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-lab-teal to-lab-cyan py-14">
+      <section className="relative overflow-hidden bg-gradient-to-r from-brand-green-dark to-brand-green-light py-14">
         <MoleculeField className="opacity-30" />
         <div className="relative mx-auto max-w-content px-4 text-center sm:px-6">
           <Reveal>
@@ -193,7 +193,7 @@ export function LandingPage() {
               <Link to="/daftar" className="btn bubble-hover bg-white text-lab-teal-dark hover:bg-white/90 text-base px-5 py-3 shadow-float">
                 Daftar Gratis <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/login" className="btn bubble-hover border border-white/40 text-white hover:bg-white/10 text-base px-5 py-3">Sudah punya akun</Link>
+              <Link to="/login" className="btn bubble-hover border border-white/40 text-black hover:bg-white/10 text-base px-5 py-3">Sudah punya akun</Link>
             </div>
           </Reveal>
         </div>
