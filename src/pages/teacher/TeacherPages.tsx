@@ -18,6 +18,10 @@ import {
   Filter,
   UserCircle,
   FlaskConical,
+  Lock,
+  KeyRound,
+  Loader2,
+  EyeOff,
   Atom,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -26,6 +30,9 @@ import { useToast } from "@/context/ToastContext";
 import {
   auth,
   db,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   type Kelas,
   type Profile,
   type Jawaban,
@@ -2292,6 +2299,69 @@ export function TeacherEkspor() {
 // ============ Profil Guru ============
 export function TeacherProfil() {
   const { profile } = useAuth();
+  const { toast } = useToast();
+  
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile?.email) return;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast("Semua field password harus diisi", "warning");
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast("Password baru dan konfirmasi password tidak cocok", "error");
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast("Password baru minimal 6 karakter", "warning");
+      return;
+    }
+    
+    setChangingPassword(true);
+    try {
+      // Reauthenticate with current password
+      const credential = EmailAuthProvider.credential(profile.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser!, credential);
+      
+      // Update password
+      await updatePassword(auth.currentUser!, newPassword);
+      
+      toast("Password berhasil diubah", "success");
+      
+      // Reset form
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordForm(false);
+    } catch (err) {
+      console.error(err);
+      if (err instanceof Error) {
+        if (err.message.includes("wrong-password") || err.message.includes("invalid-credential")) {
+          toast("Password saat ini salah", "error");
+        } else {
+          toast(err.message, "error");
+        }
+      } else {
+        toast("Gagal mengubah password", "error");
+      }
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <DashboardLayout items={navItems} role="guru">
       <div className="max-w-lg space-y-6">
@@ -2322,6 +2392,127 @@ export function TeacherProfil() {
               }
             />
           </dl>
+        </div>
+
+        {/* Password Change Section */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Lock className="h-4 w-4 text-violet-600" /> Keamanan Akun
+            </h2>
+            {!showPasswordForm && (
+              <button
+                type="button"
+                onClick={() => setShowPasswordForm(true)}
+                className="text-sm text-violet-600 hover:text-violet-800 font-medium"
+              >
+                Ubah Password
+              </button>
+            )}
+          </div>
+          
+          {showPasswordForm ? (
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="label-base">Password Saat Ini</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="input-base pr-10"
+                    placeholder="Masukkan password saat ini"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="label-base">Password Baru</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="input-base pr-10"
+                    placeholder="Password baru (minimal 6 karakter)"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="label-base">Konfirmasi Password Baru</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="input-base pr-10"
+                    placeholder="Ulangi password baru"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordForm(false);
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                  }}
+                  className="btn-outline flex-1"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingPassword}
+                  className="btn-primary flex-1"
+                >
+                  {changingPassword ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <KeyRound className="h-4 w-4" />
+                  )}
+                  {changingPassword ? "Memproses…" : "Simpan Password"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Terakhir diperbarui:{" "}
+              {profile?.dibuat_pada
+                ? new Date(profile.dibuat_pada).toLocaleDateString("id-ID")
+                : "-"}
+            </p>
+          )}
         </div>
       </div>
     </DashboardLayout>
