@@ -24,6 +24,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
       if (profileDoc.exists()) {
         loadedProfile = { id: profileDoc.id, ...profileDoc.data() } as Profile;
+      } else {
+        // Profile not found in database - user might have been deleted
+        // Sign out the user to prevent stuck loading state
+        await firebaseSignOut(auth);
+        setUser(null);
+        setProfile(null);
       }
     }
     setProfile(loadedProfile);

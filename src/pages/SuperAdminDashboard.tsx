@@ -4,7 +4,7 @@ import {
   collection, getDocs, doc, updateDoc, deleteDoc, setDoc, query, where, orderBy,
 } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan, type LandingPageContent, AboutPageContent } from '@/lib/firebase';
+import { db, auth, type Profile, type Kelas, type Jawaban, type Kegiatan, type LandingPageContent } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -101,14 +101,17 @@ export function SuperAdminDashboard() {
   const [jawaban, setJawaban] = useState<Jawaban[]>([]);
   const [kegiatan, setKegiatan] = useState<Kegiatan[]>([]);
   const [landingContent, setLandingContent] = useState<LandingPageContent | null>(null);
-  const [aboutContent, setAboutContent] = useState<AboutPageContent | null>(null);
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('lkpd123');
   const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<'siswa' | 'guru' | 'super_admin'>('siswa');
+  const [newAdminUsername, setNewAdminUsername] = useState('');
+  const [newAdminNisn, setNewAdminNisn] = useState('');
+  const [newAdminKelasId, setNewAdminKelasId] = useState('');
   const [creatingAdmin, setCreatingAdmin] = useState(false);
 
   const [showKegiatanForm, setShowKegiatanForm] = useState(false);
@@ -144,6 +147,16 @@ export function SuperAdminDashboard() {
         case 'profiles': {
           const snap = await getDocs(collection(db, 'profiles'));
           setProfiles(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Profile)));
+          // Also load kelas for dropdown
+          try {
+            const kelasSnap = await getDocs(query(collection(db, 'kelas'), orderBy('nama_kelas')));
+            setKelas(kelasSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Kelas)));
+          } catch {
+            const kelasSnap = await getDocs(collection(db, 'kelas'));
+            const list = kelasSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Kelas));
+            list.sort((a, b) => (a.nama_kelas || '').localeCompare(b.nama_kelas || '', 'id'));
+            setKelas(list);
+          }
           break;
         }
         case 'kelas': {
@@ -327,7 +340,11 @@ export function SuperAdminDashboard() {
 
   const handleCreateAdmin = async () => {
     if (!newAdminEmail || !newAdminPassword || !newAdminName) {
-      toast('Semua field harus diisi', 'warning');
+      toast('Nama, email, dan password harus diisi', 'warning');
+      return;
+    }
+    if (newAdminRole === 'siswa' && !newAdminUsername) {
+      toast('Username/NISN harus diisi untuk siswa', 'warning');
       return;
     }
     setCreatingAdmin(true);
@@ -338,26 +355,35 @@ export function SuperAdminDashboard() {
         newAdminPassword
       );
       const uid = userCredential.user.uid;
-      await setDoc(doc(db, 'profiles', uid), {
+      
+      const profileData: Partial<Profile> = {
         id: uid,
         nama: newAdminName,
-        role: 'super_admin',
+        role: newAdminRole,
         email: newAdminEmail,
-        username: null,
-        nisn: null,
-        kelas_id: null,
+        username: newAdminUsername || null,
+        nisn: newAdminRole === 'siswa' ? (newAdminNisn || null) : null,
+        kelas_id: newAdminRole === 'siswa' ? (newAdminKelasId || null) : null,
         status: 'active',
         dibuat_pada: new Date().toISOString(),
-      });
-      toast('Super admin berhasil dibuat', 'success');
+      };
+      
+      await setDoc(doc(db, 'profiles', uid), profileData);
+      toast(`User ${newAdminRole} berhasil dibuat dengan password: lkpd123`, 'success');
+      
+      // Reset form
       setNewAdminEmail('');
-      setNewAdminPassword('');
+      setNewAdminPassword('lkpd123');
       setNewAdminName('');
+      setNewAdminRole('siswa');
+      setNewAdminUsername('');
+      setNewAdminNisn('');
+      setNewAdminKelasId('');
       setEditModalOpen(false);
       loadData();
     } catch (err: unknown) {
       console.error(err);
-      toast(getErrorMessage(err) || 'Gagal membuat super admin', 'error');
+      toast(getErrorMessage(err) || 'Gagal membuat user', 'error');
     } finally {
       setCreatingAdmin(false);
     }
@@ -434,6 +460,18 @@ export function SuperAdminDashboard() {
               <Plus className="h-4 w-4" /> Tambah Admin
             </button>
           )}
+          {activeTab === 'profiles' && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingItem(null);
+                setEditModalOpen(true);
+              }}
+              className="btn-primary"
+            >
+              <Plus className="h-4 w-4" /> Tambah User
+            </button>
+          )}
         </div>
 
         {/* Tab chips (mobile-friendly, sinkron dengan sidebar) */}
@@ -468,6 +506,11 @@ export function SuperAdminDashboard() {
           <div className="card border-l-4 border-amber-400 bg-amber-50/40 text-sm text-slate-600">
             Guru dan siswa tanpa kode kelas valid muncul di sini. Siswa dengan{' '}
             <strong>kode undangan</strong> valid otomatis aktif.
+          </div>
+        )}
+        {activeTab === 'profiles' && (
+          <div className="card border-l-4 border-purple-400 bg-purple-50/40 text-sm text-slate-600">
+            Kelola semua user dan tambahkan user baru dengan berbagai role. Password default adalah <strong>lkpd123</strong>.
           </div>
         )}
 
@@ -1045,7 +1088,7 @@ export function SuperAdminDashboard() {
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-float p-0">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <h3 className="text-lg font-bold text-slate-800">
-                {activeTab === 'admins' && !editingItem ? 'Tambah Super Admin' : 'Edit Data'}
+                {(activeTab === 'admins' || activeTab === 'profiles') && !editingItem ? 'Tambah User Baru' : 'Edit Data'}
               </h3>
               <button
                 type="button"
@@ -1059,8 +1102,20 @@ export function SuperAdminDashboard() {
               </button>
             </div>
             <div className="p-5">
-              {activeTab === 'admins' && !editingItem ? (
+              {(activeTab === 'admins' || activeTab === 'profiles') && !editingItem ? (
                 <div className="space-y-4">
+                  <div>
+                    <label className="label-base">Role</label>
+                    <select
+                      value={newAdminRole}
+                      onChange={(e) => setNewAdminRole(e.target.value as 'siswa' | 'guru' | 'super_admin')}
+                      className="input-base"
+                    >
+                      <option value="siswa">Siswa</option>
+                      <option value="guru">Guru</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="label-base">Nama</label>
                     <input
@@ -1078,7 +1133,7 @@ export function SuperAdminDashboard() {
                       value={newAdminEmail}
                       onChange={(e) => setNewAdminEmail(e.target.value)}
                       className="input-base"
-                      placeholder="admin@contoh.com"
+                      placeholder="user@contoh.com"
                     />
                   </div>
                   <div>
@@ -1090,14 +1145,54 @@ export function SuperAdminDashboard() {
                       className="input-base"
                       placeholder="••••••••"
                     />
+                    <p className="text-xs text-slate-500 mt-1">Password default: lkpd123</p>
                   </div>
+                  {newAdminRole === 'siswa' && (
+                    <>
+                      <div>
+                        <label className="label-base">Username / NISN</label>
+                        <input
+                          type="text"
+                          value={newAdminUsername}
+                          onChange={(e) => setNewAdminUsername(e.target.value)}
+                          className="input-base"
+                          placeholder="Username atau NISN"
+                        />
+                      </div>
+                      <div>
+                        <label className="label-base">NISN (opsional)</label>
+                        <input
+                          type="text"
+                          value={newAdminNisn}
+                          onChange={(e) => setNewAdminNisn(e.target.value)}
+                          className="input-base"
+                          placeholder="Nomor Induk Siswa Nasional"
+                        />
+                      </div>
+                      <div>
+                        <label className="label-base">Kelas (opsional)</label>
+                        <select
+                          value={newAdminKelasId}
+                          onChange={(e) => setNewAdminKelasId(e.target.value)}
+                          className="input-base"
+                        >
+                          <option value="">Pilih Kelas</option>
+                          {kelas.map((k) => (
+                            <option key={k.id} value={k.id}>
+                              {k.nama_kelas}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={handleCreateAdmin}
                     disabled={creatingAdmin}
                     className="btn-primary w-full"
                   >
-                    {creatingAdmin ? 'Membuat…' : 'Buat Super Admin'}
+                    {creatingAdmin ? 'Membuat…' : `Buat ${newAdminRole === 'super_admin' ? 'Super Admin' : newAdminRole === 'guru' ? 'Guru' : 'Siswa'}`}
                   </button>
                 </div>
               ) : (
