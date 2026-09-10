@@ -891,9 +891,44 @@ function StepContent({
             onChange={(v) => onPatchStep(stepIndex, { ringkas: v })}
             rows={2}
           />
+          {/* URL YouTube / website di level sintaks */}
+          <AdminMediaFields
+            block={
+              {
+                kind: "media",
+                mediaUrl: step.mediaUrl || "",
+                mediaType: step.mediaType || "link",
+                caption: step.mediaCaption || "",
+              } as ContentBlock & {
+                mediaUrl?: string;
+                mediaType?: string;
+                caption?: string;
+              }
+            }
+            onPatch={(patch) => {
+              const next: Partial<PBLStep> = {};
+              if ("mediaUrl" in patch) next.mediaUrl = patch.mediaUrl as string;
+              if ("mediaType" in patch)
+                next.mediaType = patch.mediaType as PBLStep["mediaType"];
+              if ("caption" in patch)
+                next.mediaCaption = patch.caption as string;
+              onPatchStep(stepIndex, next);
+            }}
+          />
         </div>
       ) : (
-        <p className="text-sm text-slate-500">{step.ringkas}</p>
+        <div className="space-y-2">
+          {step.ringkas && (
+            <p className="text-sm text-slate-500">{step.ringkas}</p>
+          )}
+          {step.mediaUrl &&
+            renderMedia({
+              kind: "media",
+              mediaUrl: step.mediaUrl,
+              mediaType: step.mediaType || "link",
+              caption: step.mediaCaption,
+            } as ContentBlock)}
+        </div>
       )}
 
       {step.blocks?.map((block, i) => (
@@ -1052,6 +1087,18 @@ function getAddBlockOptions(
           block: { kind: "bagian-header", label: "Bagian Baru" },
         },
         {
+          label: "Media / Tautan",
+          desc: "YouTube, gambar, atau tautan website yang bisa diklik",
+          icon: <UploadCloud className="h-4 w-4" />,
+          block: {
+            kind: "media",
+            title: "Media / Tautan",
+            mediaUrl: "",
+            mediaType: "youtube",
+            caption: "",
+          },
+        },
+        {
           label: "Pertanyaan Analisis",
           desc: "Pertanyaan analisis teks panjang",
           icon: <Microscope className="h-4 w-4" />,
@@ -1185,6 +1232,51 @@ function blockKey(b: ContentBlock): string | null {
   return null;
 }
 
+// function renderMedia(block: ContentBlock) {
+//   if ("mediaUrl" in block && block.mediaUrl) {
+//     if (block.mediaType === "youtube") {
+//       const getYoutubeId = (url: string) => {
+//         const match = url.match(
+//           /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/,
+//         );
+//         return match ? match[1] : null;
+//       };
+//       const videoId = getYoutubeId(block.mediaUrl);
+//       if (videoId) {
+//         return (
+//           <div className="mt-3 aspect-video rounded-xl overflow-hidden shadow-sm">
+//             <iframe
+//               width="100%"
+//               height="100%"
+//               src={`https://www.youtube.com/embed/${videoId}`}
+//               title="YouTube video player"
+//               frameBorder="0"
+//               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+//               allowFullScreen
+//             />
+//           </div>
+//         );
+//       }
+//       return (
+//         <p className="mt-2 text-xs text-amber-600">
+//           URL YouTube tidak valid: {block.mediaUrl}
+//         </p>
+//       );
+//     } else if (block.mediaType === "image") {
+//       return (
+//         <div className="mt-3 rounded-xl overflow-hidden shadow-sm">
+//           <img
+//             src={block.mediaUrl}
+//             alt="Media"
+//             className="w-full h-auto object-cover"
+//           />
+//         </div>
+//       );
+//     }
+//   }
+//   return null;
+// }
+
 function renderMedia(block: ContentBlock) {
   if ("mediaUrl" in block && block.mediaUrl) {
     if (block.mediaType === "youtube") {
@@ -1210,10 +1302,16 @@ function renderMedia(block: ContentBlock) {
           </div>
         );
       }
+      // Fallback: tampilkan sebagai tautan jika URL YouTube tidak valid
       return (
-        <p className="mt-2 text-xs text-amber-600">
-          URL YouTube tidak valid: {block.mediaUrl}
-        </p>
+        <a
+          href={block.mediaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-brand-teal hover:bg-brand-teal-light/40 hover:border-brand-teal transition">
+          <UploadCloud className="h-4 w-4 shrink-0" />
+          <span className="truncate">{block.mediaUrl}</span>
+        </a>
       );
     } else if (block.mediaType === "image") {
       return (
@@ -1224,6 +1322,27 @@ function renderMedia(block: ContentBlock) {
             className="w-full h-auto object-cover"
           />
         </div>
+      );
+    } else if (block.mediaType === "link") {
+      const href =
+        block.mediaUrl.startsWith("http://") ||
+        block.mediaUrl.startsWith("https://")
+          ? block.mediaUrl
+          : `https://${block.mediaUrl}`;
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center gap-2 rounded-xl border border-brand-teal/30 bg-brand-teal-light/30 px-4 py-3 text-sm font-semibold text-brand-teal hover:bg-brand-teal-light hover:border-brand-teal transition">
+          <UploadCloud className="h-4 w-4 shrink-0" />
+          <span className="truncate">
+            {"caption" in block && block.caption
+              ? block.caption
+              : block.mediaUrl}
+          </span>
+          <ArrowRight className="h-4 w-4 shrink-0 ml-auto opacity-60" />
+        </a>
       );
     }
   }
@@ -1253,7 +1372,9 @@ function AdminSDGEditor({
 
   const addItem = () => {
     const maxNomor =
-      items.length > 0 ? Math.max(...items.map((s) => Number(s.nomor) || 0)) : 0;
+      items.length > 0
+        ? Math.max(...items.map((s) => Number(s.nomor) || 0))
+        : 0;
     onChange([
       ...items,
       {
@@ -1607,6 +1728,75 @@ function AdminDataTableEditor({
   );
 }
 
+// function AdminMediaFields({
+//   block,
+//   onPatch,
+// }: {
+//   block: ContentBlock & {
+//     mediaUrl?: string;
+//     mediaType?: string;
+//     caption?: string;
+//     title?: string;
+//   };
+//   onPatch: (patch: Record<string, unknown>) => void;
+// }) {
+//   const mediaType = block.mediaType || "youtube";
+//   return (
+//     <div className="mt-3 space-y-2 rounded-xl border border-dashed border-purple-200 bg-purple-50/40 p-3">
+//       <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-600">
+//         Media (YouTube / Gambar)
+//       </p>
+//       <div className="flex flex-wrap gap-2">
+//         <button
+//           type="button"
+//           onClick={() => onPatch({ mediaType: "youtube" })}
+//           className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+//             mediaType === "youtube"
+//               ? "bg-purple-600 text-white"
+//               : "bg-white text-slate-600 border border-slate-200"
+//           }`}>
+//           YouTube
+//         </button>
+//         <button
+//           type="button"
+//           onClick={() => onPatch({ mediaType: "image" })}
+//           className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+//             mediaType === "image"
+//               ? "bg-purple-600 text-white"
+//               : "bg-white text-slate-600 border border-slate-200"
+//           }`}>
+//           Gambar
+//         </button>
+//         {block.mediaUrl && (
+//           <button
+//             type="button"
+//             onClick={() => onPatch({ mediaUrl: "", mediaType: undefined })}
+//             className="rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50">
+//             Hapus media
+//           </button>
+//         )}
+//       </div>
+//       <AdminTextInput
+//         label={mediaType === "image" ? "URL gambar" : "Link YouTube"}
+//         value={block.mediaUrl || ""}
+//         onChange={(v) =>
+//           onPatch({ mediaUrl: v, mediaType: mediaType || "youtube" })
+//         }
+//       />
+//       <AdminTextInput
+//         label="Caption (opsional)"
+//         value={block.caption || ""}
+//         onChange={(v) => onPatch({ caption: v })}
+//       />
+//       {block.mediaUrl &&
+//         renderMedia({
+//           ...block,
+//           mediaType: mediaType as "youtube" | "image",
+//         } as ContentBlock)}
+//     </div>
+//   );
+// }
+
 function AdminMediaFields({
   block,
   onPatch,
@@ -1620,10 +1810,16 @@ function AdminMediaFields({
   onPatch: (patch: Record<string, unknown>) => void;
 }) {
   const mediaType = block.mediaType || "youtube";
+  const urlLabel =
+    mediaType === "image"
+      ? "URL gambar"
+      : mediaType === "link"
+        ? "URL website / tautan"
+        : "Link YouTube";
   return (
     <div className="mt-3 space-y-2 rounded-xl border border-dashed border-purple-200 bg-purple-50/40 p-3">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-600">
-        Media (YouTube / Gambar)
+        Media (YouTube / Gambar / Tautan)
       </p>
       <div className="flex flex-wrap gap-2">
         <button
@@ -1646,6 +1842,16 @@ function AdminMediaFields({
           }`}>
           Gambar
         </button>
+        <button
+          type="button"
+          onClick={() => onPatch({ mediaType: "link" })}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+            mediaType === "link"
+              ? "bg-purple-600 text-white"
+              : "bg-white text-slate-600 border border-slate-200"
+          }`}>
+          Tautan / Website
+        </button>
         {block.mediaUrl && (
           <button
             type="button"
@@ -1656,21 +1862,23 @@ function AdminMediaFields({
         )}
       </div>
       <AdminTextInput
-        label={mediaType === "image" ? "URL gambar" : "Link YouTube"}
+        label={urlLabel}
         value={block.mediaUrl || ""}
         onChange={(v) =>
           onPatch({ mediaUrl: v, mediaType: mediaType || "youtube" })
         }
       />
       <AdminTextInput
-        label="Caption (opsional)"
+        label={
+          mediaType === "link" ? "Teks tombol (opsional)" : "Caption (opsional)"
+        }
         value={block.caption || ""}
         onChange={(v) => onPatch({ caption: v })}
       />
       {block.mediaUrl &&
         renderMedia({
           ...block,
-          mediaType: mediaType as "youtube" | "image",
+          mediaType: mediaType as "youtube" | "image" | "link",
         } as ContentBlock)}
     </div>
   );
