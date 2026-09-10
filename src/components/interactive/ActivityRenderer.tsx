@@ -19,8 +19,8 @@ import {
   Lock,
   FlaskConical,
   Pencil,
-  X,
-  Check,
+  // X,
+  // Check,
   FileQuestion,
   Trash2,
   Plus,
@@ -31,15 +31,16 @@ import {
   type KegiatanContent,
   type ContentBlock,
   type PBLStep,
+  type SDGBadge,
 } from "@/content/types";
 import { type AnswerValue, type Jawaban } from "@/lib/firebase";
-import { TextAnswer } from "./TextAnswer";
+// import { TextAnswer } from "./TextAnswer";
 import { MultiTextAnswer } from "./MultiTextAnswer";
 import { EditableTable } from "./EditableTable";
 import { UrlInput } from "./UrlInput";
 import { ArgumentationTAP } from "./ArgumentationTAP";
 import { RadioCardSelector } from "./RadioCardSelector";
-import { EAssessment } from "./EAssessment";
+// import { EAssessment } from "./EAssessment";
 import { SDGBadgeChip, Badge } from "@/components/ui";
 import { Link } from "react-router-dom";
 
@@ -404,11 +405,19 @@ export function ActivityRenderer({
                   </p>
                 </>
               )}
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {Array.isArray(kegiatan.sdg) && kegiatan.sdg.map((s) => (
-                  <SDGBadgeChip key={s.nomor} sdg={s} />
-                ))}
-              </div>
+              {editMode ? (
+                <AdminSDGEditor
+                  items={Array.isArray(kegiatan.sdg) ? kegiatan.sdg : []}
+                  onChange={(next) => patchRoot("sdg", next)}
+                />
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {Array.isArray(kegiatan.sdg) &&
+                    kegiatan.sdg.map((s) => (
+                      <SDGBadgeChip key={s.nomor} sdg={s} />
+                    ))}
+                </div>
+              )}
             </div>
             {readOnly && status !== "preview" && (
               <span className="badge bg-white/20 text-white">
@@ -1223,6 +1232,116 @@ function renderMedia(block: ContentBlock) {
 
 /* ========== Admin field helpers ========== */
 
+/** Editor untuk daftar SDG badge (angka, label/teks, warna) — add / edit / delete */
+function AdminSDGEditor({
+  items,
+  onChange,
+}: {
+  items: SDGBadge[];
+  onChange: (next: SDGBadge[]) => void;
+}) {
+  const updateItem = (index: number, patch: Partial<SDGBadge>) => {
+    const next = items.map((item, i) =>
+      i === index ? { ...item, ...patch } : item,
+    );
+    onChange(next);
+  };
+
+  const removeItem = (index: number) => {
+    onChange(items.filter((_, i) => i !== index));
+  };
+
+  const addItem = () => {
+    const maxNomor =
+      items.length > 0 ? Math.max(...items.map((s) => Number(s.nomor) || 0)) : 0;
+    onChange([
+      ...items,
+      {
+        nomor: maxNomor + 1,
+        label: "Label baru",
+        warna: "#2E5949",
+      },
+    ]);
+  };
+
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/70">
+        SDG / Badge (angka, teks, warna)
+      </p>
+      {items.map((s, i) => (
+        <div
+          key={i}
+          className="flex flex-wrap items-center gap-2 rounded-xl border border-white/25 bg-white/10 p-2.5">
+          {/* Preview warna */}
+          <span
+            className="h-7 w-7 shrink-0 rounded-full ring-2 ring-white/40 shadow"
+            style={{ backgroundColor: s.warna || "#94a3b8" }}
+            title={s.warna}
+          />
+          {/* Angka */}
+          <input
+            type="number"
+            min={1}
+            value={s.nomor ?? ""}
+            onChange={(e) =>
+              updateItem(i, {
+                nomor: e.target.value === "" ? 0 : Number(e.target.value),
+              })
+            }
+            className="w-16 rounded-lg border border-white/30 bg-white/15 px-2 py-1.5 text-sm text-white outline-none focus:border-white/60"
+            placeholder="#"
+            title="Angka / nomor"
+          />
+          {/* Label / teks */}
+          <input
+            type="text"
+            value={s.label || ""}
+            onChange={(e) => updateItem(i, { label: e.target.value })}
+            className="min-w-[120px] flex-1 rounded-lg border border-white/30 bg-white/15 px-2.5 py-1.5 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/60"
+            placeholder="Label (mis. Katalis)"
+          />
+          {/* Warna hex + color picker */}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="color"
+              value={
+                s.warna && /^#[0-9A-Fa-f]{6}$/.test(s.warna)
+                  ? s.warna
+                  : "#2E5949"
+              }
+              onChange={(e) => updateItem(i, { warna: e.target.value })}
+              className="h-8 w-8 cursor-pointer rounded border border-white/30 bg-transparent p-0.5"
+              title="Pilih warna"
+            />
+            <input
+              type="text"
+              value={s.warna || ""}
+              onChange={(e) => updateItem(i, { warna: e.target.value })}
+              className="w-[88px] rounded-lg border border-white/30 bg-white/15 px-2 py-1.5 font-mono text-xs text-white outline-none focus:border-white/60"
+              placeholder="#HEX"
+            />
+          </div>
+          {/* Hapus */}
+          <button
+            type="button"
+            onClick={() => removeItem(i)}
+            title="Hapus badge"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={addItem}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/40 px-3 py-2.5 text-xs font-semibold text-white/90 hover:border-white/70 hover:bg-white/10 transition">
+        <Plus className="h-3.5 w-3.5" /> Tambah Badge / SDG
+      </button>
+    </div>
+  );
+}
+
 function AdminTextInput({
   label,
   value,
@@ -1923,7 +2042,9 @@ function BlockRenderer({
                     {block.perencanaanText}
                   </p>
                   <MultiTextAnswer
-                    value={(answers[block.perencanaanId] as string | string[]) || ""}
+                    value={
+                      (answers[block.perencanaanId] as string | string[]) || ""
+                    }
                     onChange={(v) => onUpdate(block.perencanaanId!, v)}
                     disabled={readOnly}
                     rows={4}
@@ -2576,7 +2697,9 @@ function BlockRenderer({
                   {block.pertanyaanText}
                 </p>
                 <MultiTextAnswer
-                  value={(answers[block.pertanyaanId] as string | string[]) || ""}
+                  value={
+                    (answers[block.pertanyaanId] as string | string[]) || ""
+                  }
                   onChange={(v) => onUpdate(block.pertanyaanId, v)}
                   disabled={readOnly}
                   rows={4}
