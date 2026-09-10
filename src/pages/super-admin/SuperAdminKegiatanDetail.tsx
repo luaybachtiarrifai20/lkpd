@@ -122,6 +122,12 @@ export function SuperAdminKegiatanDetail() {
                   ...base,
                   judul: raw.judul || base.judul,
                   warna: raw.warna_tema || base.warna,
+                  // Ensure all required fields are present
+                  sdg: base.sdg,
+                  cakupanMateri: base.cakupanMateri,
+                  tujuan: base.tujuan,
+                  materi: base.materi,
+                  steps: base.steps,
                 }
               : null;
           }
@@ -135,9 +141,12 @@ export function SuperAdminKegiatanDetail() {
               const d = snap.docs[0];
               kId = d.id;
               const raw = d.data();
-              content = raw.steps
-                ? (raw as KegiatanContent)
-                : KEGIATAN_CONTENT.find((k) => k.nomor === nomor) || null;
+              if (raw.steps) {
+                content = raw as KegiatanContent;
+              } else {
+                const base = KEGIATAN_CONTENT.find((k) => k.nomor === nomor);
+                content = base || null;
+              }
             } else {
               content = KEGIATAN_CONTENT.find((k) => k.nomor === nomor) || null;
               // belum ada di Firestore — simpan nanti akan create

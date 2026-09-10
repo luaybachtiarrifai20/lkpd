@@ -405,7 +405,7 @@ export function ActivityRenderer({
                 </>
               )}
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {kegiatan.sdg?.map((s) => (
+                {Array.isArray(kegiatan.sdg) && kegiatan.sdg.map((s) => (
                   <SDGBadgeChip key={s.nomor} sdg={s} />
                 ))}
               </div>

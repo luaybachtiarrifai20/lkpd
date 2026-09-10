@@ -186,7 +186,11 @@ export default function App() {
 
             <Route
               path="/super-admin/kegiatan/:id"
-              element={<SuperAdminKegiatanDetail />}
+              element={
+                <SuperAdminProtectedRoute>
+                  <SuperAdminKegiatanDetail />
+                </SuperAdminProtectedRoute>
+              }
             />
             <Route path="/setup-super-admin" element={<SetupSuperAdmin />} />
             <Route path="/super-admin/login" element={<SuperAdminLogin />} />

@@ -103,6 +103,36 @@ export function ManageQuestions() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [kegiatanList, setKegiatanList] = useState<
+    { id: string; nomor: number; judul: string }[]
+  >([]);
+  const [selectedKegiatanId, setSelectedKegiatanId] = useState("");
+  const [testType, setTestType] = useState<"pretest" | "posttest">("pretest");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, "kegiatan"));
+        const list = snap.docs
+          .map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              nomor: data.nomor ?? 0,
+              judul: data.judul || `Kegiatan ${data.nomor}`,
+            };
+          })
+          .filter((k) => k.nomor > 0)
+          .sort((a, b) => a.nomor - b.nomor);
+
+        setKegiatanList(list);
+      } catch (err) {
+        console.error("Gagal load kegiatan:", err);
+        toast("Gagal memuat daftar kegiatan", "error");
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (profile?.role !== "super_admin") return;
     loadQuestions();
@@ -207,13 +237,13 @@ export function ManageQuestions() {
           <div>
             <label className="label-base">Pilih Kegiatan</label>
             <select
-              className="input-base min-w-[180px]"
-              value={selectedKegiatan || ""}
-              onChange={(e) => setSelectedKegiatan(Number(e.target.value))}>
+              value={selectedKegiatanId}
+              onChange={(e) => setSelectedKegiatanId(e.target.value)}
+              className="input-base">
               <option value="">— Pilih Kegiatan —</option>
-              {KEGIATAN_CONTENT.map((k) => (
-                <option key={k.nomor} value={k.nomor}>
-                  Kegiatan {k.nomor} — {k.subjudul}
+              {kegiatanList.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nomor}. {k.judul.replace(/^Kegiatan \d+\s*[—-]\s*/, "")}
                 </option>
               ))}
             </select>
