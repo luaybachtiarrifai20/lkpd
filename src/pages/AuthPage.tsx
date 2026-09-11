@@ -125,8 +125,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
           navigate('/login', { replace: true });
         } else {
           // Siswa dengan kode kelas valid → langsung aktif
-          console.log('[AuthPage] signup success (auto-active), refreshAuth as:', role);
-          await refreshAuth();
+          console.log('[AuthPage] signup success (auto-active), navigating to:', role);
           toast(`Selamat datang, ${nama}! Akun langsung aktif karena kode kelas valid.`, 'success');
           const dest = role === 'guru' ? '/guru' : '/siswa';
           navigate(dest, { replace: true });

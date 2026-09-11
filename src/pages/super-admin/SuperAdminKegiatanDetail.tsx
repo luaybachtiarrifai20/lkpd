@@ -30,14 +30,13 @@ import {
   updateDoc,
   setDoc,
 } from "firebase/firestore";
-import { db, type Kegiatan as KegiatanDoc } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ActivityRenderer } from "@/components/interactive/ActivityRenderer";
 import { type KegiatanContent } from "@/content/types";
 import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
-import { fetchAssessment } from "@/lib/answers";
 import { EmptyState, Badge } from "@/components/ui";
 
 const navItems = [
@@ -86,8 +85,6 @@ export function SuperAdminKegiatanDetail() {
 
   const [kegiatan, setKegiatan] = useState<KegiatanContent | null>(null);
   const [docId, setDocId] = useState<string | null>(null);
-  const [assessmentUrl, setAssessmentUrl] = useState<string | null>(null);
-  const [assessmentJudul, setAssessmentJudul] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [contentSaving, setContentSaving] = useState(false);
@@ -163,18 +160,6 @@ export function SuperAdminKegiatanDetail() {
         if (!cancelled) {
           setKegiatan(content);
           setDocId(kId);
-        }
-
-        if (kId) {
-          try {
-            const a = await fetchAssessment(kId);
-            if (!cancelled) {
-              setAssessmentUrl(a?.url_kuis || null);
-              setAssessmentJudul(a?.judul_kuis || null);
-            }
-          } catch {
-            /* optional */
-          }
         }
       } catch (err) {
         console.error("[SuperAdminKegiatanDetail]", err);
@@ -277,8 +262,6 @@ export function SuperAdminKegiatanDetail() {
               onUpdate={() => {}}
               status="preview"
               savedAt={null}
-              assessmentUrl={assessmentUrl}
-              assessmentJudul={assessmentJudul}
               kuisDone={false}
               editMode
               onContentChange={setKegiatan}
