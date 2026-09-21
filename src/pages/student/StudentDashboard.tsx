@@ -9,17 +9,19 @@ import {
   FileEdit,
   Clock,
   Award,
-  Sparkles,
+  // Sparkles,
   BookOpen,
   KeyRound,
   Loader2,
   LogIn,
   FlaskConical,
   Atom,
-  Microscope,
+  // Microscope,
   Lock,
   Eye,
   EyeOff,
+  ExternalLink,
+  Youtube,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -54,6 +56,11 @@ const navItems = [
     to: "/siswa",
     label: "Dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    to: "/siswa/materi",
+    label: "Materi",
+    icon: <BookOpen className="h-5 w-5" />,
   },
   {
     to: "/siswa/riwayat",
@@ -874,6 +881,235 @@ export function StudentRiwayat() {
             )}
           </div>
         </Modal>
+      </div>
+    </DashboardLayout>
+  );
+}
+
+// ============ Materi Tambahan (Siswa) ============
+type MateriItem = {
+  id: string;
+  kelas_id: string;
+  kegiatan_id: string;
+  judul: string;
+  url: string;
+  deskripsi?: string | null;
+  dibuat_pada?: string;
+};
+
+export function StudentMateri() {
+  const { profile } = useAuth();
+  const [kelas, setKelas] = useState<Kelas | null>(null);
+  const [kegiatanList, setKegiatanList] = useState<
+    { nomor: number; id: string; judul: string; subjudul: string }[]
+  >([]);
+  const [selKeg, setSelKeg] = useState<number | "">("");
+  const [materiList, setMateriList] = useState<MateriItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMateri, setLoadingMateri] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        if (profile.kelas_id) {
+          const kSnap = await getDoc(doc(db, "kelas", profile.kelas_id));
+          if (kSnap.exists() && !cancelled) {
+            setKelas({ id: kSnap.id, ...kSnap.data() } as Kelas);
+          }
+        }
+
+        const kegsSnap = await getDocs(collection(db, "kegiatan"));
+        if (cancelled) return;
+        const list = kegsSnap.docs
+          .map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              nomor: (data.nomor as number) ?? 0,
+              judul: (data.judul as string) || "",
+              subjudul: (data.subjudul as string) || "",
+            };
+          })
+          .filter((k) => k.nomor > 0)
+          .sort((a, b) => a.nomor - b.nomor);
+
+        const finalList =
+          list.length > 0
+            ? list
+            : KEGIATAN_CONTENT.map((k) => ({
+                id: `kegiatan-${k.nomor}`,
+                nomor: k.nomor,
+                judul: k.judul,
+                subjudul: k.subjudul,
+              }));
+
+        setKegiatanList(finalList);
+        if (finalList.length > 0) setSelKeg(finalList[0].nomor);
+      } catch (err) {
+        console.error("[StudentMateri] load error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile?.kelas_id || selKeg === "") {
+      setMateriList([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingMateri(true);
+      try {
+        const keg = kegiatanList.find((k) => k.nomor === selKeg);
+        const kegId = keg?.id || `kegiatan-${selKeg}`;
+
+        let snap;
+        try {
+          snap = await getDocs(
+            query(
+              collection(db, "materi_tambahan"),
+              where("kelas_id", "==", profile.kelas_id),
+              where("kegiatan_id", "==", kegId),
+            ),
+          );
+        } catch {
+          const all = await getDocs(
+            query(
+              collection(db, "materi_tambahan"),
+              where("kelas_id", "==", profile.kelas_id),
+            ),
+          );
+          const matched = all.docs.filter((d) => {
+            const kid = d.data().kegiatan_id;
+            return kid === kegId || kid === `kegiatan-${selKeg}`;
+          });
+          snap = { docs: matched, empty: matched.length === 0 };
+        }
+
+        if (cancelled) return;
+        const list = snap.docs.map(
+          (d) => ({ id: d.id, ...d.data() }) as MateriItem,
+        );
+        list.sort((a, b) =>
+          (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
+        );
+        setMateriList(list);
+      } catch (err) {
+        console.error("[StudentMateri] load materi error:", err);
+        if (!cancelled) setMateriList([]);
+      } finally {
+        if (!cancelled) setLoadingMateri(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.kelas_id, selKeg, kegiatanList]);
+
+  const isYoutube = (link: string) =>
+    /youtube\.com|youtu\.be/i.test(link || "");
+
+  if (loading) {
+    return (
+      <DashboardLayout items={navItems} role="siswa">
+        <div className="card animate-pulse h-96" />
+      </DashboardLayout>
+    );
+  }
+
+  if (!profile?.kelas_id || !kelas) {
+    return (
+      <DashboardLayout items={navItems} role="siswa">
+        <EmptyState
+          icon={<BookOpen className="h-7 w-7" />}
+          title="Belum bergabung ke kelas"
+          description="Gabung ke kelas dulu di Dashboard agar bisa melihat materi tambahan dari guru."
+        />
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout items={navItems} role="siswa">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Materi Tambahan</h1>
+          <p className="text-sm text-slate-500">
+            Materi dari guru untuk kelas <strong>{kelas.nama_kelas}</strong>.
+            Pilih kegiatan untuk melihat tautan materi.
+          </p>
+        </div>
+
+        <div className="card">
+          <label className="label-base">Pilih Kegiatan</label>
+          <select
+            className="input-base min-w-[240px]"
+            value={selKeg}
+            onChange={(e) => setSelKeg(Number(e.target.value))}>
+            {kegiatanList.map((k) => (
+              <option key={k.nomor} value={k.nomor}>
+                Kegiatan {k.nomor} — {k.subjudul || k.judul}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {loadingMateri ? (
+          <div className="card animate-pulse h-40" />
+        ) : materiList.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen className="h-7 w-7" />}
+            title="Belum ada materi"
+            description="Guru belum menambahkan materi untuk kegiatan ini."
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {materiList.map((m) => (
+              <a
+                key={m.id}
+                href={m.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="card group hover:shadow-float transition border-l-4 border-brand-teal">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                      isYoutube(m.url)
+                        ? "bg-red-50 text-red-500"
+                        : "bg-brand-teal-light text-brand-teal"
+                    }`}>
+                    {isYoutube(m.url) ? (
+                      <Youtube className="h-5 w-5" />
+                    ) : (
+                      <ExternalLink className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-800 group-hover:text-brand-green transition">
+                      {m.judul}
+                    </p>
+                    {m.deskripsi && (
+                      <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
+                        {m.deskripsi}
+                      </p>
+                    )}
+                    <p className="mt-1.5 text-[11px] text-brand-green font-medium inline-flex items-center gap-1">
+                      Buka tautan <ArrowRight className="h-3 w-3" />
+                    </p>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

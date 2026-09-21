@@ -8,6 +8,7 @@ import {
   StudentDashboard,
   StudentRiwayat,
   StudentProfil,
+  StudentMateri,
 } from "@/pages/student/StudentDashboard";
 import { ActivityPage } from "@/pages/student/ActivityPage";
 import {
@@ -18,6 +19,7 @@ import {
   TeacherAssessment,
   TeacherEkspor,
   TeacherProfil,
+  TeacherMateri,
 } from "@/pages/teacher/TeacherPages";
 import { SuperAdminLogin } from "@/pages/SuperAdminLogin";
 import { SuperAdminDashboard } from "@/pages/SuperAdminDashboard";
@@ -85,7 +87,6 @@ export default function App() {
             <Route path="/tentang" element={<AboutPage />} />
             <Route path="/login" element={<AuthPage mode="login" />} />
             <Route path="/daftar" element={<AuthPage mode="daftar" />} />
-
             <Route
               path="/siswa"
               element={
@@ -110,6 +111,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/siswa/materi" element={<StudentMateri />} />
             <Route
               path="/siswa/profil"
               element={
@@ -126,7 +128,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/guru"
               element={
@@ -176,6 +177,14 @@ export default function App() {
               }
             />
             <Route
+              path="/guru/materi"
+              element={
+                <ProtectedRoute role="guru">
+                  <TeacherMateri />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/guru/profil"
               element={
                 <ProtectedRoute role="guru">
@@ -183,7 +192,6 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path="/super-admin/kegiatan/:id"
               element={
@@ -211,7 +219,6 @@ export default function App() {
               }
             />
             <Route path="/super-admin/about" element={<ManageAboutPage />} />
-
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
