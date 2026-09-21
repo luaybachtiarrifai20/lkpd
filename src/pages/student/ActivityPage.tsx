@@ -90,10 +90,38 @@ export function ActivityPage() {
         setKegiatanId(kId);
         setKegiatan(kegData);
 
-        const [j, a, sk] = await Promise.all([
+        // Fetch jawaban + status kuis (existing helpers)
+        // + assessment yang terikat ke kelas siswa (kelas_id + kegiatan_id)
+        const [j, sk, assessSnap] = await Promise.all([
           fetchJawaban(kId, profile.id),
-          fetchAssessment(kId),
           fetchStatusKuis(kId, profile.id),
+          // Query assessment berdasarkan kegiatan + kelas siswa
+          profile.kelas_id
+            ? getDocs(
+                query(
+                  collection(db, "assessment_eksternal"),
+                  where("kegiatan_id", "==", kId),
+                  where("kelas_id", "==", profile.kelas_id),
+                ),
+              ).catch(async () => {
+                // Fallback jika composite index belum ada: filter client-side
+                const all = await getDocs(
+                  query(
+                    collection(db, "assessment_eksternal"),
+                    where("kegiatan_id", "==", kId),
+                  ),
+                );
+                const matched = all.docs.filter(
+                  (d) =>
+                    (d.data() as { kelas_id?: string }).kelas_id ===
+                    profile.kelas_id,
+                );
+                return {
+                  empty: matched.length === 0,
+                  docs: matched,
+                } as typeof all;
+              })
+            : Promise.resolve({ empty: true, docs: [] as any[] }),
         ]);
         if (!active) return;
 
@@ -110,8 +138,26 @@ export function ActivityPage() {
           setFeedbackGuru(null);
           answersRef.current = {};
         }
-        setAssessmentUrl(a?.url_kuis || null);
-        setAssessmentJudul(a?.judul_kuis || null);
+
+        // Set assessment dari hasil query (per kelas)
+        if (!assessSnap.empty && assessSnap.docs[0]) {
+          const aData = assessSnap.docs[0].data() as {
+            url_kuis?: string;
+            judul_kuis?: string;
+          };
+          setAssessmentUrl(aData.url_kuis || null);
+          setAssessmentJudul(aData.judul_kuis || null);
+        } else {
+          // Fallback ke helper lama (data tanpa kelas_id) agar tetap kompatibel
+          try {
+            const a = await fetchAssessment(kId);
+            setAssessmentUrl(a?.url_kuis || null);
+            setAssessmentJudul(a?.judul_kuis || null);
+          } catch {
+            setAssessmentUrl(null);
+            setAssessmentJudul(null);
+          }
+        }
         setKuisDone(sk?.sudah_mengerjakan || false);
       } catch (err) {
         console.error("Error fetching kegiatan:", err);

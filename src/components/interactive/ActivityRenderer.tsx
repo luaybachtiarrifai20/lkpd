@@ -679,6 +679,53 @@ export function ActivityRenderer({
             </div>
           )}
 
+          {assessmentUrl && (
+            <div className="card border-2 border-brand-teal/30 bg-brand-teal-light/20">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">
+                    Uji Pemahaman
+                  </p>
+                  <h3 className="text-sm font-bold text-slate-800 mt-0.5">
+                    {assessmentJudul || "Kuis Formatif"}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Kerjakan kuis dari platform eksternal yang disediakan guru.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 items-end">
+                  <a
+                    href={assessmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary text-sm">
+                    Buka Kuis
+                  </a>
+                  <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={kuisDone}
+                      onChange={(e) => onTandaiKuis?.(e.target.checked)}
+                      className="rounded border-slate-300"
+                    />
+                    Sudah mengerjakan
+                  </label>
+                </div>
+              </div>
+
+              {/* Opsional: embed langsung */}
+              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
+                <iframe
+                  src={assessmentUrl}
+                  title={assessmentJudul || "Kuis"}
+                  className="w-full"
+                  style={{ height: "480px", border: "none" }}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Step nav */}
           {steps.length > 0 && (
             <div className="mt-5 flex items-center justify-between">

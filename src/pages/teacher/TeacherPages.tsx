@@ -138,10 +138,8 @@ function buildKegiatanList(
     list.push({
       nomor,
       judul:
-        (typeof data?.judul === "string" && data.judul) ||
-        `Kegiatan ${nomor}`,
-      subjudul:
-        (typeof data?.subjudul === "string" && data.subjudul) || "",
+        (typeof data?.judul === "string" && data.judul) || `Kegiatan ${nomor}`,
+      subjudul: (typeof data?.subjudul === "string" && data.subjudul) || "",
     });
   });
   list.sort((a, b) => a.nomor - b.nomor);
@@ -202,7 +200,7 @@ export function TeacherDashboard() {
         <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
         {/* Dotted sains grid pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
-        
+
         {/* Floating Science Doodles */}
         <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
           <FlaskConical className="h-16 w-16" />
@@ -213,7 +211,9 @@ export function TeacherDashboard() {
 
         <div className="relative z-10 space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Dashboard Guru</h1>
+            <h1 className="text-2xl font-bold text-slate-800">
+              Dashboard Guru
+            </h1>
             <p className="text-sm text-slate-500">
               Selamat datang, {profile?.nama}.
             </p>
@@ -403,8 +403,11 @@ export function TeacherKelas() {
       setOpen(false);
       await loadKelas();
     } catch (err) {
-      console.error('[TeacherKelas] createKelas error:', err);
-      toast(err instanceof Error ? err.message : 'Gagal membuat kelas', 'error');
+      console.error("[TeacherKelas] createKelas error:", err);
+      toast(
+        err instanceof Error ? err.message : "Gagal membuat kelas",
+        "error",
+      );
     }
   };
 
@@ -565,12 +568,20 @@ export function TeacherRekap() {
   const [selKelas, setSelKelas] = useState<string>("");
   const [selKeg, setSelKeg] = useState<string>("1");
   const [rows, setRows] = useState<
-    { siswa: Profile; jawaban?: Jawaban; kuis?: StatusKuisSiswa; pretest?: TestAnswer | null; posttest?: TestAnswer | null }[]
+    {
+      siswa: Profile;
+      jawaban?: Jawaban;
+      kuis?: StatusKuisSiswa;
+      pretest?: TestAnswer | null;
+      posttest?: TestAnswer | null;
+    }[]
   >([]);
   const [loading, setLoading] = useState(false);
   const [loadingKelas, setLoadingKelas] = useState(true);
   const [kegIds, setKegIds] = useState<Record<number, string>>({});
-  const [kegiatanList, setKegiatanList] = useState<{ nomor: number; judul: string; subjudul: string }[]>([]);
+  const [kegiatanList, setKegiatanList] = useState<
+    { nomor: number; judul: string; subjudul: string }[]
+  >([]);
   // const [kegiatanList, setKegiatanList] = useState<
   //   { nomor: number; judul: string; subjudul: string }[]
   // >([]);
@@ -670,38 +681,39 @@ export function TeacherRekap() {
           );
 
         for (const ids of chunk(sIds, 30)) {
-          const [jSnapshot, kSnapshot, preSnapshot, postSnapshot] = await Promise.all([
-            getDocs(
-              query(
-                collection(db, "jawaban"),
-                where("kegiatan_id", "==", kegId),
-                where("siswa_id", "in", ids),
+          const [jSnapshot, kSnapshot, preSnapshot, postSnapshot] =
+            await Promise.all([
+              getDocs(
+                query(
+                  collection(db, "jawaban"),
+                  where("kegiatan_id", "==", kegId),
+                  where("siswa_id", "in", ids),
+                ),
               ),
-            ),
-            getDocs(
-              query(
-                collection(db, "status_kuis_siswa"),
-                where("kegiatan_id", "==", kegId),
-                where("siswa_id", "in", ids),
+              getDocs(
+                query(
+                  collection(db, "status_kuis_siswa"),
+                  where("kegiatan_id", "==", kegId),
+                  where("siswa_id", "in", ids),
+                ),
               ),
-            ),
-            getDocs(
-              query(
-                collection(db, "test_answers"),
-                where("kegiatan_id", "==", kegId),
-                where("siswa_id", "in", ids),
-                where("test_type", "==", "pretest"),
+              getDocs(
+                query(
+                  collection(db, "test_answers"),
+                  where("kegiatan_id", "==", kegId),
+                  where("siswa_id", "in", ids),
+                  where("test_type", "==", "pretest"),
+                ),
               ),
-            ),
-            getDocs(
-              query(
-                collection(db, "test_answers"),
-                where("kegiatan_id", "==", kegId),
-                where("siswa_id", "in", ids),
-                where("test_type", "==", "posttest"),
+              getDocs(
+                query(
+                  collection(db, "test_answers"),
+                  where("kegiatan_id", "==", kegId),
+                  where("siswa_id", "in", ids),
+                  where("test_type", "==", "posttest"),
+                ),
               ),
-            ),
-          ]);
+            ]);
           jSnapshot.docs.forEach((d) => {
             const data = { id: d.id, ...d.data() } as Jawaban;
             jByS[data.siswa_id] = data;
@@ -946,7 +958,9 @@ export function TeacherSiswaDetail() {
   const [kuis, setKuis] = useState<StatusKuisSiswa | null>(null);
   const [kegIds, setKegIds] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
-  const [kegiatanList, setKegiatanList] = useState<{ nomor: number; judul: string; subjudul: string }[]>([]);
+  const [kegiatanList, setKegiatanList] = useState<
+    { nomor: number; judul: string; subjudul: string }[]
+  >([]);
   const [skor, setSkor] = useState("");
   const [skorKuis, setSkorKuis] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -999,15 +1013,37 @@ export function TeacherSiswaDetail() {
     (async () => {
       // Fetch ALL data for this student once, then select by kegiatan in-memory
       // to avoid mismatches between different kegiatan id formats.
-      const [allJawSnapshot, allTestSnapshot, allKuisSnapshot] = await Promise.all([
-        getDocs(query(collection(db, "jawaban"), where("siswa_id", "==", siswaId))),
-        getDocs(query(collection(db, "test_answers"), where("siswa_id", "==", siswaId))),
-        getDocs(query(collection(db, "status_kuis_siswa"), where("siswa_id", "==", siswaId))),
-      ]);
+      const [allJawSnapshot, allTestSnapshot, allKuisSnapshot] =
+        await Promise.all([
+          getDocs(
+            query(collection(db, "jawaban"), where("siswa_id", "==", siswaId)),
+          ),
+          getDocs(
+            query(
+              collection(db, "test_answers"),
+              where("siswa_id", "==", siswaId),
+            ),
+          ),
+          getDocs(
+            query(
+              collection(db, "status_kuis_siswa"),
+              where("siswa_id", "==", siswaId),
+            ),
+          ),
+        ]);
 
-      const allJaw = allJawSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
-      const allTest = allTestSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
-      const allKuis = allKuisSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+      const allJaw = allJawSnapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as any[];
+      const allTest = allTestSnapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as any[];
+      const allKuis = allKuisSnapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as any[];
 
       const resolveKegNomor = (kegId: unknown): number | undefined => {
         // Prefer reverse lookup via the nomor->docId map (source of truth),
@@ -1044,8 +1080,10 @@ export function TeacherSiswaDetail() {
 
       const jDoc = allJaw.find(matchKeg) || null;
       const kDoc = allKuis.find(matchKeg) || null;
-      const preDoc = allTest.find((t) => t.test_type === "pretest" && matchKeg(t)) || null;
-      const postDoc = allTest.find((t) => t.test_type === "posttest" && matchKeg(t)) || null;
+      const preDoc =
+        allTest.find((t) => t.test_type === "pretest" && matchKeg(t)) || null;
+      const postDoc =
+        allTest.find((t) => t.test_type === "posttest" && matchKeg(t)) || null;
 
       setJawaban(
         jDoc
@@ -1058,14 +1096,20 @@ export function TeacherSiswaDetail() {
       );
       setKuis(kDoc ? ({ id: kDoc.id, ...kDoc } as StatusKuisSiswa) : null);
       setSkor(jDoc && jDoc.skor != null ? String(jDoc.skor) : "");
-      setSkorKuis(kDoc && kDoc.skor_manual != null ? String(kDoc.skor_manual) : "");
+      setSkorKuis(
+        kDoc && kDoc.skor_manual != null ? String(kDoc.skor_manual) : "",
+      );
       setFeedback(jDoc ? jDoc.feedback_guru || "" : "");
 
       setTestPre(preDoc ? ({ id: preDoc.id, ...preDoc } as TestAnswer) : null);
-      setTestPost(postDoc ? ({ id: postDoc.id, ...postDoc } as TestAnswer) : null);
+      setTestPost(
+        postDoc ? ({ id: postDoc.id, ...postDoc } as TestAnswer) : null,
+      );
       setSkorPre(preDoc && preDoc.score != null ? String(preDoc.score) : "");
       setFeedbackPre(preDoc ? preDoc.feedback_guru || "" : "");
-      setSkorPost(postDoc && postDoc.score != null ? String(postDoc.score) : "");
+      setSkorPost(
+        postDoc && postDoc.score != null ? String(postDoc.score) : "",
+      );
       setFeedbackPost(postDoc ? postDoc.feedback_guru || "" : "");
 
       // Fetch pretest & posttest questions for the selected kegiatan
@@ -1086,10 +1130,10 @@ export function TeacherSiswaDetail() {
         ),
       ]);
       const preQs = preQSnapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Question))
+        .map((d) => ({ id: d.id, ...d.data() }) as Question)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
       const postQs = postQSnapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Question))
+        .map((d) => ({ id: d.id, ...d.data() }) as Question)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
       setPretestQuestions(preQs);
       setPosttestQuestions(postQs);
@@ -1172,7 +1216,12 @@ export function TeacherSiswaDetail() {
   };
 
   // Helper function to safely render block content
-  const renderBlockContent = (block: any, jawabanData: Jawaban | null, testPre?: TestAnswer | null, testPost?: TestAnswer | null) => {
+  const renderBlockContent = (
+    block: any,
+    jawabanData: Jawaban | null,
+    testPre?: TestAnswer | null,
+    testPost?: TestAnswer | null,
+  ) => {
     const ansId = "id" in block ? block.id : null;
     const altId = "alasanId" in block ? block.alasanId : null;
     const efId = "pertanyaanId" in block ? block.pertanyaanId : null;
@@ -1180,7 +1229,9 @@ export function TeacherSiswaDetail() {
 
     if (block.kind === "bagian-header") {
       return (
-        <div key={block.label} className="mb-2 mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+        <div
+          key={block.label}
+          className="mb-2 mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">
           — {block.label} —
         </div>
       );
@@ -1197,22 +1248,26 @@ export function TeacherSiswaDetail() {
               <thead>
                 <tr className="bg-slate-50">
                   {(block.headers || []).map((h: string) => (
-                    <th key={h} className="px-2 py-1.5 text-left font-semibold text-slate-600">
+                    <th
+                      key={h}
+                      className="px-2 py-1.5 text-left font-semibold text-slate-600">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {(block.rows || []).map((row: { cells: string[] }, ri: number) => (
-                  <tr key={ri} className="border-t border-slate-100">
-                    {(row.cells || []).map((cell: string, ci: number) => (
-                      <td key={ci} className="px-2 py-1.5 text-slate-600">
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {(block.rows || []).map(
+                  (row: { cells: string[] }, ri: number) => (
+                    <tr key={ri} className="border-t border-slate-100">
+                      {(row.cells || []).map((cell: string, ci: number) => (
+                        <td key={ci} className="px-2 py-1.5 text-slate-600">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
@@ -1227,7 +1282,8 @@ export function TeacherSiswaDetail() {
             [Diagram] {block.title}
           </p>
           <p className="text-xs text-slate-500">
-            {block.kiri.label}: {block.kiri.deskripsi} | {block.kanan.label}: {block.kanan.deskripsi}
+            {block.kiri.label}: {block.kiri.deskripsi} | {block.kanan.label}:{" "}
+            {block.kanan.deskripsi}
           </p>
         </div>
       );
@@ -1258,7 +1314,8 @@ export function TeacherSiswaDetail() {
             [Integrasi 3 Level]
           </p>
           <p className="text-xs text-slate-500">
-            Makroskopik: {block.makroskopik} | Submikroskopik: {block.submikroskopik} | Simbolik: {block.simbolik}
+            Makroskopik: {block.makroskopik} | Submikroskopik:{" "}
+            {block.submikroskopik} | Simbolik: {block.simbolik}
           </p>
         </div>
       );
@@ -1275,22 +1332,26 @@ export function TeacherSiswaDetail() {
               <thead>
                 <tr className="bg-slate-50">
                   {(block.headers || []).map((h: string) => (
-                        <th key={h} className="px-2 py-1.5 text-left font-semibold text-slate-600">
-                          {h}
-                        </th>
-                      ))}
+                    <th
+                      key={h}
+                      className="px-2 py-1.5 text-left font-semibold text-slate-600">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {(block.rows || []).map((row: { cells: string[] }, ri: number) => (
-                  <tr key={ri} className="border-t border-slate-100">
-                    {(row.cells || []).map((cell: string, ci: number) => (
-                      <td key={ci} className="px-2 py-1.5 text-slate-600">
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {(block.rows || []).map(
+                  (row: { cells: string[] }, ri: number) => (
+                    <tr key={ri} className="border-t border-slate-100">
+                      {(row.cells || []).map((cell: string, ci: number) => (
+                        <td key={ci} className="px-2 py-1.5 text-slate-600">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
@@ -1313,20 +1374,38 @@ export function TeacherSiswaDetail() {
             : block.title || "";
       // try jawaban data first
       const fromJawaban = jawabanData?.isi_jawaban?.[ansId];
-      if (fromJawaban !== undefined && fromJawaban !== null && String(fromJawaban).trim() !== "") {
+      if (
+        fromJawaban !== undefined &&
+        fromJawaban !== null &&
+        String(fromJawaban).trim() !== ""
+      ) {
         return <AnswerView key={ansId} label={label} ans={fromJawaban} />;
       }
       // fallback: check test pre/post answers which store by question doc id
       const fromPre = testPre?.answers?.[ansId];
-      if (fromPre !== undefined && fromPre !== null && String(fromPre).trim() !== "") {
+      if (
+        fromPre !== undefined &&
+        fromPre !== null &&
+        String(fromPre).trim() !== ""
+      ) {
         return <AnswerView key={ansId} label={label} ans={fromPre} />;
       }
       const fromPost = testPost?.answers?.[ansId];
-      if (fromPost !== undefined && fromPost !== null && String(fromPost).trim() !== "") {
+      if (
+        fromPost !== undefined &&
+        fromPost !== null &&
+        String(fromPost).trim() !== ""
+      ) {
         return <AnswerView key={ansId} label={label} ans={fromPost} />;
       }
       // last resort: show whatever is present (may be empty)
-      return <AnswerView key={ansId} label={label} ans={jawabanData?.isi_jawaban?.[ansId]} />;
+      return (
+        <AnswerView
+          key={ansId}
+          label={label}
+          ans={jawabanData?.isi_jawaban?.[ansId]}
+        />
+      );
     }
 
     if (perId) {
@@ -1391,7 +1470,9 @@ export function TeacherSiswaDetail() {
                 value={selKeg}
                 onChange={(e) => setSelKeg(Number(e.target.value))}>
                 {kegiatanList.length === 0 ? (
-                  <option value={selKeg}>— Belum ada kegiatan di database —</option>
+                  <option value={selKeg}>
+                    — Belum ada kegiatan di database —
+                  </option>
                 ) : (
                   kegiatanList.map((k) => (
                     <option key={k.nomor} value={k.nomor}>
@@ -1418,27 +1499,57 @@ export function TeacherSiswaDetail() {
           </button>
           {debugOpen && (
             <div className="card mt-3">
-              <p className="text-xs text-slate-500 font-semibold">Debug: hasil query mentah</p>
+              <p className="text-xs text-slate-500 font-semibold">
+                Debug: hasil query mentah
+              </p>
               <div className="mt-2 text-xs text-slate-700">
-                  <p className="font-semibold">Selected keg mapping</p>
-                  <p className="text-xs text-slate-500">selKeg: {String(debugData.selKeg)}</p>
-                  <p className="text-xs text-slate-500">selectedKegId: {String(debugData.selectedKegId)}</p>
-                  <p className="text-xs text-slate-500">siswaId: {String(debugData.siswaId)}</p>
+                <p className="font-semibold">Selected keg mapping</p>
+                <p className="text-xs text-slate-500">
+                  selKeg: {String(debugData.selKeg)}
+                </p>
+                <p className="text-xs text-slate-500">
+                  selectedKegId: {String(debugData.selectedKegId)}
+                </p>
+                <p className="text-xs text-slate-500">
+                  siswaId: {String(debugData.siswaId)}
+                </p>
 
-                  <p className="font-semibold mt-2">Jawaban documents ({debugData.jawabanDocs?.length || 0})</p>
-                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.jawabanDocs || [], null, 2)}</pre>
+                <p className="font-semibold mt-2">
+                  Jawaban documents ({debugData.jawabanDocs?.length || 0})
+                </p>
+                <pre className="mt-1 overflow-x-auto text-xs">
+                  {JSON.stringify(debugData.jawabanDocs || [], null, 2)}
+                </pre>
 
-                  <p className="font-semibold mt-3">All jawaban for siswa ({debugData.allJawabanDocs?.length || 0})</p>
-                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.allJawabanDocs || [], null, 2)}</pre>
+                <p className="font-semibold mt-3">
+                  All jawaban for siswa ({debugData.allJawabanDocs?.length || 0}
+                  )
+                </p>
+                <pre className="mt-1 overflow-x-auto text-xs">
+                  {JSON.stringify(debugData.allJawabanDocs || [], null, 2)}
+                </pre>
 
-                  <p className="font-semibold mt-3">Pretest documents ({debugData.pretestDocs?.length || 0})</p>
-                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.pretestDocs || [], null, 2)}</pre>
+                <p className="font-semibold mt-3">
+                  Pretest documents ({debugData.pretestDocs?.length || 0})
+                </p>
+                <pre className="mt-1 overflow-x-auto text-xs">
+                  {JSON.stringify(debugData.pretestDocs || [], null, 2)}
+                </pre>
 
-                  <p className="font-semibold mt-3">Posttest documents ({debugData.posttestDocs?.length || 0})</p>
-                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.posttestDocs || [], null, 2)}</pre>
+                <p className="font-semibold mt-3">
+                  Posttest documents ({debugData.posttestDocs?.length || 0})
+                </p>
+                <pre className="mt-1 overflow-x-auto text-xs">
+                  {JSON.stringify(debugData.posttestDocs || [], null, 2)}
+                </pre>
 
-                  <p className="font-semibold mt-3">All test_answers for siswa ({debugData.allTestDocs?.length || 0})</p>
-                  <pre className="mt-1 overflow-x-auto text-xs">{JSON.stringify(debugData.allTestDocs || [], null, 2)}</pre>
+                <p className="font-semibold mt-3">
+                  All test_answers for siswa (
+                  {debugData.allTestDocs?.length || 0})
+                </p>
+                <pre className="mt-1 overflow-x-auto text-xs">
+                  {JSON.stringify(debugData.allTestDocs || [], null, 2)}
+                </pre>
               </div>
             </div>
           )}
@@ -1527,7 +1638,9 @@ export function TeacherSiswaDetail() {
               {/* Pretest / Posttest feedback */}
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="card">
-                  <p className="text-xs font-semibold text-slate-400">Pretest</p>
+                  <p className="text-xs font-semibold text-slate-400">
+                    Pretest
+                  </p>
                   <div className="mt-2">
                     <label className="label-base">Skor Pretest</label>
                     <input
@@ -1545,12 +1658,18 @@ export function TeacherSiswaDetail() {
                       onChange={(e) => setFeedbackPre(e.target.value)}
                       placeholder="Feedback untuk pretest"
                     />
-                    <button onClick={() => saveTestFeedback("pretest")} className="btn-outline mt-3">Simpan Pretest</button>
+                    <button
+                      onClick={() => saveTestFeedback("pretest")}
+                      className="btn-outline mt-3">
+                      Simpan Pretest
+                    </button>
                   </div>
                 </div>
 
                 <div className="card">
-                  <p className="text-xs font-semibold text-slate-400">Posttest</p>
+                  <p className="text-xs font-semibold text-slate-400">
+                    Posttest
+                  </p>
                   <div className="mt-2">
                     <label className="label-base">Skor Posttest</label>
                     <input
@@ -1568,7 +1687,11 @@ export function TeacherSiswaDetail() {
                       onChange={(e) => setFeedbackPost(e.target.value)}
                       placeholder="Feedback untuk posttest"
                     />
-                    <button onClick={() => saveTestFeedback("posttest")} className="btn-outline mt-3">Simpan Posttest</button>
+                    <button
+                      onClick={() => saveTestFeedback("posttest")}
+                      className="btn-outline mt-3">
+                      Simpan Posttest
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1739,65 +1862,154 @@ function AnswerView({ label, ans }: { label: string; ans: unknown }) {
 }
 
 // ============ Kelola Tautan E-Assessment ============
+// ============ Kelola Tautan E-Assessment ============
 export function TeacherAssessment() {
   const { profile } = useAuth();
   const { toast } = useToast();
+  const [selKelas, setSelKelas] = useState<string>("");
   const [selKeg, setSelKeg] = useState<number>(1);
   const [kegIds, setKegIds] = useState<Record<number, string>>({});
+  const [kegiatanList, setKegiatanList] = useState<
+    { nomor: number; judul: string; subjudul: string }[]
+  >([]);
+  const [kelasList, setKelasList] = useState<Kelas[]>([]);
   const [assess, setAssess] = useState<AssessmentEksternal | null>(null);
   const [judul, setJudul] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(true);
+  /** Key: `${kelasId}_${nomorKegiatan}` → assessment (atau null) */
   const [allAssess, setAllAssess] = useState<
-    Record<number, AssessmentEksternal | null>
+    Record<string, AssessmentEksternal | null>
   >({});
 
+  // Load kelas guru + kegiatan dari database
   useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
     (async () => {
-      const kegsSnapshot = await getDocs(collection(db, "kegiatan"));
-      const map = buildKegiatanMap(kegsSnapshot.docs);
-      setKegIds(map);
-      // fetch all assessments at once
-      const assesSnapshot = await getDocs(
-        collection(db, "assessment_eksternal"),
-      );
-      const amap: Record<number, AssessmentEksternal | null> = {};
-      assesSnapshot.docs.forEach((doc) => {
-        const a = doc.data() as AssessmentEksternal;
-        const nomor = Number(
-          Object.entries(map).find(([, id]) => id === a.kegiatan_id)?.[0] || 0,
-        );
-        if (nomor) amap[nomor] = a;
-      });
-      setAllAssess(amap);
-      setLoading(false);
-    })();
-  }, []);
+      try {
+        const [kelasSnapshot, kegsSnapshot, assesSnapshot] = await Promise.all([
+          getDocs(
+            query(collection(db, "kelas"), where("guru_id", "==", profile.id)),
+          ),
+          getDocs(collection(db, "kegiatan")),
+          getDocs(collection(db, "assessment_eksternal")),
+        ]);
 
-  useEffect(() => {
-    if (!kegIds[selKeg]) return;
-    (async () => {
-      const snapshot = await getDocs(
-        query(
-          collection(db, "assessment_eksternal"),
-          where("kegiatan_id", "==", kegIds[selKeg]),
-        ),
-      );
-      setAssess(
-        snapshot.empty
-          ? null
-          : ({
-              id: snapshot.docs[0].id,
-              ...snapshot.docs[0].data(),
-            } as AssessmentEksternal),
-      );
-      setJudul(snapshot.empty ? "" : snapshot.docs[0].data().judul_kuis || "");
-      setUrl(snapshot.empty ? "" : snapshot.docs[0].data().url_kuis);
+        if (cancelled) return;
+
+        const kList = kelasSnapshot.docs.map(
+          (d) => ({ id: d.id, ...d.data() }) as Kelas,
+        );
+        kList.sort((a, b) =>
+          (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"),
+        );
+        setKelasList(kList);
+
+        const map = buildKegiatanMap(kegsSnapshot.docs);
+        const list = buildKegiatanList(kegsSnapshot.docs);
+        setKegIds(map);
+        setKegiatanList(list);
+
+        // Index assessment by kelas_id + nomor kegiatan
+        const amap: Record<string, AssessmentEksternal | null> = {};
+        assesSnapshot.docs.forEach((d) => {
+          const a = { id: d.id, ...d.data() } as AssessmentEksternal & {
+            kelas_id?: string;
+          };
+          const nomor = Number(
+            Object.entries(map).find(([, id]) => id === a.kegiatan_id)?.[0] ||
+              0,
+          );
+          if (nomor && a.kelas_id) {
+            amap[`${a.kelas_id}_${nomor}`] = a;
+          }
+        });
+        setAllAssess(amap);
+
+        // Auto-select first class if available
+        if (kList.length > 0 && !selKelas) {
+          setSelKelas(kList[0].id);
+        }
+      } catch (err) {
+        console.error("[TeacherAssessment] load error:", err);
+        toast("Gagal memuat data kelas/kegiatan", "error");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-  }, [selKeg, kegIds]);
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, toast]);
+
+  // Load assessment untuk kelas + kegiatan yang dipilih
+  useEffect(() => {
+    if (!selKelas || !kegIds[selKeg]) {
+      setAssess(null);
+      setJudul("");
+      setUrl("");
+      return;
+    }
+    (async () => {
+      try {
+        const snapshot = await getDocs(
+          query(
+            collection(db, "assessment_eksternal"),
+            where("kegiatan_id", "==", kegIds[selKeg]),
+            where("kelas_id", "==", selKelas),
+          ),
+        );
+        if (snapshot.empty) {
+          setAssess(null);
+          setJudul("");
+          setUrl("");
+        } else {
+          const data = snapshot.docs[0].data();
+          setAssess({
+            id: snapshot.docs[0].id,
+            ...data,
+          } as AssessmentEksternal);
+          setJudul(data.judul_kuis || "");
+          setUrl(data.url_kuis || "");
+        }
+      } catch (err) {
+        console.error("[TeacherAssessment] load assess error:", err);
+        // Fallback: query tanpa kelas_id (data lama) lalu filter client-side
+        try {
+          const snapshot = await getDocs(
+            query(
+              collection(db, "assessment_eksternal"),
+              where("kegiatan_id", "==", kegIds[selKeg]),
+            ),
+          );
+          const match = snapshot.docs.find(
+            (d) => (d.data() as any).kelas_id === selKelas,
+          );
+          if (match) {
+            const data = match.data();
+            setAssess({ id: match.id, ...data } as AssessmentEksternal);
+            setJudul(data.judul_kuis || "");
+            setUrl(data.url_kuis || "");
+          } else {
+            setAssess(null);
+            setJudul("");
+            setUrl("");
+          }
+        } catch {
+          setAssess(null);
+          setJudul("");
+          setUrl("");
+        }
+      }
+    })();
+  }, [selKelas, selKeg, kegIds]);
 
   const save = async () => {
-    if (!profile || !kegIds[selKeg]) return;
+    if (!profile || !kegIds[selKeg] || !selKelas) {
+      toast("Pilih kelas dan kegiatan terlebih dahulu", "warning");
+      return;
+    }
     if (!url.trim()) {
       toast("URL kuis wajib diisi", "warning");
       return;
@@ -1808,31 +2020,72 @@ export function TeacherAssessment() {
       toast("URL tidak valid", "error");
       return;
     }
+
     const payload = {
       kegiatan_id: kegIds[selKeg],
+      kelas_id: selKelas,
       judul_kuis: judul || null,
       url_kuis: url,
       dibuat_oleh_guru_id: profile.id,
       diperbarui_pada: new Date().toISOString(),
     };
-    const existingSnapshot = await getDocs(
-      query(
-        collection(db, "assessment_eksternal"),
-        where("kegiatan_id", "==", kegIds[selKeg]),
-      ),
-    );
-    if (existingSnapshot.empty) {
-      await addDoc(collection(db, "assessment_eksternal"), payload);
-    } else {
-      await updateDoc(
-        doc(db, "assessment_eksternal", existingSnapshot.docs[0].id),
-        payload,
+
+    try {
+      // Cari existing berdasarkan kegiatan_id + kelas_id
+      let existingId: string | null = null;
+      try {
+        const existingSnapshot = await getDocs(
+          query(
+            collection(db, "assessment_eksternal"),
+            where("kegiatan_id", "==", kegIds[selKeg]),
+            where("kelas_id", "==", selKelas),
+          ),
+        );
+        if (!existingSnapshot.empty) {
+          existingId = existingSnapshot.docs[0].id;
+        }
+      } catch {
+        // Composite index mungkin belum ada — fallback client-side
+        const allSnap = await getDocs(
+          query(
+            collection(db, "assessment_eksternal"),
+            where("kegiatan_id", "==", kegIds[selKeg]),
+          ),
+        );
+        const match = allSnap.docs.find(
+          (d) => (d.data() as any).kelas_id === selKelas,
+        );
+        if (match) existingId = match.id;
+      }
+
+      if (existingId) {
+        await updateDoc(doc(db, "assessment_eksternal", existingId), payload);
+      } else {
+        await addDoc(collection(db, "assessment_eksternal"), payload);
+      }
+
+      // Update local allAssess
+      const key = `${selKelas}_${selKeg}`;
+      setAllAssess((prev) => ({
+        ...prev,
+        [key]: { ...payload, id: existingId || "new" } as AssessmentEksternal,
+      }));
+      setAssess({
+        ...(payload as any),
+        id: existingId || "new",
+      });
+
+      toast(
+        "Tautan kuis tersimpan — siswa di kelas ini akan melihat embed & QR",
+        "success",
       );
+    } catch (err) {
+      console.error("[TeacherAssessment] save error:", err);
+      toast("Gagal menyimpan tautan", "error");
     }
-    toast("Tautan kuis tersimpan — siswa akan melihat embed & QR", "success");
   };
 
-  const keg = KEGIATAN_CONTENT.find((k) => k.nomor === selKeg)!;
+  const selectedKegMeta = KEGIATAN_CONTENT.find((k) => k.nomor === selKeg);
 
   if (loading)
     return (
@@ -1849,93 +2102,156 @@ export function TeacherAssessment() {
             Kelola Tautan E-Assessment
           </h1>
           <p className="text-sm text-slate-500">
-            Tempel tautan kuis dari platform eksternal (Google
-            Forms/Quizizz/dll.). Sistem otomatis menampilkan embed & QR untuk
-            siswa.
+            Pilih kelas terlebih dahulu, lalu tempel tautan kuis dari platform
+            eksternal (Google Forms/Quizizz/dll.). Sistem otomatis menampilkan
+            embed & QR hanya untuk siswa di kelas yang dipilih.
           </p>
         </div>
 
         <div className="card">
-          <label className="label-base">Pilih Kegiatan</label>
-          <div className="mb-4 grid gap-2 sm:grid-cols-4">
-            {KEGIATAN_CONTENT.map((k) => (
-              <button
-                key={k.nomor}
-                onClick={() => setSelKeg(k.nomor)}
-                className={`relative rounded-xl border-2 p-3 text-left transition ${selKeg === k.nomor ? "" : "border-slate-200 hover:bg-slate-50"}`}
-                style={
-                  selKeg === k.nomor
-                    ? { borderColor: k.warna, backgroundColor: k.warnaLight }
-                    : undefined
-                }>
-                {allAssess[k.nomor] && (
-                  <span
-                    className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-success/15 text-success"
-                    title="Tautan sudah diisi">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                  </span>
-                )}
-                <p className="text-xs font-semibold text-slate-400">
-                  Kegiatan {k.nomor}
-                </p>
-                <p className="text-sm font-bold text-slate-800 leading-tight">
-                  {k.subjudul}
-                </p>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  {allAssess[k.nomor] ? "Kuis siap" : "Belum ada kuis"}
-                </p>
-              </button>
-            ))}
+          {/* Pilih Kelas */}
+          <div className="mb-5">
+            <label className="label-base">Pilih Kelas</label>
+            <select
+              className="input-base min-w-[220px]"
+              value={selKelas}
+              onChange={(e) => {
+                setSelKelas(e.target.value);
+                // Reset form when switching class
+                setJudul("");
+                setUrl("");
+                setAssess(null);
+              }}>
+              <option value="">
+                {kelasList.length === 0
+                  ? "— Belum ada kelas —"
+                  : "— Pilih Kelas —"}
+              </option>
+              {kelasList.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nama_kelas}
+                </option>
+              ))}
+            </select>
+            {kelasList.length === 0 && (
+              <p className="mt-1 text-xs text-amber-600">
+                Belum ada kelas. Buat kelas di menu{" "}
+                <strong>Kelas & Siswa</strong> terlebih dahulu.
+              </p>
+            )}
           </div>
 
-          <div className="space-y-3">
-            <div>
-              <label className="label-base">Judul Kuis</label>
-              <input
-                className="input-base"
-                value={judul}
-                onChange={(e) => setJudul(e.target.value)}
-                placeholder="Contoh: Kuis Formatif Kegiatan 1"
-              />
-            </div>
-            <div>
-              <label className="label-base">URL Kuis Eksternal</label>
-              <input
-                className="input-base"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://forms.gle/... atau https://quizizz.com/..."
-              />
-              <p className="mt-1.5 text-xs text-slate-400">
-                Tempel link kuis dari Google Forms, Quizizz, Wordwall, atau
-                platform sejenisnya.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={save} className="btn-primary">
-                <Save className="h-4 w-4" /> Simpan Tautan
-              </button>
-              {assess && (
-                <span className="chip self-center">
-                  Tersimpan •{" "}
-                  {new Date(assess.diperbarui_pada || "").toLocaleDateString(
-                    "id-ID",
+          {/* Pilih Kegiatan — hanya tampil setelah kelas dipilih */}
+          {selKelas ? (
+            <>
+              <label className="label-base">Pilih Kegiatan</label>
+              <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {kegiatanList.length === 0 ? (
+                  <p className="text-sm text-slate-400 col-span-full">
+                    Belum ada kegiatan di database.
+                  </p>
+                ) : (
+                  kegiatanList.map((k) => {
+                    const meta = KEGIATAN_CONTENT.find(
+                      (c) => c.nomor === k.nomor,
+                    );
+                    const hasAssess = !!allAssess[`${selKelas}_${k.nomor}`];
+                    const isSelected = selKeg === k.nomor;
+                    return (
+                      <button
+                        key={k.nomor}
+                        onClick={() => setSelKeg(k.nomor)}
+                        className={`relative rounded-xl border-2 p-3 text-left transition ${
+                          isSelected ? "" : "border-slate-200 hover:bg-slate-50"
+                        }`}
+                        style={
+                          isSelected && meta
+                            ? {
+                                borderColor: meta.warna,
+                                backgroundColor: meta.warnaLight,
+                              }
+                            : undefined
+                        }>
+                        {hasAssess && (
+                          <span
+                            className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-success/15 text-success"
+                            title="Tautan sudah diisi">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                        <p className="text-xs font-semibold text-slate-400">
+                          Kegiatan {k.nomor}
+                        </p>
+                        <p className="text-sm font-bold text-slate-800 leading-tight">
+                          {k.subjudul || k.judul}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {hasAssess ? "Kuis siap" : "Belum ada kuis"}
+                        </p>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="label-base">Judul Kuis</label>
+                  <input
+                    className="input-base"
+                    value={judul}
+                    onChange={(e) => setJudul(e.target.value)}
+                    placeholder="Contoh: Pretest / Kuis Formatif Kegiatan 1"
+                  />
+                </div>
+                <div>
+                  <label className="label-base">URL Kuis Eksternal</label>
+                  <input
+                    className="input-base"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://forms.gle/... atau https://quizizz.com/..."
+                  />
+                  <p className="mt-1.5 text-xs text-slate-400">
+                    Tempel link kuis dari Google Forms, Quizizz, Wordwall, atau
+                    platform sejenisnya.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={save} className="btn-primary">
+                    <Save className="h-4 w-4" /> Simpan Tautan
+                  </button>
+                  {assess && (
+                    <span className="chip self-center">
+                      Tersimpan •{" "}
+                      {new Date(
+                        assess.diperbarui_pada || "",
+                      ).toLocaleDateString("id-ID")}
+                    </span>
                   )}
-                </span>
-              )}
-            </div>
-          </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              icon={<Users className="h-7 w-7" />}
+              title="Pilih kelas terlebih dahulu"
+              description="Pilih kelas di atas agar tautan kuis hanya muncul untuk siswa di kelas tersebut."
+            />
+          )}
         </div>
 
         {/* Preview */}
-        {url && (
+        {selKelas && url && (
           <div className="card">
             <h3 className="mb-3 text-lg font-bold text-slate-800">
               Preview (apa yang siswa lihat)
             </h3>
             <div
               className="overflow-hidden rounded-xl border-2"
-              style={{ borderColor: keg.warna }}>
+              style={{
+                borderColor: selectedKegMeta?.warna || "#22c55e",
+              }}>
               <iframe
                 src={url}
                 title="Preview"
@@ -1945,8 +2261,8 @@ export function TeacherAssessment() {
               />
             </div>
             <p className="mt-2 text-xs text-slate-400">
-              Siswa juga dapat memindai kode QR dari tab "Scan QR" di halaman
-              kegiatan.
+              Siswa di kelas yang dipilih juga dapat memindai kode QR dari tab
+              &quot;Scan QR&quot; di halaman kegiatan.
             </p>
           </div>
         )}
@@ -1954,7 +2270,6 @@ export function TeacherAssessment() {
     </DashboardLayout>
   );
 }
-
 // ============ Ekspor Massal ============
 // ============ Ekspor Massal ============
 export function TeacherEkspor() {
@@ -1973,23 +2288,25 @@ export function TeacherEkspor() {
   // Load daftar kelas
   useEffect(() => {
     if (!profile) return;
-    
+
     let cancelled = false;
     setLoadingKelas(true);
-    
+
     (async () => {
       try {
         // Hapus orderBy untuk menghindari composite index
         const kelasSnapshot = await getDocs(
-          query(collection(db, "kelas"), where("guru_id", "==", profile.id))
+          query(collection(db, "kelas"), where("guru_id", "==", profile.id)),
         );
-        
+
         if (!cancelled) {
           const list = kelasSnapshot.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Kelas
+            (doc) => ({ id: doc.id, ...doc.data() }) as Kelas,
           );
           // Sort di client-side
-          list.sort((a, b) => (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"));
+          list.sort((a, b) =>
+            (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"),
+          );
           setKelas(list);
         }
       } catch (err) {
@@ -1999,7 +2316,7 @@ export function TeacherEkspor() {
         if (!cancelled) setLoadingKelas(false);
       }
     })();
-    
+
     return () => {
       cancelled = true;
     };
@@ -2028,22 +2345,19 @@ export function TeacherEkspor() {
       setRows([]);
       return;
     }
-    
+
     setLoading(true);
     try {
       // Query tanpa orderBy untuk menghindari composite index
       const siswaSnapshot = await getDocs(
-        query(
-          collection(db, "profiles"),
-          where("kelas_id", "==", selKelas)
-        )
+        query(collection(db, "profiles"), where("kelas_id", "==", selKelas)),
       );
-      
+
       // Filter role di client-side
       const siswa = siswaSnapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }) as Profile)
         .filter((p) => p.role === "siswa");
-      
+
       // Sort di client-side
       siswa.sort((a, b) => (a.nama || "").localeCompare(b.nama || "", "id"));
 
@@ -2055,7 +2369,7 @@ export function TeacherEkspor() {
 
       const sIds = siswa.map((s) => s.id);
       const kegId = kegIds[Number(selKeg)];
-      
+
       const jByS: Record<string, Jawaban> = {};
       const kByS: Record<string, StatusKuisSiswa> = {};
 
@@ -2063,7 +2377,7 @@ export function TeacherEkspor() {
         // Firestore 'in' max 30 items — chunk if needed
         const chunk = <T,>(arr: T[], size: number) =>
           Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-            arr.slice(i * size, i * size + size)
+            arr.slice(i * size, i * size + size),
           );
 
         for (const ids of chunk(sIds, 30)) {
@@ -2072,23 +2386,23 @@ export function TeacherEkspor() {
               query(
                 collection(db, "jawaban"),
                 where("kegiatan_id", "==", kegId),
-                where("siswa_id", "in", ids)
-              )
+                where("siswa_id", "in", ids),
+              ),
             ),
             getDocs(
               query(
                 collection(db, "status_kuis_siswa"),
                 where("kegiatan_id", "==", kegId),
-                where("siswa_id", "in", ids)
-              )
+                where("siswa_id", "in", ids),
+              ),
             ),
           ]);
-          
+
           jSnapshot.docs.forEach((d) => {
             const data = { id: d.id, ...d.data() } as Jawaban;
             jByS[data.siswa_id] = data;
           });
-          
+
           kSnapshot.docs.forEach((d) => {
             const data = { id: d.id, ...d.data() } as StatusKuisSiswa;
             kByS[data.siswa_id] = data;
@@ -2101,7 +2415,7 @@ export function TeacherEkspor() {
           siswa: s,
           jawaban: jByS[s.id],
           kuis: kByS[s.id],
-        }))
+        })),
       );
     } catch (err) {
       console.error("[TeacherEkspor] loadRekap error:", err);
@@ -2119,29 +2433,29 @@ export function TeacherEkspor() {
   const exportAll = () => {
     const k = kelas.find((x) => x.id === selKelas);
     const withJawaban = rows.filter((r) => r.jawaban);
-    
+
     if (withJawaban.length === 0) {
       toast("Tidak ada jawaban untuk diekspor", "warning");
       return;
     }
-    
+
     withJawaban.forEach((r) => {
       exportJawabanPDF(
         r.jawaban!,
         r.siswa,
         k?.nama_kelas || "",
         Number(selKeg),
-        r.kuis
+        r.kuis,
       );
     });
-    
+
     toast(`${withJawaban.length} PDF diunduh (per siswa)`, "success");
   };
 
   const exportRekap = () => {
     const k = kelas.find((x) => x.id === selKelas);
     const keg = KEGIATAN_CONTENT.find((c) => c.nomor === Number(selKeg));
-    
+
     const data = rows.map((r) => ({
       nama: r.siswa.nama,
       kelas: k?.nama_kelas || "",
@@ -2153,7 +2467,7 @@ export function TeacherEkspor() {
         ? new Date(r.jawaban.waktu_dikumpulkan).toLocaleString("id-ID")
         : "-",
     }));
-    
+
     exportRekapPDF(data, k?.nama_kelas || "Kelas");
   };
 
@@ -2171,10 +2485,10 @@ export function TeacherEkspor() {
               onChange={(e) => setSelKelas(e.target.value)}
               disabled={loadingKelas}>
               <option value="">
-                {loadingKelas 
-                  ? "Memuat kelas..." 
-                  : kelas.length === 0 
-                    ? "— Belum ada kelas —" 
+                {loadingKelas
+                  ? "Memuat kelas..."
+                  : kelas.length === 0
+                    ? "— Belum ada kelas —"
                     : "— Pilih Kelas —"}
               </option>
               {kelas.map((k) => (
@@ -2185,11 +2499,12 @@ export function TeacherEkspor() {
             </select>
             {!loadingKelas && kelas.length === 0 && (
               <p className="mt-1 text-xs text-amber-600">
-                ⚠️ Belum ada kelas. Buat kelas di menu <strong>Kelas & Siswa</strong>.
+                ⚠️ Belum ada kelas. Buat kelas di menu{" "}
+                <strong>Kelas & Siswa</strong>.
               </p>
             )}
           </div>
-          
+
           <div>
             <label className="label-base">Kegiatan</label>
             <select
@@ -2203,7 +2518,7 @@ export function TeacherEkspor() {
               ))}
             </select>
           </div>
-          
+
           <div className="ml-auto flex gap-2">
             <button
               onClick={exportAll}
@@ -2242,13 +2557,15 @@ export function TeacherEkspor() {
           <div className="card">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm text-slate-600">
-                {rows.length} siswa • {rows.filter((r) => r.jawaban).length} memiliki jawaban
+                {rows.length} siswa • {rows.filter((r) => r.jawaban).length}{" "}
+                memiliki jawaban
               </p>
               <Badge color="teal">
-                <FileText className="h-3.5 w-3.5" /> {rows.filter((r) => r.jawaban).length} siap ekspor
+                <FileText className="h-3.5 w-3.5" />{" "}
+                {rows.filter((r) => r.jawaban).length} siap ekspor
               </Badge>
             </div>
-            
+
             <ul className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
               {rows.map((r) => (
                 <li
@@ -2272,9 +2589,10 @@ export function TeacherEkspor() {
                           exportJawabanPDF(
                             r.jawaban!,
                             r.siswa,
-                            kelas.find((x) => x.id === selKelas)?.nama_kelas || "",
+                            kelas.find((x) => x.id === selKelas)?.nama_kelas ||
+                              "",
                             Number(selKeg),
-                            r.kuis
+                            r.kuis,
                           )
                         }
                         className="btn-ghost text-sm">
@@ -2300,7 +2618,7 @@ export function TeacherEkspor() {
 export function TeacherProfil() {
   const { profile } = useAuth();
   const { toast } = useToast();
-  
+
   // Password change state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -2314,33 +2632,36 @@ export function TeacherProfil() {
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile?.email) return;
-    
+
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast("Semua field password harus diisi", "warning");
       return;
     }
-    
+
     if (newPassword !== confirmPassword) {
       toast("Password baru dan konfirmasi password tidak cocok", "error");
       return;
     }
-    
+
     if (newPassword.length < 6) {
       toast("Password baru minimal 6 karakter", "warning");
       return;
     }
-    
+
     setChangingPassword(true);
     try {
       // Reauthenticate with current password
-      const credential = EmailAuthProvider.credential(profile.email, currentPassword);
+      const credential = EmailAuthProvider.credential(
+        profile.email,
+        currentPassword,
+      );
       await reauthenticateWithCredential(auth.currentUser!, credential);
-      
+
       // Update password
       await updatePassword(auth.currentUser!, newPassword);
-      
+
       toast("Password berhasil diubah", "success");
-      
+
       // Reset form
       setCurrentPassword("");
       setNewPassword("");
@@ -2349,7 +2670,10 @@ export function TeacherProfil() {
     } catch (err) {
       console.error(err);
       if (err instanceof Error) {
-        if (err.message.includes("wrong-password") || err.message.includes("invalid-credential")) {
+        if (
+          err.message.includes("wrong-password") ||
+          err.message.includes("invalid-credential")
+        ) {
           toast("Password saat ini salah", "error");
         } else {
           toast(err.message, "error");
@@ -2404,13 +2728,12 @@ export function TeacherProfil() {
               <button
                 type="button"
                 onClick={() => setShowPasswordForm(true)}
-                className="text-sm text-violet-600 hover:text-violet-800 font-medium"
-              >
+                className="text-sm text-violet-600 hover:text-violet-800 font-medium">
                 Ubah Password
               </button>
             )}
           </div>
-          
+
           {showPasswordForm ? (
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
@@ -2427,13 +2750,16 @@ export function TeacherProfil() {
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
-              
+
               <div>
                 <label className="label-base">Password Baru</label>
                 <div className="relative">
@@ -2449,13 +2775,16 @@ export function TeacherProfil() {
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
-              
+
               <div>
                 <label className="label-base">Konfirmasi Password Baru</label>
                 <div className="relative">
@@ -2471,13 +2800,16 @@ export function TeacherProfil() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -2487,15 +2819,13 @@ export function TeacherProfil() {
                     setNewPassword("");
                     setConfirmPassword("");
                   }}
-                  className="btn-outline flex-1"
-                >
+                  className="btn-outline flex-1">
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={changingPassword}
-                  className="btn-primary flex-1"
-                >
+                  className="btn-primary flex-1">
                   {changingPassword ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
