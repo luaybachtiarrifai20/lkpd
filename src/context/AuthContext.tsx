@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { onAuthStateChanged, signOut as firebaseSignOut, type User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db, type Profile } from '@/lib/firebase';
@@ -8,6 +8,8 @@ type AuthContextValue = {
   profile: Profile | null;
   loading: boolean;
   refreshAuth: () => Promise<Profile | null>;
+  beginRegistration: () => void;
+  endRegistration: () => void;
   signOut: () => Promise<void>;
 };
 
@@ -17,38 +19,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  // While a registration is in flight the profile document does not exist yet,
+  // so the missing-profile sign-out below must not fire.
+  const registeringRef = useRef(false);
 
   const refreshAuth = useCallback(async (): Promise<Profile | null> => {
-    let loadedProfile: Profile | null = null;
-    if (user?.uid) {
-      const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
-      if (profileDoc.exists()) {
-        loadedProfile = { id: profileDoc.id, ...profileDoc.data() } as Profile;
-      } else {
+    const currentUser = auth.currentUser;
+    setUser(currentUser);
+
+    if (!currentUser) {
+      setProfile(null);
+      setLoading(false);
+      return null;
+    }
+
+    const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
+    if (!profileDoc.exists()) {
+      if (!registeringRef.current) {
         // Profile not found in database - user might have been deleted
         // Sign out the user to prevent stuck loading state
         await firebaseSignOut(auth);
         setUser(null);
-        setProfile(null);
       }
+      setProfile(null);
+      setLoading(false);
+      return null;
     }
+
+    const loadedProfile = { id: profileDoc.id, ...profileDoc.data() } as Profile;
     setProfile(loadedProfile);
     setLoading(false);
     return loadedProfile;
-  }, [user]);
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await refreshAuth();
-      } else {
-        setProfile(null);
-        setLoading(false);
-      }
+    const unsubscribe = onAuthStateChanged(auth, () => {
+      void refreshAuth();
     });
     return () => unsubscribe();
   }, [refreshAuth]);
+
+  const beginRegistration = useCallback(() => {
+    registeringRef.current = true;
+  }, []);
+
+  const endRegistration = useCallback(() => {
+    registeringRef.current = false;
+  }, []);
 
   const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
@@ -57,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, refreshAuth, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, refreshAuth, beginRegistration, endRegistration, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FlaskConical, ArrowLeft, Loader2, User, GraduationCap, LogIn } from 'lucide-react';
 import { auth, db } from '@/lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, deleteUser } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
@@ -11,7 +11,7 @@ import { MoleculeField } from '@/components/ui';
 export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile, user, loading: authLoading, refreshAuth } = useAuth();
+  const { profile, user, loading: authLoading, refreshAuth, beginRegistration, endRegistration } = useAuth();
   const isLogin = mode === 'login';
 
   const [role, setRole] = useState<'siswa' | 'guru'>('siswa');
@@ -80,39 +80,46 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
         // ===== DAFTAR =====
         if (password.length < 6) throw new Error('Kata sandi minimal 6 karakter');
 
+        beginRegistration();
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
         if (!uid) throw new Error('Gagal mendaftar akun');
 
         let kelasId: string | null = null;
         let status: 'pending' | 'active' = 'pending';
-        
-        // Siswa + kode kelas valid → auto-active
-        if (role === 'siswa' && kodeKelas.trim()) {
-          const kelasSnapshot = await getDocs(
-            query(collection(db, 'kelas'), where('kode_undangan', '==', kodeKelas.trim()))
-          );
-          if (!kelasSnapshot.empty) {
-            kelasId = kelasSnapshot.docs[0].id;
-            status = 'active'; // Auto-activate if valid kode_undangan
-          } else {
-            throw new Error('Kode kelas tidak valid');
+
+        try {
+          // Siswa + kode kelas valid → auto-active
+          if (role === 'siswa' && kodeKelas.trim()) {
+            const kelasSnapshot = await getDocs(
+              query(collection(db, 'kelas'), where('kode_undangan', '==', kodeKelas.trim()))
+            );
+            if (!kelasSnapshot.empty) {
+              kelasId = kelasSnapshot.docs[0].id;
+              status = 'active'; // Auto-activate if valid kode_undangan
+            } else {
+              throw new Error('Kode kelas tidak valid');
+            }
           }
+
+          const profileData = {
+            id: uid,
+            nama,
+            role,
+            email,
+            username: username || null,
+            nisn: role === 'siswa' ? nisn || null : null,
+            kelas_id: kelasId,
+            status,
+            dibuat_pada: new Date().toISOString(),
+          };
+
+          await setDoc(doc(db, 'profiles', uid), profileData);
+        } catch (err) {
+          // Roll back the auth account so the email stays available for a retry.
+          if (auth.currentUser?.uid === uid) await deleteUser(auth.currentUser).catch(() => undefined);
+          throw err;
         }
-
-        const profileData = {
-          id: uid,
-          nama,
-          role,
-          email,
-          username: username || null,
-          nisn: role === 'siswa' ? nisn || null : null,
-          kelas_id: kelasId,
-          status,
-          dibuat_pada: new Date().toISOString(),
-        };
-
-        await setDoc(doc(db, 'profiles', uid), profileData);
 
         if (status === 'pending') {
           toast(
@@ -125,7 +132,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
           navigate('/login', { replace: true });
         } else {
           // Siswa dengan kode kelas valid → langsung aktif
-          console.log('[AuthPage] signup success (auto-active), navigating to:', role);
+          await refreshAuth();
           toast(`Selamat datang, ${nama}! Akun langsung aktif karena kode kelas valid.`, 'success');
           const dest = role === 'guru' ? '/guru' : '/siswa';
           navigate(dest, { replace: true });
@@ -136,6 +143,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'daftar' }) {
       console.error('[AuthPage] error:', msg);
       toast(msg, 'error');
     } finally {
+      endRegistration();
       setLoading(false);
     }
   };
