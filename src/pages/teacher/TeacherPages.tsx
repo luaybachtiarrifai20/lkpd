@@ -24,9 +24,9 @@ import {
   EyeOff,
   Atom,
   BookOpen,
-  Trash2,
-  ExternalLink,
-  Youtube,
+  // Trash2,
+  // ExternalLink,
+  // Youtube,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
@@ -55,7 +55,7 @@ import {
   getDoc,
   addDoc,
   updateDoc,
-  deleteDoc,
+  // deleteDoc,
 } from "firebase/firestore";
 // import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";

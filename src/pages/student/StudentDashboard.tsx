@@ -20,8 +20,8 @@ import {
   Lock,
   Eye,
   EyeOff,
-  ExternalLink,
-  Youtube,
+  // ExternalLink,
+  // Youtube,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
