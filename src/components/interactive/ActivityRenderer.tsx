@@ -654,24 +654,78 @@ export function ActivityRenderer({
               onRemoveBlock={removeBlock}
             />
           ) : steps.length > 0 ? (
-            <div className="card animate-fade-in">
-              <div
-                className="banner mb-4"
-                style={{ backgroundColor: kegiatan.warna }}>
-                <BarChart3 className="h-5 w-5" /> E-Assessment — Uji Pemahamanmu
+            <div className="space-y-4 animate-fade-in">
+              {/* Card Pretest & Posttest */}
+              <div className="card">
+                <div
+                  className="banner mb-4"
+                  style={{ backgroundColor: kegiatan.warna }}>
+                  <BarChart3 className="h-5 w-5" /> E-Assessment — Uji
+                  Pemahamanmu
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Link
+                    to={`/siswa/test/${kegiatan.nomor}/pretest`}
+                    className="btn-outline text-sm">
+                    <FileQuestion className="h-4 w-4" /> Kerjakan Pretest
+                  </Link>
+                  <Link
+                    to={`/siswa/test/${kegiatan.nomor}/posttest`}
+                    className="btn-outline text-sm">
+                    <FileQuestion className="h-4 w-4" /> Kerjakan Posttest
+                  </Link>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <Link
-                  to={`/siswa/test/${kegiatan.nomor}/pretest`}
-                  className="btn-outline text-sm">
-                  <FileQuestion className="h-4 w-4" /> Kerjakan Pretest
-                </Link>
-                <Link
-                  to={`/siswa/test/${kegiatan.nomor}/posttest`}
-                  className="btn-outline text-sm">
-                  <FileQuestion className="h-4 w-4" /> Kerjakan Posttest
-                </Link>
-              </div>
+
+              {/* Card Kuis Eksternal — HANYA di tab E-Assessment */}
+              {assessmentUrl && (
+                <div className="card border-2 border-brand-teal/30 bg-brand-teal-light/20">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">
+                        Kuis Eksternal
+                      </p>
+                      <h3 className="text-sm font-bold text-slate-800 mt-0.5">
+                        {assessmentJudul || "Kuis Formatif"}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Kerjakan kuis dari platform eksternal yang disediakan
+                        guru.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 items-end">
+                      <a
+                        href={assessmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary text-sm">
+                        Buka Kuis
+                      </a>
+                      <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={kuisDone}
+                          onChange={(e) => onTandaiKuis?.(e.target.checked)}
+                          className="rounded border-slate-300"
+                        />
+                        Sudah mengerjakan
+                      </label>
+                    </div>
+                  </div>
+                  <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-white/80 px-3 py-2.5">
+                    <p className="text-[11px] font-medium text-slate-400 mb-0.5">
+                      Tautan
+                    </p>
+                    <a
+                      href={assessmentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate text-xs text-brand-green hover:underline break-all">
+                      {assessmentUrl}
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="card text-center py-12 text-slate-500">
@@ -679,52 +733,7 @@ export function ActivityRenderer({
             </div>
           )}
 
-          {assessmentUrl && (
-            <div className="card border-2 border-brand-teal/30 bg-brand-teal-light/20">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-brand-teal">
-                    Uji Pemahaman
-                  </p>
-                  <h3 className="text-sm font-bold text-slate-800 mt-0.5">
-                    {assessmentJudul || "Kuis Formatif"}
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Kerjakan kuis dari platform eksternal yang disediakan guru.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <a
-                    href={assessmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary text-sm">
-                    Buka Kuis
-                  </a>
-                  <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={kuisDone}
-                      onChange={(e) => onTandaiKuis?.(e.target.checked)}
-                      className="rounded border-slate-300"
-                    />
-                    Sudah mengerjakan
-                  </label>
-                </div>
-              </div>
-
-              {/* Opsional: embed langsung */}
-              <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                <iframe
-                  src={assessmentUrl}
-                  title={assessmentJudul || "Kuis"}
-                  className="w-full"
-                  style={{ height: "480px", border: "none" }}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                />
-              </div>
-            </div>
-          )}
+          
 
           {/* Step nav */}
           {steps.length > 0 && (
