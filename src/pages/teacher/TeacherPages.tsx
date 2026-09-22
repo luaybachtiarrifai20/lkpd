@@ -63,6 +63,7 @@ import { Badge, EmptyState, MoleculeField } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
 import { exportJawabanPDF, exportRekapPDF } from "@/lib/pdf";
 import { restoreIsiJawaban } from "@/lib/answers";
+import { MateriKonten } from "@/components/components/MateriKonten";
 
 const navItems = [
   {
@@ -2282,360 +2283,262 @@ export function TeacherAssessment() {
 }
 
 // ============ Materi Tambahan ============
-type MateriTambahan = {
-  id: string;
-  kelas_id: string;
-  kegiatan_id: string;
-  judul: string;
-  url: string;
-  deskripsi?: string | null;
-  dibuat_oleh_guru_id: string;
-  dibuat_pada: string;
-  diperbarui_pada?: string | null;
-};
+// ============ Materi (Guru — hanya lihat) ============
+// type MateriItem = {
+//   id: string;
+//   kegiatan_id: string;
+//   kelas_id?: string | null;
+//   judul: string;
+//   url: string;
+//   deskripsi?: string | null;
+//   dibuat_pada?: string;
+// };
 
+// function isPdfUrl(url: string) {
+//   return /\.pdf(\?|$)/i.test(url || "") || /\/pdf\//i.test(url || "");
+// }
+
+// function isYoutubeUrl(url: string) {
+//   return /youtube\.com|youtu\.be/i.test(url || "");
+// }
+
+// function toYoutubeEmbed(url: string) {
+//   try {
+//     const u = new URL(url);
+//     if (u.hostname.includes("youtu.be")) {
+//       return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+//     }
+//     const id = u.searchParams.get("v");
+//     if (id) return `https://www.youtube.com/embed/${id}`;
+//   } catch {
+//     /* ignore */
+//   }
+//   return url;
+// }
+
+// export function TeacherMateri() {
+//   const { profile } = useAuth();
+//   const [kegiatanList, setKegiatanList] = useState<
+//     { nomor: number; id: string; judul: string; subjudul: string }[]
+//   >([]);
+//   const [selKeg, setSelKeg] = useState<number | "">("");
+//   const [materiList, setMateriList] = useState<MateriItem[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [loadingMateri, setLoadingMateri] = useState(false);
+//   const [preview, setPreview] = useState<MateriItem | null>(null);
+
+//   useEffect(() => {
+//     if (!profile) return;
+//     let cancelled = false;
+//     (async () => {
+//       setLoading(true);
+//       try {
+//         const kegsSnap = await getDocs(collection(db, "kegiatan"));
+//         if (cancelled) return;
+//         const list = kegsSnap.docs
+//           .map((d) => {
+//             const data = d.data();
+//             return {
+//               id: d.id,
+//               nomor: (data.nomor as number) ?? 0,
+//               judul: (data.judul as string) || "",
+//               subjudul: (data.subjudul as string) || "",
+//             };
+//           })
+//           .filter((k) => k.nomor > 0)
+//           .sort((a, b) => a.nomor - b.nomor);
+//         setKegiatanList(list);
+//         if (list.length > 0) setSelKeg(list[0].nomor);
+//       } finally {
+//         if (!cancelled) setLoading(false);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [profile]);
+
+//   useEffect(() => {
+//     if (selKeg === "") {
+//       setMateriList([]);
+//       return;
+//     }
+//     let cancelled = false;
+//     (async () => {
+//       setLoadingMateri(true);
+//       try {
+//         const keg = kegiatanList.find((k) => k.nomor === selKeg);
+//         const kegId = keg?.id || `kegiatan-${selKeg}`;
+
+//         // Materi admin: berdasarkan kegiatan_id saja (tanpa kelas_id)
+//         const snap = await getDocs(
+//           query(
+//             collection(db, "materi_tambahan"),
+//             where("kegiatan_id", "==", kegId),
+//           ),
+//         );
+//         if (cancelled) return;
+
+//         // Ambil yang tidak punya kelas_id (materi global admin)
+//         // + kompatibel jika ada data lama dengan kelas_id
+//         const list = snap.docs
+//           .map((d) => ({ id: d.id, ...d.data() }) as MateriItem)
+//           .filter((m) => !m.kelas_id);
+//         list.sort((a, b) =>
+//           (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
+//         );
+//         setMateriList(list);
+//       } catch (err) {
+//         console.error(err);
+//         if (!cancelled) setMateriList([]);
+//       } finally {
+//         if (!cancelled) setLoadingMateri(false);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [selKeg, kegiatanList]);
+
+//   if (loading) {
+//     return (
+//       <DashboardLayout items={navItems} role="guru">
+//         <div className="card animate-pulse h-96" />
+//       </DashboardLayout>
+//     );
+//   }
+
+//   return (
+//     <DashboardLayout items={navItems} role="guru">
+//       <div className="space-y-6">
+//         <div>
+//           <h1 className="text-2xl font-bold text-slate-800">Materi</h1>
+//           <p className="text-sm text-slate-500">
+//             Materi dari Super Admin per kegiatan. Hanya dapat dilihat (tidak
+//             dapat diubah).
+//           </p>
+//         </div>
+
+//         <div className="card">
+//           <label className="label-base">Pilih Kegiatan</label>
+//           <select
+//             className="input-base min-w-[240px]"
+//             value={selKeg}
+//             onChange={(e) => {
+//               setSelKeg(Number(e.target.value));
+//               setPreview(null);
+//             }}>
+//             {kegiatanList.map((k) => (
+//               <option key={k.nomor} value={k.nomor}>
+//                 Kegiatan {k.nomor} — {k.subjudul || k.judul}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         {loadingMateri ? (
+//           <div className="card animate-pulse h-40" />
+//         ) : materiList.length === 0 ? (
+//           <EmptyState
+//             icon={<BookOpen className="h-7 w-7" />}
+//             title="Belum ada materi"
+//             description="Super Admin belum menambahkan materi untuk kegiatan ini."
+//           />
+//         ) : (
+//           <div className="grid gap-3 sm:grid-cols-2">
+//             {materiList.map((m) => (
+//               <button
+//                 key={m.id}
+//                 type="button"
+//                 onClick={() => setPreview(m)}
+//                 className="card text-left group hover:shadow-float transition border-l-4 border-brand-teal">
+//                 <p className="text-sm font-bold text-slate-800">{m.judul}</p>
+//                 {m.deskripsi && (
+//                   <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
+//                     {m.deskripsi}
+//                   </p>
+//                 )}
+//                 <p className="mt-2 text-[11px] text-brand-green font-medium">
+//                   {isPdfUrl(m.url)
+//                     ? "Lihat PDF"
+//                     : isYoutubeUrl(m.url)
+//                       ? "Tonton video"
+//                       : "Buka materi"}
+//                 </p>
+//               </button>
+//             ))}
+//           </div>
+//         )}
+
+//         {/* Viewer */}
+//         {preview && (
+//           <div className="card space-y-3">
+//             <div className="flex items-start justify-between gap-3">
+//               <div>
+//                 <h2 className="text-lg font-bold text-slate-800">
+//                   {preview.judul}
+//                 </h2>
+//                 {preview.deskripsi && (
+//                   <p className="text-sm text-slate-500 mt-1">
+//                     {preview.deskripsi}
+//                   </p>
+//                 )}
+//               </div>
+//               <button
+//                 type="button"
+//                 className="btn-ghost text-sm"
+//                 onClick={() => setPreview(null)}>
+//                 Tutup
+//               </button>
+//             </div>
+
+//             {isPdfUrl(preview.url) ? (
+//               <iframe
+//                 src={preview.url}
+//                 title={preview.judul}
+//                 className="w-full rounded-xl border border-slate-200"
+//                 style={{ height: "70vh", border: "none" }}
+//               />
+//             ) : isYoutubeUrl(preview.url) ? (
+//               <iframe
+//                 src={toYoutubeEmbed(preview.url)}
+//                 title={preview.judul}
+//                 className="w-full rounded-xl border border-slate-200 aspect-video"
+//                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+//                 allowFullScreen
+//               />
+//             ) : (
+//               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
+//                 <p className="text-sm text-slate-600 mb-2">
+//                   Tipe tautan tidak dapat di-preview di sini.
+//                 </p>
+//                 <a
+//                   href={preview.url}
+//                   target="_blank"
+//                   rel="noopener noreferrer"
+//                   className="btn-primary text-sm">
+//                   Buka di tab baru
+//                 </a>
+//               </div>
+//             )}
+//           </div>
+//         )}
+//       </div>
+//     </DashboardLayout>
+//   );
+// }
 export function TeacherMateri() {
-  const { profile } = useAuth();
-  const { toast } = useToast();
-  const [kelasList, setKelasList] = useState<Kelas[]>([]);
-  const [selKelas, setSelKelas] = useState("");
-  const [selKeg, setSelKeg] = useState<number>(1);
-  const [kegIds, setKegIds] = useState<Record<number, string>>({});
-  const [kegiatanList, setKegiatanList] = useState<
-    { nomor: number; judul: string; subjudul: string }[]
-  >([]);
-  const [materiList, setMateriList] = useState<MateriTambahan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const [judul, setJudul] = useState("");
-  const [url, setUrl] = useState("");
-  const [deskripsi, setDeskripsi] = useState("");
-
-  useEffect(() => {
-    if (!profile) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [kelasSnap, kegsSnap] = await Promise.all([
-          getDocs(
-            query(collection(db, "kelas"), where("guru_id", "==", profile.id)),
-          ),
-          getDocs(collection(db, "kegiatan")),
-        ]);
-        if (cancelled) return;
-
-        const kList = kelasSnap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as Kelas,
-        );
-        kList.sort((a, b) =>
-          (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"),
-        );
-        setKelasList(kList);
-        if (kList.length > 0) setSelKelas((prev) => prev || kList[0].id);
-
-        setKegIds(buildKegiatanMap(kegsSnap.docs));
-        setKegiatanList(buildKegiatanList(kegsSnap.docs));
-      } catch (err) {
-        console.error("[TeacherMateri] load error:", err);
-        toast("Gagal memuat data", "error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile, toast]);
-
-  const loadMateri = useCallback(async () => {
-    if (!selKelas || !kegIds[selKeg]) {
-      setMateriList([]);
-      return;
-    }
-    try {
-      let snap;
-      try {
-        snap = await getDocs(
-          query(
-            collection(db, "materi_tambahan"),
-            where("kelas_id", "==", selKelas),
-            where("kegiatan_id", "==", kegIds[selKeg]),
-          ),
-        );
-      } catch {
-        const all = await getDocs(
-          query(
-            collection(db, "materi_tambahan"),
-            where("kelas_id", "==", selKelas),
-          ),
-        );
-        const matched = all.docs.filter(
-          (d) => d.data().kegiatan_id === kegIds[selKeg],
-        );
-        snap = { docs: matched };
-      }
-      const list = snap.docs.map(
-        (d) => ({ id: d.id, ...d.data() }) as MateriTambahan,
-      );
-      list.sort((a, b) =>
-        (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
-      );
-      setMateriList(list);
-    } catch (err) {
-      console.error("[TeacherMateri] loadMateri error:", err);
-      setMateriList([]);
-    }
-  }, [selKelas, selKeg, kegIds]);
-
-  useEffect(() => {
-    loadMateri();
-  }, [loadMateri]);
-
-  const isYoutube = (link: string) =>
-    /youtube\.com|youtu\.be/i.test(link || "");
-
-  const handleSave = async () => {
-    if (!profile || !selKelas || !kegIds[selKeg]) {
-      toast("Pilih kelas dan kegiatan terlebih dahulu", "warning");
-      return;
-    }
-    if (!judul.trim()) {
-      toast("Judul materi wajib diisi", "warning");
-      return;
-    }
-    if (!url.trim()) {
-      toast("URL materi wajib diisi", "warning");
-      return;
-    }
-    try {
-      new URL(url.trim());
-    } catch {
-      toast("URL tidak valid", "error");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const now = new Date().toISOString();
-      await addDoc(collection(db, "materi_tambahan"), {
-        kelas_id: selKelas,
-        kegiatan_id: kegIds[selKeg],
-        judul: judul.trim(),
-        url: url.trim(),
-        deskripsi: deskripsi.trim() || null,
-        dibuat_oleh_guru_id: profile.id,
-        dibuat_pada: now,
-        diperbarui_pada: now,
-      });
-      toast("Materi berhasil ditambahkan", "success");
-      setJudul("");
-      setUrl("");
-      setDeskripsi("");
-      await loadMateri();
-    } catch (err) {
-      console.error("[TeacherMateri] save error:", err);
-      toast("Gagal menyimpan materi", "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Hapus materi ini?")) return;
-    try {
-      await deleteDoc(doc(db, "materi_tambahan", id));
-      toast("Materi dihapus", "success");
-      setMateriList((prev) => prev.filter((m) => m.id !== id));
-    } catch (err) {
-      console.error("[TeacherMateri] delete error:", err);
-      toast("Gagal menghapus materi", "error");
-    }
-  };
-
-  if (loading) {
-    return (
-      <DashboardLayout items={navItems} role="guru">
-        <div className="card animate-pulse h-96" />
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout items={navItems} role="guru">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Materi Tambahan</h1>
-          <p className="text-sm text-slate-500">
-            Tambahkan tautan materi (YouTube, Google Drive, artikel, dll.) per
-            kelas dan kegiatan. Siswa di kelas tersebut akan melihat materi ini.
-          </p>
-        </div>
-
-        <div className="card space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <div>
-              <label className="label-base">Pilih Kelas</label>
-              <select
-                className="input-base min-w-[200px]"
-                value={selKelas}
-                onChange={(e) => setSelKelas(e.target.value)}>
-                <option value="">
-                  {kelasList.length === 0
-                    ? "— Belum ada kelas —"
-                    : "— Pilih Kelas —"}
-                </option>
-                {kelasList.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.nama_kelas}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label-base">Pilih Kegiatan</label>
-              <select
-                className="input-base min-w-[220px]"
-                value={selKeg}
-                onChange={(e) => setSelKeg(Number(e.target.value))}
-                disabled={!selKelas}>
-                {kegiatanList.length === 0 ? (
-                  <option value="">— Belum ada kegiatan —</option>
-                ) : (
-                  kegiatanList.map((k) => (
-                    <option key={k.nomor} value={k.nomor}>
-                      Kegiatan {k.nomor} — {k.subjudul || k.judul}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-          </div>
-
-          {selKelas ? (
-            <>
-              <hr className="border-slate-100" />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="label-base">Judul Materi</label>
-                  <input
-                    className="input-base"
-                    value={judul}
-                    onChange={(e) => setJudul(e.target.value)}
-                    placeholder="Contoh: Video penjelasan faktor suhu"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="label-base">URL Materi</label>
-                  <input
-                    className="input-base"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://youtube.com/... atau https://drive.google.com/..."
-                  />
-                  <p className="mt-1 text-xs text-slate-400">
-                    Bisa berupa link YouTube, Google Drive, artikel, PDF online,
-                    dll.
-                  </p>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="label-base">Deskripsi (opsional)</label>
-                  <textarea
-                    className="input-base"
-                    rows={2}
-                    value={deskripsi}
-                    onChange={(e) => setDeskripsi(e.target.value)}
-                    placeholder="Catatan singkat untuk siswa…"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="btn-primary">
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                {saving ? "Menyimpan…" : "Tambah Materi"}
-              </button>
-            </>
-          ) : (
-            <EmptyState
-              icon={<BookOpen className="h-7 w-7" />}
-              title="Pilih kelas terlebih dahulu"
-              description="Pilih kelas dan kegiatan untuk menambah materi."
-            />
-          )}
-        </div>
-
-        {selKelas && (
-          <div className="card">
-            <h2 className="mb-3 text-lg font-bold text-slate-800">
-              Daftar Materi
-              <span className="ml-2 text-sm font-normal text-slate-400">
-                ({materiList.length})
-              </span>
-            </h2>
-            {materiList.length === 0 ? (
-              <EmptyState
-                icon={<BookOpen className="h-7 w-7" />}
-                title="Belum ada materi"
-                description="Tambahkan tautan materi di form di atas."
-              />
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {materiList.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex flex-wrap items-start justify-between gap-3 py-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        {isYoutube(m.url) ? (
-                          <Youtube className="h-4 w-4 text-red-500 shrink-0" />
-                        ) : (
-                          <ExternalLink className="h-4 w-4 text-brand-teal shrink-0" />
-                        )}
-                        <p className="text-sm font-semibold text-slate-800 truncate">
-                          {m.judul}
-                        </p>
-                      </div>
-                      {m.deskripsi && (
-                        <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
-                          {m.deskripsi}
-                        </p>
-                      )}
-                      <a
-                        href={m.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 block truncate text-xs text-brand-green hover:underline">
-                        {m.url}
-                      </a>
-                      <p className="mt-1 text-[11px] text-slate-400">
-                        Ditambahkan{" "}
-                        {m.dibuat_pada
-                          ? new Date(m.dibuat_pada).toLocaleString("id-ID")
-                          : "-"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDelete(m.id)}
-                      className="btn-ghost text-red-500 hover:bg-red-50 text-sm shrink-0"
-                      title="Hapus">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
+      <MateriKonten
+        title="Materi"
+        description="Materi dari Super Admin. PDF dapat di-zoom dan diunduh langsung."
+        onlyGlobal
+      />
     </DashboardLayout>
   );
 }
+
 // ============ Ekspor Massal ============
 export function TeacherEkspor() {
   const { profile } = useAuth();

@@ -204,6 +204,12 @@ export function SuperAdminDashboard() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [materiList, setMateriList] = useState<MateriRow[]>([]);
+  const [materiJudul, setMateriJudul] = useState("");
+  const [materiUrl, setMateriUrl] = useState("");
+  const [materiDeskripsi, setMateriDeskripsi] = useState("");
+  const [materiKegiatanId, setMateriKegiatanId] = useState("");
+  const [savingMateri, setSavingMateri] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabType>(() =>
     typeof window !== "undefined"
@@ -219,7 +225,7 @@ export function SuperAdminDashboard() {
   const [landingContent, setLandingContent] =
     useState<LandingPageContent | null>(null);
 
-  const [materiList, setMateriList] = useState<MateriRow[]>([]);
+  // const [materiList, setMateriList] = useState<MateriRow[]>([]);
   const [assessmentList, setAssessmentList] = useState<AssessmentRow[]>([]);
   const [detailItem, setDetailItem] = useState<
     (MateriRow | AssessmentRow) | null
@@ -344,14 +350,20 @@ export function SuperAdminDashboard() {
           break;
         }
         case "materi": {
-          const snap = await getDocs(collection(db, "materi_tambahan"));
-          const list = snap.docs.map(
+          const [materiSnap, kegSnap] = await Promise.all([
+            getDocs(collection(db, "materi_tambahan")),
+            getDocs(collection(db, "kegiatan")),
+          ]);
+          const list = materiSnap.docs.map(
             (d) => ({ id: d.id, ...d.data() }) as MateriRow,
           );
           list.sort((a, b) =>
             (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
           );
           setMateriList(list);
+          setKegiatan(
+            kegSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Kegiatan),
+          );
           break;
         }
         case "assessment": {
@@ -1239,88 +1251,181 @@ export function SuperAdminDashboard() {
 
           {/* ===== MATERI TAMBAHAN ===== */}
           {activeTab === "materi" && (
-            <div className="card overflow-hidden p-0">
-              {loading ? (
-                <div className="animate-pulse h-48 m-6 rounded-xl bg-slate-100" />
-              ) : materiList.length === 0 ? (
-                <div className="p-6">
-                  <EmptyState
-                    icon={<BookOpen className="h-7 w-7" />}
-                    title="Belum ada materi"
-                    description="Guru belum menambahkan materi tambahan."
-                  />
+            <div className="space-y-4">
+              {/* Form tambah materi oleh Super Admin — hanya kegiatan_id */}
+              <div className="card space-y-3">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Tambah Materi
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Materi ini berlaku untuk semua kelas pada kegiatan yang
+                  dipilih (tanpa id kelas).
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="label-base">Kegiatan</label>
+                    <select
+                      className="input-base"
+                      value={materiKegiatanId}
+                      onChange={(e) => setMateriKegiatanId(e.target.value)}>
+                      <option value="">— Pilih Kegiatan —</option>
+                      {kegiatan
+                        .slice()
+                        .sort((a, b) => (a.nomor || 0) - (b.nomor || 0))
+                        .map((k) => (
+                          <option key={k.id} value={k.id}>
+                            Kegiatan {k.nomor} — {k.judul || k.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="label-base">Judul</label>
+                    <input
+                      className="input-base"
+                      value={materiJudul}
+                      onChange={(e) => setMateriJudul(e.target.value)}
+                      placeholder="Judul materi"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="label-base">
+                      URL (YouTube / PDF / link lain)
+                    </label>
+                    <input
+                      className="input-base"
+                      value={materiUrl}
+                      onChange={(e) => setMateriUrl(e.target.value)}
+                      placeholder="https://... atau link PDF langsung"
+                    />
+                    <p className="mt-1 text-xs text-slate-400">
+                      Untuk PDF, gunakan link langsung file (.pdf) agar bisa
+                      dibuka di viewer.
+                    </p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="label-base">Deskripsi (opsional)</label>
+                    <textarea
+                      className="input-base"
+                      rows={2}
+                      value={materiDeskripsi}
+                      onChange={(e) => setMateriDeskripsi(e.target.value)}
+                    />
+                  </div>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Judul
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          URL
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Kelas ID
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Kegiatan ID
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Guru ID
-                        </th>
-                        <th className="px-4 py-3 font-semibold text-slate-700">
-                          Dibuat
-                        </th>
-                        <th className="px-4 py-3 text-right font-semibold text-slate-700">
-                          Aksi
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {materiList.map((m) => (
-                        <tr
-                          key={m.id}
-                          className="border-b border-slate-100 hover:bg-slate-50/80">
-                          <td className="px-4 py-3 font-medium text-slate-800">
-                            {m.judul || "-"}
-                          </td>
-                          <td className="px-4 py-3 max-w-[200px] truncate">
-                            <a
-                              href={m.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-brand-green hover:underline text-xs">
-                              {m.url || "-"}
-                            </a>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                            {m.kelas_id || "-"}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                            {m.kegiatan_id || "-"}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                            {m.dibuat_oleh_guru_id || "-"}
-                          </td>
-                          <td className="px-4 py-3 text-xs text-slate-400">
-                            {m.dibuat_pada
-                              ? new Date(m.dibuat_pada).toLocaleString("id-ID")
-                              : "-"}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-0.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDetailItem(m);
-                                  setDetailType("materi");
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition"
-                                title="Detail">
-                                <Eye className="h-4 w-4" />
-                              </button>
+                <button
+                  type="button"
+                  disabled={savingMateri}
+                  className="btn-primary"
+                  onClick={async () => {
+                    if (
+                      !materiKegiatanId ||
+                      !materiJudul.trim() ||
+                      !materiUrl.trim()
+                    ) {
+                      toast("Kegiatan, judul, dan URL wajib diisi", "warning");
+                      return;
+                    }
+                    try {
+                      new URL(materiUrl.trim());
+                    } catch {
+                      toast("URL tidak valid", "error");
+                      return;
+                    }
+                    setSavingMateri(true);
+                    try {
+                      const now = new Date().toISOString();
+                      await setDoc(doc(collection(db, "materi_tambahan")), {
+                        kegiatan_id: materiKegiatanId,
+                        // tanpa kelas_id — materi global per kegiatan
+                        judul: materiJudul.trim(),
+                        url: materiUrl.trim(),
+                        deskripsi: materiDeskripsi.trim() || null,
+                        dibuat_oleh_guru_id: profile?.id || null,
+                        dibuat_oleh_role: "super_admin",
+                        dibuat_pada: now,
+                        diperbarui_pada: now,
+                      });
+                      toast("Materi ditambahkan", "success");
+                      setMateriJudul("");
+                      setMateriUrl("");
+                      setMateriDeskripsi("");
+                      setMateriKegiatanId("");
+                      loadData();
+                    } catch (err) {
+                      console.error(err);
+                      toast("Gagal menambah materi", "error");
+                    } finally {
+                      setSavingMateri(false);
+                    }
+                  }}>
+                  <Plus className="h-4 w-4" />
+                  {savingMateri ? "Menyimpan…" : "Tambah Materi"}
+                </button>
+              </div>
+
+              {/* Daftar materi */}
+              <div className="card overflow-hidden p-0">
+                {loading ? (
+                  <div className="animate-pulse h-48 m-6 rounded-xl bg-slate-100" />
+                ) : materiList.length === 0 ? (
+                  <div className="p-6">
+                    <EmptyState
+                      icon={<BookOpen className="h-7 w-7" />}
+                      title="Belum ada materi"
+                      description="Tambahkan materi di form di atas."
+                    />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-left">
+                          <th className="px-4 py-3 font-semibold text-slate-700">
+                            Judul
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">
+                            URL
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">
+                            Kegiatan ID
+                          </th>
+                          <th className="px-4 py-3 font-semibold text-slate-700">
+                            Dibuat
+                          </th>
+                          <th className="px-4 py-3 text-right font-semibold text-slate-700">
+                            Aksi
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {materiList.map((m) => (
+                          <tr
+                            key={m.id}
+                            className="border-b border-slate-100 hover:bg-slate-50/80">
+                            <td className="px-4 py-3 font-medium text-slate-800">
+                              {m.judul || "-"}
+                            </td>
+                            <td className="px-4 py-3 max-w-[220px] truncate text-xs">
+                              <a
+                                href={m.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-brand-green hover:underline">
+                                {m.url || "-"}
+                              </a>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                              {m.kegiatan_id || "-"}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-slate-400">
+                              {m.dibuat_pada
+                                ? new Date(m.dibuat_pada).toLocaleString(
+                                    "id-ID",
+                                  )
+                                : "-"}
+                            </td>
+                            <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
                                 onClick={async () => {
@@ -1333,23 +1438,21 @@ export function SuperAdminDashboard() {
                                     setMateriList((prev) =>
                                       prev.filter((x) => x.id !== m.id),
                                     );
-                                  } catch (err) {
-                                    console.error(err);
+                                  } catch {
                                     toast("Gagal menghapus", "error");
                                   }
                                 }}
-                                className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg transition"
-                                title="Hapus">
+                                className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg">
                                 <Trash2 className="h-4 w-4" />
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -48,8 +48,14 @@ import {
   getDoc,
   updateDoc,
 } from "firebase/firestore";
-import { SDGBadgeChip, EmptyState, Badge, MoleculeField } from "@/components/ui";
+import {
+  SDGBadgeChip,
+  EmptyState,
+  Badge,
+  MoleculeField,
+} from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
+import { MateriKonten } from "@/components/components/MateriKonten";
 
 const navItems = [
   {
@@ -399,8 +405,6 @@ export function StudentDashboard() {
     };
   }, [profile]);
 
-  
-
   const joinKelas = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile || !kodeInput.trim()) return;
@@ -459,7 +463,7 @@ export function StudentDashboard() {
           <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
           {/* Dotted sains grid pattern */}
           <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
-          
+
           {/* Floating Science Doodles */}
           <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
             <FlaskConical className="h-16 w-16" />
@@ -487,13 +491,13 @@ export function StudentDashboard() {
   return (
     <DashboardLayout items={navItems} role="siswa">
       <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
-      <MoleculeField className="opacity-70" />
+        <MoleculeField className="opacity-70" />
         {/* Soft Ambient background glows */}
         <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/40 rounded-full blur-3xl pointer-events-none" />
         {/* Dotted sains grid pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none" />
-        
+
         {/* Floating Science Doodles */}
         <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
           <FlaskConical className="h-16 w-16" />
@@ -508,13 +512,15 @@ export function StudentDashboard() {
               Halo, {profile?.nama?.split(" ")[0]}!
             </h1>
             <p className="text-sm text-slate-500">
-              Pilih kelas untuk melihat progres kegiatan, atau gabung dengan kode
-              undangan.
+              Pilih kelas untuk melihat progres kegiatan, atau gabung dengan
+              kode undangan.
             </p>
           </div>
 
           <div>
-            <h2 className="mb-3 text-lg font-bold text-slate-800">Kelas Saya</h2>
+            <h2 className="mb-3 text-lg font-bold text-slate-800">
+              Kelas Saya
+            </h2>
 
             {kelas ? (
               <button
@@ -645,9 +651,35 @@ export function StudentRiwayat() {
           ),
         ]);
         if (!active) return;
-        console.debug("[StudentRiwayat] kegiatan docs:", kegsSnapshot.docs.map((d) => ({ id: d.id, nomor: d.data().nomor })));
-        console.debug("[StudentRiwayat] jawaban docs:", jSnapshot.docs.map((d) => ({ id: d.id, kegiatan_id: d.data().kegiatan_id, skor: d.data().skor, status: d.data().status })));
-        console.debug("[StudentRiwayat] test_answers docs:", (await getDocs(query(collection(db, "test_answers"), where("siswa_id", "==", profile.id)))).docs.map((d) => ({ id: d.id, kegiatan_id: d.data().kegiatan_id, test_type: d.data().test_type, score: d.data().score })));
+        console.debug(
+          "[StudentRiwayat] kegiatan docs:",
+          kegsSnapshot.docs.map((d) => ({ id: d.id, nomor: d.data().nomor })),
+        );
+        console.debug(
+          "[StudentRiwayat] jawaban docs:",
+          jSnapshot.docs.map((d) => ({
+            id: d.id,
+            kegiatan_id: d.data().kegiatan_id,
+            skor: d.data().skor,
+            status: d.data().status,
+          })),
+        );
+        console.debug(
+          "[StudentRiwayat] test_answers docs:",
+          (
+            await getDocs(
+              query(
+                collection(db, "test_answers"),
+                where("siswa_id", "==", profile.id),
+              ),
+            )
+          ).docs.map((d) => ({
+            id: d.id,
+            kegiatan_id: d.data().kegiatan_id,
+            test_type: d.data().test_type,
+            score: d.data().score,
+          })),
+        );
         const jByKeg = jSnapshot.docs.reduce<Record<string, Jawaban>>(
           (a, d) => {
             const data = { id: d.id, ...d.data() } as Jawaban;
@@ -676,10 +708,8 @@ export function StudentRiwayat() {
             id: d.id,
             nomor,
             judul:
-              (typeof k.judul === "string" && k.judul) ||
-              `Kegiatan ${nomor}`,
-            subjudul:
-              (typeof k.subjudul === "string" && k.subjudul) || "",
+              (typeof k.judul === "string" && k.judul) || `Kegiatan ${nomor}`,
+            subjudul: (typeof k.subjudul === "string" && k.subjudul) || "",
             warna: (typeof k.warna === "string" && k.warna) || "#2E7D32",
             jawaban: jByKeg[d.id] || jByKeg[`kegiatan-${nomor}`],
             kuis: kByKeg[d.id] || kByKeg[`kegiatan-${nomor}`],
@@ -715,7 +745,11 @@ export function StudentRiwayat() {
       candidates.push(String(nomor));
       // dedupe & keep order
       const unique = Array.from(new Set(candidates));
-      console.debug("[StudentRiwayat] openDetail:", { nomor, kegiatanDocId, candidates: unique });
+      console.debug("[StudentRiwayat] openDetail:", {
+        nomor,
+        kegiatanDocId,
+        candidates: unique,
+      });
 
       const jawSnap = await getDocs(
         query(
@@ -757,10 +791,10 @@ export function StudentRiwayat() {
         ),
       );
       setDetailPreQs(
-        preQSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Question)),
+        preQSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Question),
       );
       setDetailPostQs(
-        postQSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Question)),
+        postQSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Question),
       );
     } catch (err) {
       console.error("[StudentRiwayat] openDetail error:", err);
@@ -842,7 +876,12 @@ export function StudentRiwayat() {
           </div>
         )}
         {/* Detail modal */}
-        <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title={detailNomor ? `Hasil Kegiatan ${detailNomor}` : "Hasil Kegiatan"}>
+        <Modal
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+          title={
+            detailNomor ? `Hasil Kegiatan ${detailNomor}` : "Hasil Kegiatan"
+          }>
           <div className="space-y-4">
             {detailLoading ? (
               <div className="card animate-pulse h-40" />
@@ -850,17 +889,25 @@ export function StudentRiwayat() {
               <div>
                 <h3 className="text-lg font-semibold">Activity</h3>
                 <p className="text-sm">Skor: {detailJawaban?.skor ?? "-"}</p>
-                <p className="text-sm whitespace-pre-wrap mt-2">Feedback Guru: {detailJawaban?.feedback_guru || "-"}</p>
+                <p className="text-sm whitespace-pre-wrap mt-2">
+                  Feedback Guru: {detailJawaban?.feedback_guru || "-"}
+                </p>
 
                 <hr className="my-3" />
                 <h3 className="text-lg font-semibold">Pretest</h3>
                 <p className="text-sm">Skor: {detailPre?.score ?? "-"}</p>
-                <p className="text-sm whitespace-pre-wrap mt-2">Feedback Guru: {detailPre?.feedback_guru || "-"}</p>
+                <p className="text-sm whitespace-pre-wrap mt-2">
+                  Feedback Guru: {detailPre?.feedback_guru || "-"}
+                </p>
                 <div className="mt-2">
                   {detailPreQs.map((q) => (
                     <div key={q.id} className="mb-2">
-                      <div className="text-sm font-medium">{q.question_text}</div>
-                      <div className="whitespace-pre-wrap text-sm text-slate-600">Jawaban: {formatTestAns(detailPre?.answers?.[q.id])}</div>
+                      <div className="text-sm font-medium">
+                        {q.question_text}
+                      </div>
+                      <div className="whitespace-pre-wrap text-sm text-slate-600">
+                        Jawaban: {formatTestAns(detailPre?.answers?.[q.id])}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -868,12 +915,18 @@ export function StudentRiwayat() {
                 <hr className="my-3" />
                 <h3 className="text-lg font-semibold">Posttest</h3>
                 <p className="text-sm">Skor: {detailPost?.score ?? "-"}</p>
-                <p className="text-sm whitespace-pre-wrap mt-2">Feedback Guru: {detailPost?.feedback_guru || "-"}</p>
+                <p className="text-sm whitespace-pre-wrap mt-2">
+                  Feedback Guru: {detailPost?.feedback_guru || "-"}
+                </p>
                 <div className="mt-2">
                   {detailPostQs.map((q) => (
                     <div key={q.id} className="mb-2">
-                      <div className="text-sm font-medium">{q.question_text}</div>
-                      <div className="whitespace-pre-wrap text-sm text-slate-600">Jawaban: {formatTestAns(detailPost?.answers?.[q.id])}</div>
+                      <div className="text-sm font-medium">
+                        {q.question_text}
+                      </div>
+                      <div className="whitespace-pre-wrap text-sm text-slate-600">
+                        Jawaban: {formatTestAns(detailPost?.answers?.[q.id])}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -887,230 +940,254 @@ export function StudentRiwayat() {
 }
 
 // ============ Materi Tambahan (Siswa) ============
-type MateriItem = {
-  id: string;
-  kelas_id: string;
-  kegiatan_id: string;
-  judul: string;
-  url: string;
-  deskripsi?: string | null;
-  dibuat_pada?: string;
-};
+// ============ Materi Tambahan (Siswa) ============
+// type MateriItem = {
+//   id: string;
+//   kegiatan_id: string;
+//   kelas_id?: string | null;
+//   judul: string;
+//   url: string;
+//   deskripsi?: string | null;
+//   dibuat_pada?: string;
+// };
+
+// function isPdfUrl(url: string) {
+//   return /\.pdf(\?|$)/i.test(url || "") || /\/pdf\//i.test(url || "");
+// }
+// function isYoutubeUrl(url: string) {
+//   return /youtube\.com|youtu\.be/i.test(url || "");
+// }
+// function toYoutubeEmbed(url: string) {
+//   try {
+//     const u = new URL(url);
+//     if (u.hostname.includes("youtu.be")) {
+//       return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+//     }
+//     const id = u.searchParams.get("v");
+//     if (id) return `https://www.youtube.com/embed/${id}`;
+//   } catch {
+//     /* ignore */
+//   }
+//   return url;
+// }
+
+// export function StudentMateri() {
+//   const { profile } = useAuth();
+//   const [kegiatanList, setKegiatanList] = useState<
+//     { nomor: number; id: string; judul: string; subjudul: string }[]
+//   >([]);
+//   const [selKeg, setSelKeg] = useState<number | "">("");
+//   const [materiList, setMateriList] = useState<MateriItem[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [loadingMateri, setLoadingMateri] = useState(false);
+//   const [preview, setPreview] = useState<MateriItem | null>(null);
+
+//   useEffect(() => {
+//     if (!profile) return;
+//     let cancelled = false;
+//     (async () => {
+//       setLoading(true);
+//       try {
+//         const kegsSnap = await getDocs(collection(db, "kegiatan"));
+//         if (cancelled) return;
+//         const list = kegsSnap.docs
+//           .map((d) => {
+//             const data = d.data();
+//             return {
+//               id: d.id,
+//               nomor: (data.nomor as number) ?? 0,
+//               judul: (data.judul as string) || "",
+//               subjudul: (data.subjudul as string) || "",
+//             };
+//           })
+//           .filter((k) => k.nomor > 0)
+//           .sort((a, b) => a.nomor - b.nomor);
+
+//         const finalList =
+//           list.length > 0
+//             ? list
+//             : KEGIATAN_CONTENT.map((k) => ({
+//                 id: `kegiatan-${k.nomor}`,
+//                 nomor: k.nomor,
+//                 judul: k.judul,
+//                 subjudul: k.subjudul,
+//               }));
+
+//         setKegiatanList(finalList);
+//         if (finalList.length > 0) setSelKeg(finalList[0].nomor);
+//       } finally {
+//         if (!cancelled) setLoading(false);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [profile]);
+
+//   useEffect(() => {
+//     if (selKeg === "") {
+//       setMateriList([]);
+//       return;
+//     }
+//     let cancelled = false;
+//     (async () => {
+//       setLoadingMateri(true);
+//       try {
+//         const keg = kegiatanList.find((k) => k.nomor === selKeg);
+//         const kegId = keg?.id || `kegiatan-${selKeg}`;
+//         const snap = await getDocs(
+//           query(
+//             collection(db, "materi_tambahan"),
+//             where("kegiatan_id", "==", kegId),
+//           ),
+//         );
+//         if (cancelled) return;
+//         const list = snap.docs
+//           .map((d) => ({ id: d.id, ...d.data() }) as MateriItem)
+//           .filter((m) => !m.kelas_id); // hanya materi admin (global)
+//         list.sort((a, b) =>
+//           (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
+//         );
+//         setMateriList(list);
+//       } catch {
+//         if (!cancelled) setMateriList([]);
+//       } finally {
+//         if (!cancelled) setLoadingMateri(false);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [selKeg, kegiatanList]);
+
+//   if (loading) {
+//     return (
+//       <DashboardLayout items={navItems} role="siswa">
+//         <div className="card animate-pulse h-96" />
+//       </DashboardLayout>
+//     );
+//   }
+
+//   return (
+//     <DashboardLayout items={navItems} role="siswa">
+//       <div className="space-y-6">
+//         <div>
+//           <h1 className="text-2xl font-bold text-slate-800">Materi</h1>
+//           <p className="text-sm text-slate-500">
+//             Materi pembelajaran per kegiatan. PDF dan video dapat dilihat
+//             langsung di halaman ini.
+//           </p>
+//         </div>
+
+//         <div className="card">
+//           <label className="label-base">Pilih Kegiatan</label>
+//           <select
+//             className="input-base min-w-[240px]"
+//             value={selKeg}
+//             onChange={(e) => {
+//               setSelKeg(Number(e.target.value));
+//               setPreview(null);
+//             }}>
+//             {kegiatanList.map((k) => (
+//               <option key={k.nomor} value={k.nomor}>
+//                 Kegiatan {k.nomor} — {k.subjudul || k.judul}
+//               </option>
+//             ))}
+//           </select>
+//         </div>
+
+//         {loadingMateri ? (
+//           <div className="card animate-pulse h-40" />
+//         ) : materiList.length === 0 ? (
+//           <EmptyState
+//             icon={<BookOpen className="h-7 w-7" />}
+//             title="Belum ada materi"
+//             description="Belum ada materi untuk kegiatan ini."
+//           />
+//         ) : (
+//           <div className="grid gap-3 sm:grid-cols-2">
+//             {materiList.map((m) => (
+//               <button
+//                 key={m.id}
+//                 type="button"
+//                 onClick={() => setPreview(m)}
+//                 className="card text-left group hover:shadow-float transition border-l-4 border-brand-teal">
+//                 <p className="text-sm font-bold text-slate-800">{m.judul}</p>
+//                 {m.deskripsi && (
+//                   <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
+//                     {m.deskripsi}
+//                   </p>
+//                 )}
+//                 <p className="mt-2 text-[11px] text-brand-green font-medium">
+//                   {isPdfUrl(m.url)
+//                     ? "Lihat PDF"
+//                     : isYoutubeUrl(m.url)
+//                       ? "Tonton video"
+//                       : "Buka materi"}
+//                 </p>
+//               </button>
+//             ))}
+//           </div>
+//         )}
+
+//         {preview && (
+//           <div className="card space-y-3">
+//             <div className="flex items-start justify-between gap-3">
+//               <div>
+//                 <h2 className="text-lg font-bold text-slate-800">
+//                   {preview.judul}
+//                 </h2>
+//                 {preview.deskripsi && (
+//                   <p className="text-sm text-slate-500 mt-1">
+//                     {preview.deskripsi}
+//                   </p>
+//                 )}
+//               </div>
+//               <button
+//                 type="button"
+//                 className="btn-ghost text-sm"
+//                 onClick={() => setPreview(null)}>
+//                 Tutup
+//               </button>
+//             </div>
+
+//             {isPdfUrl(preview.url) ? (
+//               <iframe
+//                 src={preview.url}
+//                 title={preview.judul}
+//                 className="w-full rounded-xl border border-slate-200"
+//                 style={{ height: "70vh", border: "none" }}
+//               />
+//             ) : isYoutubeUrl(preview.url) ? (
+//               <iframe
+//                 src={toYoutubeEmbed(preview.url)}
+//                 title={preview.judul}
+//                 className="w-full rounded-xl border border-slate-200 aspect-video"
+//                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+//                 allowFullScreen
+//               />
+//             ) : (
+//               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
+//                 <a
+//                   href={preview.url}
+//                   target="_blank"
+//                   rel="noopener noreferrer"
+//                   className="btn-primary text-sm">
+//                   Buka di tab baru
+//                 </a>
+//               </div>
+//             )}
+//           </div>
+//         )}
+//       </div>
+//     </DashboardLayout>
+//   );
+// }
 
 export function StudentMateri() {
-  const { profile } = useAuth();
-  const [kelas, setKelas] = useState<Kelas | null>(null);
-  const [kegiatanList, setKegiatanList] = useState<
-    { nomor: number; id: string; judul: string; subjudul: string }[]
-  >([]);
-  const [selKeg, setSelKeg] = useState<number | "">("");
-  const [materiList, setMateriList] = useState<MateriItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMateri, setLoadingMateri] = useState(false);
-
-  useEffect(() => {
-    if (!profile) return;
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        if (profile.kelas_id) {
-          const kSnap = await getDoc(doc(db, "kelas", profile.kelas_id));
-          if (kSnap.exists() && !cancelled) {
-            setKelas({ id: kSnap.id, ...kSnap.data() } as Kelas);
-          }
-        }
-
-        const kegsSnap = await getDocs(collection(db, "kegiatan"));
-        if (cancelled) return;
-        const list = kegsSnap.docs
-          .map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              nomor: (data.nomor as number) ?? 0,
-              judul: (data.judul as string) || "",
-              subjudul: (data.subjudul as string) || "",
-            };
-          })
-          .filter((k) => k.nomor > 0)
-          .sort((a, b) => a.nomor - b.nomor);
-
-        const finalList =
-          list.length > 0
-            ? list
-            : KEGIATAN_CONTENT.map((k) => ({
-                id: `kegiatan-${k.nomor}`,
-                nomor: k.nomor,
-                judul: k.judul,
-                subjudul: k.subjudul,
-              }));
-
-        setKegiatanList(finalList);
-        if (finalList.length > 0) setSelKeg(finalList[0].nomor);
-      } catch (err) {
-        console.error("[StudentMateri] load error:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile]);
-
-  useEffect(() => {
-    if (!profile?.kelas_id || selKeg === "") {
-      setMateriList([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setLoadingMateri(true);
-      try {
-        const keg = kegiatanList.find((k) => k.nomor === selKeg);
-        const kegId = keg?.id || `kegiatan-${selKeg}`;
-
-        let snap;
-        try {
-          snap = await getDocs(
-            query(
-              collection(db, "materi_tambahan"),
-              where("kelas_id", "==", profile.kelas_id),
-              where("kegiatan_id", "==", kegId),
-            ),
-          );
-        } catch {
-          const all = await getDocs(
-            query(
-              collection(db, "materi_tambahan"),
-              where("kelas_id", "==", profile.kelas_id),
-            ),
-          );
-          const matched = all.docs.filter((d) => {
-            const kid = d.data().kegiatan_id;
-            return kid === kegId || kid === `kegiatan-${selKeg}`;
-          });
-          snap = { docs: matched, empty: matched.length === 0 };
-        }
-
-        if (cancelled) return;
-        const list = snap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as MateriItem,
-        );
-        list.sort((a, b) =>
-          (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
-        );
-        setMateriList(list);
-      } catch (err) {
-        console.error("[StudentMateri] load materi error:", err);
-        if (!cancelled) setMateriList([]);
-      } finally {
-        if (!cancelled) setLoadingMateri(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile?.kelas_id, selKeg, kegiatanList]);
-
-  const isYoutube = (link: string) =>
-    /youtube\.com|youtu\.be/i.test(link || "");
-
-  if (loading) {
-    return (
-      <DashboardLayout items={navItems} role="siswa">
-        <div className="card animate-pulse h-96" />
-      </DashboardLayout>
-    );
-  }
-
-  if (!profile?.kelas_id || !kelas) {
-    return (
-      <DashboardLayout items={navItems} role="siswa">
-        <EmptyState
-          icon={<BookOpen className="h-7 w-7" />}
-          title="Belum bergabung ke kelas"
-          description="Gabung ke kelas dulu di Dashboard agar bisa melihat materi tambahan dari guru."
-        />
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout items={navItems} role="siswa">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Materi Tambahan</h1>
-          <p className="text-sm text-slate-500">
-            Materi dari guru untuk kelas <strong>{kelas.nama_kelas}</strong>.
-            Pilih kegiatan untuk melihat tautan materi.
-          </p>
-        </div>
-
-        <div className="card">
-          <label className="label-base">Pilih Kegiatan</label>
-          <select
-            className="input-base min-w-[240px]"
-            value={selKeg}
-            onChange={(e) => setSelKeg(Number(e.target.value))}>
-            {kegiatanList.map((k) => (
-              <option key={k.nomor} value={k.nomor}>
-                Kegiatan {k.nomor} — {k.subjudul || k.judul}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {loadingMateri ? (
-          <div className="card animate-pulse h-40" />
-        ) : materiList.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen className="h-7 w-7" />}
-            title="Belum ada materi"
-            description="Guru belum menambahkan materi untuk kegiatan ini."
-          />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {materiList.map((m) => (
-              <a
-                key={m.id}
-                href={m.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="card group hover:shadow-float transition border-l-4 border-brand-teal">
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                      isYoutube(m.url)
-                        ? "bg-red-50 text-red-500"
-                        : "bg-brand-teal-light text-brand-teal"
-                    }`}>
-                    {isYoutube(m.url) ? (
-                      <Youtube className="h-5 w-5" />
-                    ) : (
-                      <ExternalLink className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-slate-800 group-hover:text-brand-green transition">
-                      {m.judul}
-                    </p>
-                    {m.deskripsi && (
-                      <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
-                        {m.deskripsi}
-                      </p>
-                    )}
-                    <p className="mt-1.5 text-[11px] text-brand-green font-medium inline-flex items-center gap-1">
-                      Buka tautan <ArrowRight className="h-3 w-3" />
-                    </p>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
+      <MateriKonten onlyGlobal />
     </DashboardLayout>
   );
 }
@@ -1359,8 +1436,7 @@ export function StudentProfil() {
               <button
                 type="submit"
                 disabled={joining || !kodeInput.trim()}
-                className="btn-primary w-full"
-              >
+                className="btn-primary w-full">
                 {joining ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -1382,8 +1458,7 @@ export function StudentProfil() {
               <button
                 type="button"
                 onClick={() => setShowPasswordForm(true)}
-                className="text-sm text-brand-green hover:text-brand-green-dark font-medium"
-              >
+                className="text-sm text-brand-green hover:text-brand-green-dark font-medium">
                 Ubah Password
               </button>
             )}
@@ -1408,8 +1483,7 @@ export function StudentProfil() {
                     type="button"
                     onClick={() => setShowCurrentPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    tabIndex={-1}
-                  >
+                    tabIndex={-1}>
                     {showCurrentPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
@@ -1437,8 +1511,7 @@ export function StudentProfil() {
                     type="button"
                     onClick={() => setShowNewPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    tabIndex={-1}
-                  >
+                    tabIndex={-1}>
                     {showNewPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
@@ -1466,8 +1539,7 @@ export function StudentProfil() {
                     type="button"
                     onClick={() => setShowConfirmPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    tabIndex={-1}
-                  >
+                    tabIndex={-1}>
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
@@ -1482,15 +1554,13 @@ export function StudentProfil() {
                   type="button"
                   onClick={resetPasswordForm}
                   disabled={changingPassword}
-                  className="btn-outline flex-1"
-                >
+                  className="btn-outline flex-1">
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={changingPassword}
-                  className="btn-primary flex-1"
-                >
+                  className="btn-primary flex-1">
                   {changingPassword ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
