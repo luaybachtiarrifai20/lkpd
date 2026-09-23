@@ -8,25 +8,17 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { EmptyState } from "@/components/ui";
-import { KEGIATAN_CONTENT } from "@/content/kegiatanContent";
 
 export type MateriItem = {
   id: string;
-  kegiatan_id: string;
+  kegiatan_id?: string | null;
   kelas_id?: string | null;
   judul: string;
   url: string;
   deskripsi?: string | null;
   dibuat_pada?: string;
-};
-
-type KegiatanOption = {
-  nomor: number;
-  id: string;
-  judul: string;
-  subjudul: string;
 };
 
 function isPdfUrl(url: string) {
@@ -65,57 +57,38 @@ function actionLabel(url: string) {
 export type MateriKontenProps = {
   title?: string;
   description?: string;
-  onlyGlobal?: boolean;
-  /** Base path detail, contoh: "/siswa/materi" atau "/guru/materi" */
+  /** Base path detail: "/siswa/materi" atau "/guru/materi" */
   detailBasePath: string;
 };
 
 export function MateriKonten({
   title = "Materi",
-  description = "Pilih kegiatan, lalu buka materi. Detail dibuka di halaman terpisah.",
-  onlyGlobal = true,
+  description = "Daftar materi pembelajaran. Klik card untuk membuka detail.",
   detailBasePath,
 }: MateriKontenProps) {
-  const [kegiatanList, setKegiatanList] = useState<KegiatanOption[]>([]);
-  const [selKeg, setSelKeg] = useState<number | "">("");
   const [materiList, setMateriList] = useState<MateriItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMateri, setLoadingMateri] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const kegsSnap = await getDocs(collection(db, "kegiatan"));
+        const snap = await getDocs(collection(db, "materi_tambahan"));
         if (cancelled) return;
-        const list = kegsSnap.docs
-          .map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              nomor: (data.nomor as number) ?? 0,
-              judul: (data.judul as string) || "",
-              subjudul: (data.subjudul as string) || "",
-            };
-          })
-          .filter((k) => k.nomor > 0)
-          .sort((a, b) => a.nomor - b.nomor);
 
-        const finalList: KegiatanOption[] =
-          list.length > 0
-            ? list
-            : KEGIATAN_CONTENT.map((k) => ({
-                id: `kegiatan-${k.nomor}`,
-                nomor: k.nomor,
-                judul: k.judul,
-                subjudul: k.subjudul,
-              }));
+        // Semua materi global (tanpa kelas_id). kegiatan_id diabaikan.
+        const list = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }) as MateriItem)
+          .filter((m) => !m.kelas_id);
 
-        setKegiatanList(finalList);
-        if (finalList.length > 0) setSelKeg(finalList[0].nomor);
+        list.sort((a, b) =>
+          (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
+        );
+        setMateriList(list);
       } catch (err) {
-        console.error("[MateriKonten] load kegiatan error:", err);
+        console.error("[MateriKonten] load error:", err);
+        if (!cancelled) setMateriList([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -124,45 +97,6 @@ export function MateriKonten({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (selKeg === "") {
-      setMateriList([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setLoadingMateri(true);
-      try {
-        const keg = kegiatanList.find((k) => k.nomor === selKeg);
-        const kegId = keg?.id || `kegiatan-${selKeg}`;
-        const snap = await getDocs(
-          query(
-            collection(db, "materi_tambahan"),
-            where("kegiatan_id", "==", kegId),
-          ),
-        );
-        if (cancelled) return;
-
-        let list = snap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as MateriItem,
-        );
-        if (onlyGlobal) list = list.filter((m) => !m.kelas_id);
-        list.sort((a, b) =>
-          (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
-        );
-        setMateriList(list);
-      } catch (err) {
-        console.error("[MateriKonten] load materi error:", err);
-        if (!cancelled) setMateriList([]);
-      } finally {
-        if (!cancelled) setLoadingMateri(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selKeg, kegiatanList, onlyGlobal]);
 
   if (loading) return <div className="card animate-pulse h-96" />;
 
@@ -173,31 +107,11 @@ export function MateriKonten({
         <p className="text-sm text-slate-500">{description}</p>
       </div>
 
-      <div className="card">
-        <label className="label-base">Pilih Kegiatan</label>
-        <select
-          className="input-base min-w-[240px]"
-          value={selKeg}
-          onChange={(e) => setSelKeg(Number(e.target.value))}>
-          {kegiatanList.length === 0 ? (
-            <option value="">— Belum ada kegiatan —</option>
-          ) : (
-            kegiatanList.map((k) => (
-              <option key={k.nomor} value={k.nomor}>
-                Kegiatan {k.nomor} — {k.subjudul || k.judul}
-              </option>
-            ))
-          )}
-        </select>
-      </div>
-
-      {loadingMateri ? (
-        <div className="card animate-pulse h-40" />
-      ) : materiList.length === 0 ? (
+      {materiList.length === 0 ? (
         <EmptyState
           icon={<BookOpen className="h-7 w-7" />}
           title="Belum ada materi"
-          description="Belum ada materi untuk kegiatan ini."
+          description="Super Admin belum menambahkan materi."
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -205,10 +119,12 @@ export function MateriKonten({
             <Link
               key={m.id}
               to={`${detailBasePath}/${m.id}`}
-              className="card text-left group hover:shadow-float transition border-l-4 border-brand-teal">
+              className="card text-left group hover:shadow-float transition border-l-4 border-brand-teal"
+            >
               <div className="flex items-start gap-3">
                 <div
-                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${iconWrapClass(m.url)}`}>
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${iconWrapClass(m.url)}`}
+                >
                   {iconForUrl(m.url)}
                 </div>
                 <div className="min-w-0 flex-1">

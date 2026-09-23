@@ -44,8 +44,8 @@ import {
   FlaskConical,
   Atom,
   Link2,
-  ExternalLink,
-  Youtube,
+  // ExternalLink,
+  // Youtube,
 } from "lucide-react";
 import { Badge, EmptyState, MoleculeField } from "@/components/ui";
 
@@ -208,7 +208,7 @@ export function SuperAdminDashboard() {
   const [materiJudul, setMateriJudul] = useState("");
   const [materiUrl, setMateriUrl] = useState("");
   const [materiDeskripsi, setMateriDeskripsi] = useState("");
-  const [materiKegiatanId, setMateriKegiatanId] = useState("");
+  // const [materiKegiatanId, setMateriKegiatanId] = useState("");
   const [savingMateri, setSavingMateri] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabType>(() =>
@@ -350,20 +350,14 @@ export function SuperAdminDashboard() {
           break;
         }
         case "materi": {
-          const [materiSnap, kegSnap] = await Promise.all([
-            getDocs(collection(db, "materi_tambahan")),
-            getDocs(collection(db, "kegiatan")),
-          ]);
-          const list = materiSnap.docs.map(
+          const snap = await getDocs(collection(db, "materi_tambahan"));
+          const list = snap.docs.map(
             (d) => ({ id: d.id, ...d.data() }) as MateriRow,
           );
           list.sort((a, b) =>
             (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
           );
           setMateriList(list);
-          setKegiatan(
-            kegSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Kegiatan),
-          );
           break;
         }
         case "assessment": {
@@ -1252,78 +1246,54 @@ export function SuperAdminDashboard() {
           {/* ===== MATERI TAMBAHAN ===== */}
           {activeTab === "materi" && (
             <div className="space-y-4">
-              {/* Form tambah materi oleh Super Admin — hanya kegiatan_id */}
               <div className="card space-y-3">
                 <h3 className="text-lg font-bold text-slate-800">
                   Tambah Materi
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Materi ini berlaku untuk semua kelas pada kegiatan yang
-                  dipilih (tanpa id kelas).
+                  Materi tampil untuk semua guru & siswa (tanpa terikat
+                  kegiatan).
                 </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="label-base">Kegiatan</label>
-                    <select
-                      className="input-base"
-                      value={materiKegiatanId}
-                      onChange={(e) => setMateriKegiatanId(e.target.value)}>
-                      <option value="">— Pilih Kegiatan —</option>
-                      {kegiatan
-                        .slice()
-                        .sort((a, b) => (a.nomor || 0) - (b.nomor || 0))
-                        .map((k) => (
-                          <option key={k.id} value={k.id}>
-                            Kegiatan {k.nomor} — {k.judul || k.id}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="label-base">Judul</label>
-                    <input
-                      className="input-base"
-                      value={materiJudul}
-                      onChange={(e) => setMateriJudul(e.target.value)}
-                      placeholder="Judul materi"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="label-base">
-                      URL (YouTube / PDF / link lain)
-                    </label>
-                    <input
-                      className="input-base"
-                      value={materiUrl}
-                      onChange={(e) => setMateriUrl(e.target.value)}
-                      placeholder="https://... atau link PDF langsung"
-                    />
-                    <p className="mt-1 text-xs text-slate-400">
-                      Untuk PDF, gunakan link langsung file (.pdf) agar bisa
-                      dibuka di viewer.
-                    </p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="label-base">Deskripsi (opsional)</label>
-                    <textarea
-                      className="input-base"
-                      rows={2}
-                      value={materiDeskripsi}
-                      onChange={(e) => setMateriDeskripsi(e.target.value)}
-                    />
-                  </div>
+
+                <div>
+                  <label className="label-base">Judul</label>
+                  <input
+                    className="input-base"
+                    value={materiJudul}
+                    onChange={(e) => setMateriJudul(e.target.value)}
+                    placeholder="Judul materi"
+                  />
                 </div>
+
+                <div>
+                  <label className="label-base">
+                    URL (PDF / YouTube / link lain)
+                  </label>
+                  <input
+                    className="input-base"
+                    value={materiUrl}
+                    onChange={(e) => setMateriUrl(e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div>
+                  <label className="label-base">Deskripsi (opsional)</label>
+                  <textarea
+                    className="input-base"
+                    rows={2}
+                    value={materiDeskripsi}
+                    onChange={(e) => setMateriDeskripsi(e.target.value)}
+                  />
+                </div>
+
                 <button
                   type="button"
                   disabled={savingMateri}
                   className="btn-primary"
                   onClick={async () => {
-                    if (
-                      !materiKegiatanId ||
-                      !materiJudul.trim() ||
-                      !materiUrl.trim()
-                    ) {
-                      toast("Kegiatan, judul, dan URL wajib diisi", "warning");
+                    if (!materiJudul.trim() || !materiUrl.trim()) {
+                      toast("Judul dan URL wajib diisi", "warning");
                       return;
                     }
                     try {
@@ -1336,8 +1306,7 @@ export function SuperAdminDashboard() {
                     try {
                       const now = new Date().toISOString();
                       await setDoc(doc(collection(db, "materi_tambahan")), {
-                        kegiatan_id: materiKegiatanId,
-                        // tanpa kelas_id — materi global per kegiatan
+                        // tanpa kegiatan_id & tanpa kelas_id
                         judul: materiJudul.trim(),
                         url: materiUrl.trim(),
                         deskripsi: materiDeskripsi.trim() || null,
@@ -1350,7 +1319,6 @@ export function SuperAdminDashboard() {
                       setMateriJudul("");
                       setMateriUrl("");
                       setMateriDeskripsi("");
-                      setMateriKegiatanId("");
                       loadData();
                     } catch (err) {
                       console.error(err);
@@ -1364,7 +1332,7 @@ export function SuperAdminDashboard() {
                 </button>
               </div>
 
-              {/* Daftar materi */}
+              {/* Tabel list materi — kolom Kegiatan ID bisa dihapus */}
               <div className="card overflow-hidden p-0">
                 {loading ? (
                   <div className="animate-pulse h-48 m-6 rounded-xl bg-slate-100" />
@@ -1386,9 +1354,6 @@ export function SuperAdminDashboard() {
                           </th>
                           <th className="px-4 py-3 font-semibold text-slate-700">
                             URL
-                          </th>
-                          <th className="px-4 py-3 font-semibold text-slate-700">
-                            Kegiatan ID
                           </th>
                           <th className="px-4 py-3 font-semibold text-slate-700">
                             Dibuat
@@ -1414,9 +1379,6 @@ export function SuperAdminDashboard() {
                                 className="text-brand-green hover:underline">
                                 {m.url || "-"}
                               </a>
-                            </td>
-                            <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                              {m.kegiatan_id || "-"}
                             </td>
                             <td className="px-4 py-3 text-xs text-slate-400">
                               {m.dibuat_pada
