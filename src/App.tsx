@@ -9,6 +9,7 @@ import {
   StudentRiwayat,
   StudentProfil,
   StudentMateri,
+  navItems as navItemsSiswa,
 } from "@/pages/student/StudentDashboard";
 import { ActivityPage } from "@/pages/student/ActivityPage";
 import {
@@ -20,6 +21,7 @@ import {
   TeacherEkspor,
   TeacherProfil,
   TeacherMateri,
+  navItems as navItemsGuru,
 } from "@/pages/teacher/TeacherPages";
 import { SuperAdminLogin } from "@/pages/SuperAdminLogin";
 import { SuperAdminDashboard } from "@/pages/SuperAdminDashboard";
@@ -29,6 +31,7 @@ import { ManageQuestions } from "./pages/super-admin/ManageQuestions";
 import { TestPage } from "./pages/student/TestPage";
 import { SuperAdminKegiatanDetail } from "./pages/super-admin/SuperAdminKegiatanDetail";
 import { ManageAboutPage } from "./pages/super-admin/ManageAboutPage";
+import { MateriDetail } from "./components/components/MateriDetail";
 
 function ProtectedRoute({
   role,
@@ -113,6 +116,16 @@ export default function App() {
             />
             <Route path="/siswa/materi" element={<StudentMateri />} />
             <Route
+              path="/siswa/materi/:id"
+              element={
+                <MateriDetail
+                  role="siswa"
+                  listPath="/siswa/materi"
+                  navItems={navItemsSiswa}
+                />
+              }
+            />
+            <Route
               path="/siswa/profil"
               element={
                 <ProtectedRoute role="siswa">
@@ -176,12 +189,15 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/guru/materi" element={<TeacherMateri />} />
             <Route
-              path="/guru/materi"
+              path="/guru/materi/:id"
               element={
-                <ProtectedRoute role="guru">
-                  <TeacherMateri />
-                </ProtectedRoute>
+                <MateriDetail
+                  role="guru"
+                  listPath="/guru/materi"
+                  navItems={navItemsGuru}
+                />
               }
             />
             <Route

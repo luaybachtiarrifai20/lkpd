@@ -1,17 +1,11 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   BookOpen,
   ExternalLink,
   Youtube,
   FileText,
   ArrowRight,
-  X,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Minimize2,
-  Download,
-  RotateCcw,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -38,98 +32,16 @@ type KegiatanOption = {
 function isPdfUrl(url: string) {
   const u = (url || "").toLowerCase();
   if (!u) return false;
-
-  // File langsung
   if (/\.pdf(\?|#|$)/i.test(u)) return true;
   if (u.includes("application/pdf")) return true;
-
-  // Google Drive / Docs (hampir selalu dokumen yang bisa di-embed)
   if (u.includes("drive.google.com/file/")) return true;
   if (u.includes("drive.google.com/open")) return true;
   if (u.includes("docs.google.com/document")) return true;
-  if (u.includes("docs.google.com/presentation")) return true;
-  if (u.includes("docs.google.com/spreadsheets")) return false; // opsional
-
-  // Host lain yang sering dipakai untuk PDF
-  if (u.includes("dropbox.com") && u.includes(".pdf")) return true;
-  if (u.includes("firebase") && u.includes(".pdf")) return true;
-
   return false;
 }
 
 function isYoutubeUrl(url: string) {
   return /youtube\.com|youtu\.be/i.test(url || "");
-}
-
-function toYoutubeEmbed(url: string) {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) {
-      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
-    }
-    const id = u.searchParams.get("v");
-    if (id) return `https://www.youtube.com/embed/${id}`;
-  } catch {
-    /* ignore */
-  }
-  return url;
-}
-
-// Preview generik: coba iframe, user tetap bisa buka tab baru jika diblokir
-function GenericEmbed({ url, title }: { url: string; title: string }) {
-  return (
-    <div className="flex flex-col rounded-xl border border-slate-200 overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b bg-white px-3 py-2">
-        <span className="text-xs text-slate-500 truncate">{url}</span>
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-semibold text-brand-green hover:underline shrink-0">
-          Buka di tab baru
-        </a>
-      </div>
-      <iframe
-        src={url}
-        title={title}
-        className="w-full bg-white"
-        style={{ height: "70vh", border: "none" }}
-        // sandbox longgar; sesuaikan kebutuhan keamanan
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-      />
-      <p className="border-t bg-slate-50 px-3 py-1.5 text-[11px] text-slate-400">
-        Jika area di atas kosong, situs sumber memblokir embed. Gunakan PDF/HTML
-        yang diizinkan di-iframe, atau buka di tab baru.
-      </p>
-    </div>
-  );
-}
-
-/** Normalisasi link Drive agar bisa di-embed */
-function toEmbeddablePdfUrl(url: string) {
-  try {
-    // https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-    // https://drive.google.com/file/d/FILE_ID/edit
-    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (fileMatch?.[1]) {
-      return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
-    }
-
-    // https://drive.google.com/open?id=FILE_ID
-    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-    if (openMatch?.[1]) {
-      return `https://drive.google.com/file/d/${openMatch[1]}/preview`;
-    }
-
-    // https://docs.google.com/document/d/ID/edit → preview
-    const docMatch = url.match(/docs\.google\.com\/document\/d\/([^/]+)/);
-    if (docMatch?.[1]) {
-      return `https://docs.google.com/document/d/${docMatch[1]}/preview`;
-    }
-  } catch {
-    /* ignore */
-  }
-  return url;
 }
 
 function iconForUrl(url: string) {
@@ -150,167 +62,25 @@ function actionLabel(url: string) {
   return "Buka materi";
 }
 
-// ============ PDF Viewer ============
-function PdfViewer({ url, title }: { url: string; title: string }) {
-  const [zoom, setZoom] = useState(100);
-  const [fullscreen, setFullscreen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const embedUrl = toEmbeddablePdfUrl(url);
-
-  const zoomIn = () => setZoom((z) => Math.min(z + 25, 200));
-  const zoomOut = () => setZoom((z) => Math.max(z - 25, 50));
-  const zoomReset = () => setZoom(100);
-
-  const toggleFullscreen = useCallback(async () => {
-    const el = containerRef.current;
-    if (!el) return;
-    try {
-      if (!document.fullscreenElement) {
-        await el.requestFullscreen();
-        setFullscreen(true);
-      } else {
-        await document.exitFullscreen();
-        setFullscreen(false);
-      }
-    } catch {
-      setFullscreen((v) => !v);
-    }
-  }, []);
-
-  useEffect(() => {
-    const onFs = () => setFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
-
-  const handleDownload = () => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.download = title.endsWith(".pdf") ? title : `${title || "materi"}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className={`flex flex-col rounded-xl border border-slate-200 bg-slate-100 overflow-hidden ${
-        fullscreen ? "fixed inset-0 z-[100] rounded-none" : ""
-      }`}>
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={zoomOut}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-            title="Zoom out">
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <span className="min-w-[3rem] text-center text-xs font-semibold text-slate-600">
-            {zoom}%
-          </span>
-          <button
-            type="button"
-            onClick={zoomIn}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-            title="Zoom in">
-            <ZoomIn className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={zoomReset}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
-            title="Reset zoom">
-            <RotateCcw className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-            title="Unduh PDF">
-            <Download className="h-4 w-4" /> Unduh
-          </button>
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-            title={fullscreen ? "Keluar layar penuh" : "Layar penuh"}>
-            {fullscreen ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            )}
-            {fullscreen ? "Keluar" : "Penuh"}
-          </button>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-green hover:bg-brand-green/10"
-            title="Buka di tab baru">
-            <ExternalLink className="h-4 w-4" /> Tab baru
-          </a>
-        </div>
-      </div>
-
-      {/* Area PDF */}
-      <div
-        className="relative flex-1 overflow-auto bg-slate-200/80"
-        style={{ height: fullscreen ? "100%" : "70vh" }}>
-        <div
-          className="origin-top-left transition-transform duration-150"
-          style={{
-            width: `${zoom}%`,
-            height: `${zoom}%`,
-            minWidth: "100%",
-            minHeight: "100%",
-          }}>
-          <iframe
-            src={embedUrl}
-            title={title}
-            className="h-full w-full bg-white"
-            style={{
-              minHeight: fullscreen ? "100vh" : "70vh",
-              border: "none",
-            }}
-          />
-        </div>
-      </div>
-
-      <p className="border-t border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-400">
-        Gunakan tombol zoom di toolbar. Beberapa host PDF juga menampilkan
-        kontrol bawaan browser di dalam viewer.
-      </p>
-    </div>
-  );
-}
-
-// ============ MateriKonten ============
 export type MateriKontenProps = {
   title?: string;
   description?: string;
-  /** true = hanya materi Super Admin (tanpa kelas_id) */
   onlyGlobal?: boolean;
+  /** Base path detail, contoh: "/siswa/materi" atau "/guru/materi" */
+  detailBasePath: string;
 };
 
 export function MateriKonten({
   title = "Materi",
-  description = "Materi pembelajaran per kegiatan. PDF dapat dilihat langsung dengan zoom dan unduh.",
+  description = "Pilih kegiatan, lalu buka materi. Detail dibuka di halaman terpisah.",
   onlyGlobal = true,
+  detailBasePath,
 }: MateriKontenProps) {
   const [kegiatanList, setKegiatanList] = useState<KegiatanOption[]>([]);
   const [selKeg, setSelKeg] = useState<number | "">("");
   const [materiList, setMateriList] = useState<MateriItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMateri, setLoadingMateri] = useState(false);
-  const [preview, setPreview] = useState<MateriItem | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -366,7 +136,6 @@ export function MateriKonten({
       try {
         const keg = kegiatanList.find((k) => k.nomor === selKeg);
         const kegId = keg?.id || `kegiatan-${selKeg}`;
-
         const snap = await getDocs(
           query(
             collection(db, "materi_tambahan"),
@@ -378,9 +147,7 @@ export function MateriKonten({
         let list = snap.docs.map(
           (d) => ({ id: d.id, ...d.data() }) as MateriItem,
         );
-        if (onlyGlobal) {
-          list = list.filter((m) => !m.kelas_id);
-        }
+        if (onlyGlobal) list = list.filter((m) => !m.kelas_id);
         list.sort((a, b) =>
           (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
         );
@@ -397,9 +164,7 @@ export function MateriKonten({
     };
   }, [selKeg, kegiatanList, onlyGlobal]);
 
-  if (loading) {
-    return <div className="card animate-pulse h-96" />;
-  }
+  if (loading) return <div className="card animate-pulse h-96" />;
 
   return (
     <div className="space-y-6">
@@ -413,10 +178,7 @@ export function MateriKonten({
         <select
           className="input-base min-w-[240px]"
           value={selKeg}
-          onChange={(e) => {
-            setSelKeg(Number(e.target.value));
-            setPreview(null);
-          }}>
+          onChange={(e) => setSelKeg(Number(e.target.value))}>
           {kegiatanList.length === 0 ? (
             <option value="">— Belum ada kegiatan —</option>
           ) : (
@@ -440,10 +202,9 @@ export function MateriKonten({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {materiList.map((m) => (
-            <button
+            <Link
               key={m.id}
-              type="button"
-              onClick={() => setPreview(m)}
+              to={`${detailBasePath}/${m.id}`}
               className="card text-left group hover:shadow-float transition border-l-4 border-brand-teal">
               <div className="flex items-start gap-3">
                 <div
@@ -464,47 +225,8 @@ export function MateriKonten({
                   </p>
                 </div>
               </div>
-            </button>
+            </Link>
           ))}
-        </div>
-      )}
-
-      {preview && (
-        <div className="card space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="text-lg font-bold text-slate-800">
-                {preview.judul}
-              </h2>
-              {preview.deskripsi && (
-                <p className="text-sm text-slate-500 mt-1">
-                  {preview.deskripsi}
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              className="btn-ghost text-sm shrink-0 inline-flex items-center gap-1"
-              onClick={() => setPreview(null)}>
-              <X className="h-4 w-4" /> Tutup
-            </button>
-          </div>
-
-          {isYoutubeUrl(preview.url) ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 aspect-video">
-              <iframe
-                src={toYoutubeEmbed(preview.url)}
-                title={preview.judul}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          ) : isPdfUrl(preview.url) ? (
-            <PdfViewer url={preview.url} title={preview.judul} />
-          ) : (
-            <GenericEmbed url={preview.url} title={preview.judul} />
-          )}
         </div>
       )}
     </div>
