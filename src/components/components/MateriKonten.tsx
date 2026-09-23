@@ -75,6 +75,36 @@ function toYoutubeEmbed(url: string) {
   return url;
 }
 
+// Preview generik: coba iframe, user tetap bisa buka tab baru jika diblokir
+function GenericEmbed({ url, title }: { url: string; title: string }) {
+  return (
+    <div className="flex flex-col rounded-xl border border-slate-200 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 border-b bg-white px-3 py-2">
+        <span className="text-xs text-slate-500 truncate">{url}</span>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-brand-green hover:underline shrink-0">
+          Buka di tab baru
+        </a>
+      </div>
+      <iframe
+        src={url}
+        title={title}
+        className="w-full bg-white"
+        style={{ height: "70vh", border: "none" }}
+        // sandbox longgar; sesuaikan kebutuhan keamanan
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+      />
+      <p className="border-t bg-slate-50 px-3 py-1.5 text-[11px] text-slate-400">
+        Jika area di atas kosong, situs sumber memblokir embed. Gunakan PDF/HTML
+        yang diizinkan di-iframe, atau buka di tab baru.
+      </p>
+    </div>
+  );
+}
+
 /** Normalisasi link Drive agar bisa di-embed */
 function toEmbeddablePdfUrl(url: string) {
   try {
@@ -473,8 +503,7 @@ export function MateriKonten({
           ) : isPdfUrl(preview.url) ? (
             <PdfViewer url={preview.url} title={preview.judul} />
           ) : (
-            /* Fallback: coba tetap embed di iframe dulu */
-            <PdfViewer url={preview.url} title={preview.judul} />
+            <GenericEmbed url={preview.url} title={preview.judul} />
           )}
         </div>
       )}
