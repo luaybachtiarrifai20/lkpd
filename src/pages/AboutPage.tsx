@@ -323,7 +323,9 @@ function ApproachCard({
         {icon}
         <span className="font-bold text-slate-800">{title}</span>
       </div>
-      <p className="text-sm text-slate-600 leading-relaxed">{desc}</p>
+      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+        {desc}
+      </p>
     </div>
   );
 }

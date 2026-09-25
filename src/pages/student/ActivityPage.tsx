@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
-  ClipboardList,
+  // ClipboardList,
   Atom,
   FlaskConical,
   Sparkles,
