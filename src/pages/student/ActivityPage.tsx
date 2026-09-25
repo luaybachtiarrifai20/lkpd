@@ -7,6 +7,9 @@ import {
   Atom,
   FlaskConical,
   Sparkles,
+  LayoutDashboard,
+  History,
+  UserIcon,
 } from "lucide-react";
 import { type KegiatanContent } from "@/content/types";
 import { useAuth } from "@/context/AuthContext";
@@ -27,13 +30,26 @@ import { ConfirmModal } from "@/components/ui/Modal";
 import { MoleculeField } from "@/components/ui";
 
 const navItems = [
-  { to: "/siswa", label: "Dashboard", icon: <BookOpen className="h-5 w-5" /> },
+  {
+    to: "/siswa",
+    label: "Dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    to: "/siswa/materi",
+    label: "Materi",
+    icon: <BookOpen className="h-5 w-5" />,
+  },
   {
     to: "/siswa/riwayat",
     label: "Riwayat & Nilai",
-    icon: <ClipboardList className="h-5 w-5" />,
+    icon: <History className="h-5 w-5" />,
   },
-  { to: "/siswa/profil", label: "Profil", icon: <Atom className="h-5 w-5" /> },
+  {
+    to: "/siswa/profil",
+    label: "Profil",
+    icon: <UserIcon className="h-5 w-5" />,
+  },
 ];
 
 export function ActivityPage() {
