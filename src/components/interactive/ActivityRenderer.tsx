@@ -52,7 +52,6 @@ const stepIcons = [
   <MessagesSquare className="h-4 w-4" />,
 ];
 
-
 export interface ActivityRendererProps {
   kegiatan: KegiatanContent;
   answers: Record<string, AnswerValue>;
@@ -556,8 +555,6 @@ export function ActivityRenderer({
             </div>
           )}
 
-          
-
           {/* Step nav */}
           {steps.length > 0 && (
             <div className="mt-5 flex items-center justify-between">
@@ -796,7 +793,11 @@ function StepContent({
       ) : (
         <div className="space-y-2">
           {step.ringkas && (
-            <p className="text-sm text-slate-500">{step.ringkas}</p>
+            <div className="card bg-white">
+              <p className="text-sm leading-relaxed text-slate-900 whitespace-pre-wrap">
+                {step.ringkas}
+              </p>
+            </div>
           )}
           {step.mediaUrl &&
             renderMedia({

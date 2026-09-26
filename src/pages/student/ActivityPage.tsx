@@ -27,29 +27,6 @@ import { ConfirmModal } from "@/components/ui/Modal";
 import { MoleculeField } from "@/components/ui";
 import { navItemsSiswa } from "./StudentDashboard";
 
-// const navItems = [
-//   {
-//     to: "/siswa",
-//     label: "Dashboard",
-//     icon: <LayoutDashboard className="h-5 w-5" />,
-//   },
-//   {
-//     to: "/siswa/materi",
-//     label: "Materi",
-//     icon: <BookOpen className="h-5 w-5" />,
-//   },
-//   {
-//     to: "/siswa/riwayat",
-//     label: "Riwayat & Nilai",
-//     icon: <History className="h-5 w-5" />,
-//   },
-//   {
-//     to: "/siswa/profil",
-//     label: "Profil",
-//     icon: <UserIcon className="h-5 w-5" />,
-//   },
-// ];
-
 export function ActivityPage() {
   const { nomor } = useParams();
   const { profile } = useAuth();
