@@ -291,7 +291,7 @@ export function ActivityPage() {
 
   return (
     <DashboardLayout items={navItemsSiswa} role="siswa">
-      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
+      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-1 sm:p-2 md:p-3 border border-slate-100/80 shadow-soft">
         <MoleculeField className="opacity-70" />
         {/* Soft Ambient background glows */}
         <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/40 rounded-full blur-3xl pointer-events-none" />

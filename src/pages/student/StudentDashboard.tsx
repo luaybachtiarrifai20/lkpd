@@ -204,7 +204,7 @@ export function ProgresKeseluruhan({
                   key={k.id || k.nomor}
                   to={`/siswa/kegiatan/${k.nomor}`}
                   className="group relative flex items-stretch gap-4">
-                  <div className="relative z-10 flex flex-col items-center pt-5">
+                  <div className="relative z-10 hidden flex-col items-center pt-5 sm:flex">
                     <div
                       className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-lg font-bold text-white shadow-soft transition ${isDone ? "ring-4 ring-offset-2" : ""}`}
                       style={{
@@ -217,7 +217,7 @@ export function ProgresKeseluruhan({
                     </div>
                   </div>
                   <div
-                    className="flex-1 overflow-hidden rounded-2xl bg-white p-5 shadow-soft transition group-hover:shadow-float"
+                    className="flex-1 overflow-hidden rounded-2xl bg-white px-3 py-5 md:px-5 shadow-soft transition group-hover:shadow-float"
                     style={{ borderTop: `3px solid ${k.warna}` }}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>

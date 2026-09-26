@@ -87,7 +87,7 @@ export function DashboardLayout({
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-content px-4 sm:px-6">
+      <div className="mx-auto flex max-w-content px-2 sm:px-2">
         {/* Desktop sidebar */}
         <aside className="sticky top-[65px] hidden h-[calc(100vh-65px)] w-64 shrink-0 py-6 pr-4 lg:block">
           <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-soft">
@@ -110,7 +110,7 @@ export function DashboardLayout({
         )}
 
         {/* Main */}
-        <main className="min-w-0 flex-1 py-6">
+        <main className="min-w-0 flex-1 py-3">
           {children ?? <Outlet />}
         </main>
       </div>
