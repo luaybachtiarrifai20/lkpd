@@ -4,18 +4,23 @@
 
 @layer base {
   html {
-    font-family: 'Quicksand', system-ui, sans-serif;
-    color: #263238;
-    line-height: 1.6;
-    scroll-behavior: smooth;
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 400;
+    color: #1e293b;
+    line-height: 1.65;
   }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Fredoka', system-ui, sans-serif;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Fredoka", system-ui, sans-serif;
     line-height: 1.25;
-    color: #1B5E20;
+    color: #1b5e20;
   }
   body {
-    background-color: #FAFAFA;
+    background-color: #fafafa;
   }
   ::selection {
     background-color: rgba(46, 125, 50, 0.18);
@@ -74,7 +79,10 @@
 }
 
 @layer utilities {
-  .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: rgba(13, 148, 136, 0.25);
     border-radius: 999px;
@@ -87,8 +95,12 @@
   }
   .bg-mesh-lab {
     background-image:
-      radial-gradient(at 20% 20%, rgba(13, 148, 136, 0.12) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, rgba(8, 145, 178, 0.10) 0px, transparent 50%),
+      radial-gradient(
+        at 20% 20%,
+        rgba(13, 148, 136, 0.12) 0px,
+        transparent 50%
+      ),
+      radial-gradient(at 80% 0%, rgba(8, 145, 178, 0.1) 0px, transparent 50%),
       radial-gradient(at 70% 80%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
   }
   .bg-grid-lab {
@@ -100,7 +112,9 @@
   .reveal {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
+    transition:
+      opacity 0.6s ease,
+      transform 0.6s ease;
   }
   .reveal.is-visible {
     opacity: 1;
@@ -112,10 +126,12 @@
     animation: drawLine 1.5s ease-out forwards;
   }
   @keyframes drawLine {
-    to { stroke-dashoffset: 0; }
+    to {
+      stroke-dashoffset: 0;
+    }
   }
   .bubble-hover::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 50%;
     left: 50%;
@@ -131,18 +147,42 @@
     animation: bubbleRise 0.8s ease-out;
   }
   @keyframes bubbleRise {
-    0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
-    30% { opacity: 0.8; }
-    100% { opacity: 0; transform: translate(-50%, -30px) scale(1.4); }
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 0) scale(0.5);
+    }
+    30% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -30px) scale(1.4);
+    }
   }
-  .animate-fade-in { animation: fadeIn 0.4s ease both; }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease both;
+  }
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  .animate-pop { animation: pop 0.25s ease both; }
+  .animate-pop {
+    animation: pop 0.25s ease both;
+  }
   @keyframes pop {
-    0% { transform: scale(0.96); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+      transform: scale(0.96);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 }
