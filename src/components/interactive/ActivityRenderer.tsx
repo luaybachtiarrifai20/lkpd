@@ -365,10 +365,9 @@ export function ActivityRenderer({
               </ol>
             )}
           </div>
-          <div>
+          {/* <div>
             <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-              <FlaskConical className="h-4 w-4 text-brand-green" /> Materi
-              Singkat
+              <FlaskConical className="h-4 w-4 text-brand-green" /> Materi Singkat
             </p>
             {editMode ? (
               <AdminTextArea
@@ -382,7 +381,7 @@ export function ActivityRenderer({
                 {kegiatan.materi}
               </p>
             )}
-          </div>
+          </div> */}
         </div>
       </details>
 
