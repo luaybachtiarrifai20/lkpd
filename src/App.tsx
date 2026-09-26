@@ -9,7 +9,8 @@ import {
   StudentRiwayat,
   StudentProfil,
   StudentMateri,
-  navItems as navItemsSiswa,
+  navItemsSiswa,
+  StudentEAssessmentList,
 } from "@/pages/student/StudentDashboard";
 import { ActivityPage } from "@/pages/student/ActivityPage";
 import {
@@ -22,6 +23,7 @@ import {
   TeacherProfil,
   TeacherMateri,
   navItems as navItemsGuru,
+  TeacherEAssessmentList,
 } from "@/pages/teacher/TeacherPages";
 import { SuperAdminLogin } from "@/pages/SuperAdminLogin";
 import { SuperAdminDashboard } from "@/pages/SuperAdminDashboard";
@@ -32,6 +34,7 @@ import { TestPage } from "./pages/student/TestPage";
 import { SuperAdminKegiatanDetail } from "./pages/super-admin/SuperAdminKegiatanDetail";
 import { ManageAboutPage } from "./pages/super-admin/ManageAboutPage";
 import { MateriDetail } from "./components/components/MateriDetail";
+import { AssessmentDetail } from "./components/components/AssessmentDetail";
 
 function ProtectedRoute({
   role,
@@ -126,6 +129,20 @@ export default function App() {
               }
             />
             <Route
+              path="/siswa/e-assessment"
+              element={<StudentEAssessmentList />}
+            />
+            <Route
+              path="/siswa/e-assessment/:id"
+              element={
+                <AssessmentDetail
+                  role="siswa"
+                  listPath="/siswa/e-assessment"
+                  navItems={navItemsSiswa}
+                />
+              }
+            />
+            <Route
               path="/siswa/profil"
               element={
                 <ProtectedRoute role="siswa">
@@ -179,6 +196,20 @@ export default function App() {
                 <ProtectedRoute role="guru">
                   <TeacherAssessment />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/guru/e-assessment"
+              element={<TeacherEAssessmentList />}
+            />
+            <Route
+              path="/guru/e-assessment/:id"
+              element={
+                <AssessmentDetail
+                  role="guru"
+                  listPath="/guru/e-assessment"
+                  navItems={navItemsGuru}
+                />
               }
             />
             <Route

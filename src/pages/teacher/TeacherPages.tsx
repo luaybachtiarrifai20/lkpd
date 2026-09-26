@@ -64,6 +64,7 @@ import { Modal } from "@/components/ui/Modal";
 import { exportJawabanPDF, exportRekapPDF } from "@/lib/pdf";
 import { restoreIsiJawaban } from "@/lib/answers";
 import { MateriKonten } from "@/components/components/MateriKonten";
+import { AssessmentKonten } from "@/components/components/AssessmentKonten";
 
 export const navItems = [
   {
@@ -85,12 +86,17 @@ export const navItems = [
     to: "/guru/assessment",
     label: "Tautan E-Assessment",
     icon: <Link2 className="h-5 w-5" />,
-  },
+  }, // lama: kelola per kelas (opsional tetap)
   {
     to: "/guru/materi",
     label: "Materi",
     icon: <BookOpen className="h-5 w-5" />,
   },
+  {
+    to: "/guru/e-assessment",
+    label: "E-Assessment",
+    icon: <Link2 className="h-5 w-5" />,
+  }, // BARU — list global
   {
     to: "/guru/ekspor",
     label: "Ekspor Massal",
@@ -570,7 +576,19 @@ export function TeacherKelas() {
   );
 }
 
-// ============ Rekap Progres ============
+export function TeacherEAssessmentList() {
+  return (
+    <DashboardLayout items={navItems} role="guru">
+      <AssessmentKonten
+        title="E-Assessment"
+        description="Tautan kuis dari Super Admin."
+        detailBasePath="/guru/e-assessment"
+        mode="guru"
+      />
+    </DashboardLayout>
+  );
+}
+
 // ============ Rekap Progres ============
 export function TeacherRekap() {
   const { profile } = useAuth();

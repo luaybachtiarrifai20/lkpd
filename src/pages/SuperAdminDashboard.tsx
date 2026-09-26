@@ -230,9 +230,18 @@ export function SuperAdminDashboard() {
   const [detailItem, setDetailItem] = useState<
     (MateriRow | AssessmentRow) | null
   >(null);
+  const [assessJudul, setAssessJudul] = useState("");
+  const [assessUrl, setAssessUrl] = useState("");
+  const [assessKelasIds, setAssessKelasIds] = useState<string[]>([]); // multi
+  const [kelasAll, setKelasAll] = useState<Kelas[]>([]);
+  const [savingAssess, setSavingAssess] = useState(false);
   const [detailType, setDetailType] = useState<"materi" | "assessment" | null>(
     null,
   );
+  const [kelasMap, setKelasMap] = useState<
+    Record<string, { nama: string; guru_id?: string }>
+  >({});
+  const [guruMap, setGuruMap] = useState<Record<string, string>>({}); // id → nama
 
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -249,6 +258,36 @@ export function SuperAdminDashboard() {
   const [creatingAdmin, setCreatingAdmin] = useState(false);
 
   const [showKegiatanForm, setShowKegiatanForm] = useState(false);
+
+  function namaKelasList(a: AssessmentRow): string {
+    const ids: string[] = Array.isArray((a as any).kelas_ids)
+      ? (a as any).kelas_ids
+      : (a as any).kelas_id
+        ? [(a as any).kelas_id]
+        : [];
+    if (ids.length === 0) return "—";
+    return ids.map((id) => kelasMap[id]?.nama || id).join(", ");
+  }
+
+  function namaGuruList(a: AssessmentRow): string {
+    const ids: string[] = Array.isArray((a as any).kelas_ids)
+      ? (a as any).kelas_ids
+      : (a as any).kelas_id
+        ? [(a as any).kelas_id]
+        : [];
+    if (ids.length === 0) return "—";
+    const names = new Set<string>();
+    ids.forEach((id) => {
+      const gid = kelasMap[id]?.guru_id;
+      if (gid) names.add(guruMap[gid] || gid);
+    });
+    // fallback: field lama dibuat_oleh_guru_id
+    if (names.size === 0 && (a as any).dibuat_oleh_guru_id) {
+      const gid = (a as any).dibuat_oleh_guru_id;
+      names.add(guruMap[gid] || gid);
+    }
+    return names.size ? [...names].join(", ") : "—";
+  }
 
   // Sync tab dari URL (saat klik sidebar Link)
   useEffect(() => {
@@ -360,15 +399,45 @@ export function SuperAdminDashboard() {
           setMateriList(list);
           break;
         }
+
+        // di case 'assessment':
         case "assessment": {
-          const snap = await getDocs(collection(db, "assessment_eksternal"));
-          const list = snap.docs.map(
-            (d) => ({ id: d.id, ...d.data() }) as AssessmentRow,
-          );
-          list.sort((a, b) =>
+          const [aSnap, kSnap, pSnap] = await Promise.all([
+            getDocs(collection(db, "assessment_eksternal")),
+            getDocs(collection(db, "kelas")),
+            getDocs(
+              query(collection(db, "profiles"), where("role", "==", "guru")),
+            ),
+          ]);
+
+          const list = aSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          list.sort((a: any, b: any) =>
             (b.diperbarui_pada || "").localeCompare(a.diperbarui_pada || ""),
           );
-          setAssessmentList(list);
+          setAssessmentList(list as AssessmentRow[]);
+
+          const kMap: Record<string, { nama: string; guru_id?: string }> = {};
+          kSnap.docs.forEach((d) => {
+            const data = d.data();
+            kMap[d.id] = {
+              nama: data.nama_kelas || d.id,
+              guru_id: data.guru_id,
+            };
+          });
+          setKelasMap(kMap);
+          setKelasAll(
+            kSnap.docs
+              .map((d) => ({ id: d.id, ...d.data() }) as Kelas)
+              .sort((a, b) =>
+                (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"),
+              ),
+          );
+
+          const gMap: Record<string, string> = {};
+          pSnap.docs.forEach((d) => {
+            gMap[d.id] = (d.data().nama as string) || d.id;
+          });
+          setGuruMap(gMap);
           break;
         }
         case "pending": {
@@ -1443,13 +1512,13 @@ export function SuperAdminDashboard() {
                           URL
                         </th>
                         <th className="px-4 py-3 font-semibold text-slate-700">
-                          Kelas ID
+                          Kelas
                         </th>
                         <th className="px-4 py-3 font-semibold text-slate-700">
                           Kegiatan ID
                         </th>
                         <th className="px-4 py-3 font-semibold text-slate-700">
-                          Guru ID
+                          Guru
                         </th>
                         <th className="px-4 py-3 font-semibold text-slate-700">
                           Diperbarui
@@ -1476,14 +1545,14 @@ export function SuperAdminDashboard() {
                               {a.url_kuis || "-"}
                             </a>
                           </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                            {a.kelas_id || "-"}
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {namaKelasList(a)}
                           </td>
                           <td className="px-4 py-3 font-mono text-xs text-slate-500">
                             {a.kegiatan_id || "-"}
                           </td>
-                          <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                            {a.dibuat_oleh_guru_id || "-"}
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {namaGuruList(a)}
                           </td>
                           <td className="px-4 py-3 text-xs text-slate-400">
                             {a.diperbarui_pada
@@ -1538,6 +1607,117 @@ export function SuperAdminDashboard() {
               )}
             </div>
           )}
+
+          {/* Form tambah */}
+          <div className="card space-y-3">
+            <h3 className="text-lg font-bold text-slate-800">
+              Tambah E-Assessment
+            </h3>
+
+            <div>
+              <label className="label-base">Judul Kuis</label>
+              <input
+                className="input-base"
+                value={assessJudul}
+                onChange={(e) => setAssessJudul(e.target.value)}
+                placeholder="Contoh: Kuis Formatif Minggu 1"
+              />
+            </div>
+
+            <div>
+              <label className="label-base">URL Kuis</label>
+              <input
+                className="input-base"
+                value={assessUrl}
+                onChange={(e) => setAssessUrl(e.target.value)}
+                placeholder="https://forms.gle/... atau https://quizizz.com/..."
+              />
+            </div>
+
+            <div>
+              <label className="label-base">
+                Kelas (pilih satu atau lebih)
+              </label>
+              <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 p-2 space-y-1">
+                {kelasAll.length === 0 ? (
+                  <p className="text-xs text-slate-400 px-1">
+                    Belum ada kelas.
+                  </p>
+                ) : (
+                  kelasAll.map((k) => {
+                    const checked = assessKelasIds.includes(k.id);
+                    return (
+                      <label
+                        key={k.id}
+                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setAssessKelasIds((prev) =>
+                              checked
+                                ? prev.filter((id) => id !== k.id)
+                                : [...prev, k.id],
+                            );
+                          }}
+                          className="rounded border-slate-300"
+                        />
+                        <span>{k.nama_kelas}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                {assessKelasIds.length} kelas dipilih
+              </p>
+            </div>
+
+            <button
+              type="button"
+              disabled={savingAssess}
+              className="btn-primary"
+              onClick={async () => {
+                if (!assessJudul.trim() || !assessUrl.trim()) {
+                  toast("Judul dan URL wajib diisi", "warning");
+                  return;
+                }
+                if (assessKelasIds.length === 0) {
+                  toast("Pilih minimal satu kelas", "warning");
+                  return;
+                }
+                try {
+                  new URL(assessUrl.trim());
+                } catch {
+                  toast("URL tidak valid", "error");
+                  return;
+                }
+                setSavingAssess(true);
+                try {
+                  await setDoc(doc(collection(db, "assessment_eksternal")), {
+                    judul_kuis: assessJudul.trim(),
+                    url_kuis: assessUrl.trim(),
+                    kelas_ids: assessKelasIds, // ← array multi-kelas
+                    dibuat_oleh_role: "super_admin",
+                    dibuat_oleh_guru_id: profile?.id || null,
+                    diperbarui_pada: new Date().toISOString(),
+                  });
+                  toast("E-Assessment ditambahkan", "success");
+                  setAssessJudul("");
+                  setAssessUrl("");
+                  setAssessKelasIds([]);
+                  loadData();
+                } catch (err) {
+                  console.error(err);
+                  toast("Gagal menyimpan", "error");
+                } finally {
+                  setSavingAssess(false);
+                }
+              }}>
+              <Plus className="h-4 w-4" />
+              {savingAssess ? "Menyimpan…" : "Tambah Assessment"}
+            </button>
+          </div>
 
           {/* Konten tabel */}
           <div className="card overflow-hidden p-0">

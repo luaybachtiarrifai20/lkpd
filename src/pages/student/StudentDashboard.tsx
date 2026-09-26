@@ -20,6 +20,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Link2,
   // ExternalLink,
   // Youtube,
 } from "lucide-react";
@@ -56,8 +57,9 @@ import {
 } from "@/components/ui";
 import { Modal } from "@/components/ui/Modal";
 import { MateriKonten } from "@/components/components/MateriKonten";
+import { AssessmentKonten } from "@/components/components/AssessmentKonten";
 
-export const navItems = [
+export const navItemsSiswa = [
   {
     to: "/siswa",
     label: "Dashboard",
@@ -67,6 +69,11 @@ export const navItems = [
     to: "/siswa/materi",
     label: "Materi",
     icon: <BookOpen className="h-5 w-5" />,
+  },
+  {
+    to: "/siswa/e-assessment",
+    label: "E-Assessment",
+    icon: <Link2 className="h-5 w-5" />,
   },
   {
     to: "/siswa/riwayat",
@@ -273,6 +280,19 @@ export function ProgresKeseluruhan({
   );
 }
 
+export function StudentEAssessmentList() {
+  return (
+    <DashboardLayout items={navItemsSiswa} role="siswa">
+      <AssessmentKonten
+        title="E-Assessment"
+        description="Tautan kuis eksternal yang disediakan."
+        detailBasePath="/siswa/e-assessment"
+        mode="siswa"
+      />
+    </DashboardLayout>
+  );
+}
+
 // ============ Dashboard Siswa ============
 export function StudentDashboard() {
   const { profile, refreshAuth } = useAuth();
@@ -456,7 +476,7 @@ export function StudentDashboard() {
   // View: Progres (setelah klik kelas)
   if (selectedKelasId && kelas && selectedKelasId === kelas.id) {
     return (
-      <DashboardLayout items={navItems} role="siswa">
+      <DashboardLayout items={navItemsSiswa} role="siswa">
         <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
           {/* Soft Ambient background glows */}
           <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/35 rounded-full blur-3xl pointer-events-none" />
@@ -489,7 +509,7 @@ export function StudentDashboard() {
 
   // View: List kelas / form gabung
   return (
-    <DashboardLayout items={navItems} role="siswa">
+    <DashboardLayout items={navItemsSiswa} role="siswa">
       <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
         <MoleculeField className="opacity-70" />
         {/* Soft Ambient background glows */}
@@ -813,7 +833,7 @@ export function StudentRiwayat() {
   };
 
   return (
-    <DashboardLayout items={navItems} role="siswa">
+    <DashboardLayout items={navItemsSiswa} role="siswa">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-slate-800">Riwayat & Nilai</h1>
         {loading ? (
@@ -941,8 +961,8 @@ export function StudentRiwayat() {
 
 export function StudentMateri() {
   return (
-    <DashboardLayout items={navItems} role="siswa">
-      <MateriKonten onlyGlobal detailBasePath="/siswa/materi" />
+    <DashboardLayout items={navItemsSiswa} role="siswa">
+      <MateriKonten detailBasePath="/siswa/materi" />
     </DashboardLayout>
   );
 }
