@@ -82,11 +82,11 @@ export const navItems = [
     label: "Rekap Progres",
     icon: <ClipboardList className="h-5 w-5" />,
   },
-  {
-    to: "/guru/assessment",
-    label: "Tautan E-Assessment",
-    icon: <Link2 className="h-5 w-5" />,
-  }, // lama: kelola per kelas (opsional tetap)
+  // {
+  //   to: "/guru/assessment",
+  //   label: "Tautan E-Assessment",
+  //   icon: <Link2 className="h-5 w-5" />,
+  // },
   {
     to: "/guru/materi",
     label: "Materi",
@@ -1891,414 +1891,413 @@ function AnswerView({ label, ans }: { label: string; ans: unknown }) {
 }
 
 // ============ Kelola Tautan E-Assessment ============
-// ============ Kelola Tautan E-Assessment ============
-export function TeacherAssessment() {
-  const { profile } = useAuth();
-  const { toast } = useToast();
-  const [selKelas, setSelKelas] = useState<string>("");
-  const [selKeg, setSelKeg] = useState<number>(1);
-  const [kegIds, setKegIds] = useState<Record<number, string>>({});
-  const [kegiatanList, setKegiatanList] = useState<
-    { nomor: number; judul: string; subjudul: string }[]
-  >([]);
-  const [kelasList, setKelasList] = useState<Kelas[]>([]);
-  const [assess, setAssess] = useState<AssessmentEksternal | null>(null);
-  const [judul, setJudul] = useState("");
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(true);
-  /** Key: `${kelasId}_${nomorKegiatan}` → assessment (atau null) */
-  const [allAssess, setAllAssess] = useState<
-    Record<string, AssessmentEksternal | null>
-  >({});
+// export function TeacherAssessment() {
+//   const { profile } = useAuth();
+//   const { toast } = useToast();
+//   const [selKelas, setSelKelas] = useState<string>("");
+//   const [selKeg, setSelKeg] = useState<number>(1);
+//   const [kegIds, setKegIds] = useState<Record<number, string>>({});
+//   const [kegiatanList, setKegiatanList] = useState<
+//     { nomor: number; judul: string; subjudul: string }[]
+//   >([]);
+//   const [kelasList, setKelasList] = useState<Kelas[]>([]);
+//   const [assess, setAssess] = useState<AssessmentEksternal | null>(null);
+//   const [judul, setJudul] = useState("");
+//   const [url, setUrl] = useState("");
+//   const [loading, setLoading] = useState(true);
+//   /** Key: `${kelasId}_${nomorKegiatan}` → assessment (atau null) */
+//   const [allAssess, setAllAssess] = useState<
+//     Record<string, AssessmentEksternal | null>
+//   >({});
 
-  // Load kelas guru + kegiatan dari database
-  useEffect(() => {
-    if (!profile) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [kelasSnapshot, kegsSnapshot, assesSnapshot] = await Promise.all([
-          getDocs(
-            query(collection(db, "kelas"), where("guru_id", "==", profile.id)),
-          ),
-          getDocs(collection(db, "kegiatan")),
-          getDocs(collection(db, "assessment_eksternal")),
-        ]);
+//   // Load kelas guru + kegiatan dari database
+//   useEffect(() => {
+//     if (!profile) return;
+//     let cancelled = false;
+//     (async () => {
+//       try {
+//         const [kelasSnapshot, kegsSnapshot, assesSnapshot] = await Promise.all([
+//           getDocs(
+//             query(collection(db, "kelas"), where("guru_id", "==", profile.id)),
+//           ),
+//           getDocs(collection(db, "kegiatan")),
+//           getDocs(collection(db, "assessment_eksternal")),
+//         ]);
 
-        if (cancelled) return;
+//         if (cancelled) return;
 
-        const kList = kelasSnapshot.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as Kelas,
-        );
-        kList.sort((a, b) =>
-          (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"),
-        );
-        setKelasList(kList);
+//         const kList = kelasSnapshot.docs.map(
+//           (d) => ({ id: d.id, ...d.data() }) as Kelas,
+//         );
+//         kList.sort((a, b) =>
+//           (a.nama_kelas || "").localeCompare(b.nama_kelas || "", "id"),
+//         );
+//         setKelasList(kList);
 
-        const map = buildKegiatanMap(kegsSnapshot.docs);
-        const list = buildKegiatanList(kegsSnapshot.docs);
-        setKegIds(map);
-        setKegiatanList(list);
+//         const map = buildKegiatanMap(kegsSnapshot.docs);
+//         const list = buildKegiatanList(kegsSnapshot.docs);
+//         setKegIds(map);
+//         setKegiatanList(list);
 
-        // Index assessment by kelas_id + nomor kegiatan
-        const amap: Record<string, AssessmentEksternal | null> = {};
-        assesSnapshot.docs.forEach((d) => {
-          const a = { id: d.id, ...d.data() } as AssessmentEksternal & {
-            kelas_id?: string;
-          };
-          const nomor = Number(
-            Object.entries(map).find(([, id]) => id === a.kegiatan_id)?.[0] ||
-              0,
-          );
-          if (nomor && a.kelas_id) {
-            amap[`${a.kelas_id}_${nomor}`] = a;
-          }
-        });
-        setAllAssess(amap);
+//         // Index assessment by kelas_id + nomor kegiatan
+//         const amap: Record<string, AssessmentEksternal | null> = {};
+//         assesSnapshot.docs.forEach((d) => {
+//           const a = { id: d.id, ...d.data() } as AssessmentEksternal & {
+//             kelas_id?: string;
+//           };
+//           const nomor = Number(
+//             Object.entries(map).find(([, id]) => id === a.kegiatan_id)?.[0] ||
+//               0,
+//           );
+//           if (nomor && a.kelas_id) {
+//             amap[`${a.kelas_id}_${nomor}`] = a;
+//           }
+//         });
+//         setAllAssess(amap);
 
-        // Auto-select first class if available
-        if (kList.length > 0 && !selKelas) {
-          setSelKelas(kList[0].id);
-        }
-      } catch (err) {
-        console.error("[TeacherAssessment] load error:", err);
-        toast("Gagal memuat data kelas/kegiatan", "error");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profile, toast]);
+//         // Auto-select first class if available
+//         if (kList.length > 0 && !selKelas) {
+//           setSelKelas(kList[0].id);
+//         }
+//       } catch (err) {
+//         console.error("[TeacherAssessment] load error:", err);
+//         toast("Gagal memuat data kelas/kegiatan", "error");
+//       } finally {
+//         if (!cancelled) setLoading(false);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, [profile, toast]);
 
-  // Load assessment untuk kelas + kegiatan yang dipilih
-  useEffect(() => {
-    if (!selKelas || !kegIds[selKeg]) {
-      setAssess(null);
-      setJudul("");
-      setUrl("");
-      return;
-    }
-    (async () => {
-      try {
-        const snapshot = await getDocs(
-          query(
-            collection(db, "assessment_eksternal"),
-            where("kegiatan_id", "==", kegIds[selKeg]),
-            where("kelas_id", "==", selKelas),
-          ),
-        );
-        if (snapshot.empty) {
-          setAssess(null);
-          setJudul("");
-          setUrl("");
-        } else {
-          const data = snapshot.docs[0].data();
-          setAssess({
-            id: snapshot.docs[0].id,
-            ...data,
-          } as AssessmentEksternal);
-          setJudul(data.judul_kuis || "");
-          setUrl(data.url_kuis || "");
-        }
-      } catch (err) {
-        console.error("[TeacherAssessment] load assess error:", err);
-        // Fallback: query tanpa kelas_id (data lama) lalu filter client-side
-        try {
-          const snapshot = await getDocs(
-            query(
-              collection(db, "assessment_eksternal"),
-              where("kegiatan_id", "==", kegIds[selKeg]),
-            ),
-          );
-          const match = snapshot.docs.find(
-            (d) => (d.data() as any).kelas_id === selKelas,
-          );
-          if (match) {
-            const data = match.data();
-            setAssess({ id: match.id, ...data } as AssessmentEksternal);
-            setJudul(data.judul_kuis || "");
-            setUrl(data.url_kuis || "");
-          } else {
-            setAssess(null);
-            setJudul("");
-            setUrl("");
-          }
-        } catch {
-          setAssess(null);
-          setJudul("");
-          setUrl("");
-        }
-      }
-    })();
-  }, [selKelas, selKeg, kegIds]);
+//   // Load assessment untuk kelas + kegiatan yang dipilih
+//   useEffect(() => {
+//     if (!selKelas || !kegIds[selKeg]) {
+//       setAssess(null);
+//       setJudul("");
+//       setUrl("");
+//       return;
+//     }
+//     (async () => {
+//       try {
+//         const snapshot = await getDocs(
+//           query(
+//             collection(db, "assessment_eksternal"),
+//             where("kegiatan_id", "==", kegIds[selKeg]),
+//             where("kelas_id", "==", selKelas),
+//           ),
+//         );
+//         if (snapshot.empty) {
+//           setAssess(null);
+//           setJudul("");
+//           setUrl("");
+//         } else {
+//           const data = snapshot.docs[0].data();
+//           setAssess({
+//             id: snapshot.docs[0].id,
+//             ...data,
+//           } as AssessmentEksternal);
+//           setJudul(data.judul_kuis || "");
+//           setUrl(data.url_kuis || "");
+//         }
+//       } catch (err) {
+//         console.error("[TeacherAssessment] load assess error:", err);
+//         // Fallback: query tanpa kelas_id (data lama) lalu filter client-side
+//         try {
+//           const snapshot = await getDocs(
+//             query(
+//               collection(db, "assessment_eksternal"),
+//               where("kegiatan_id", "==", kegIds[selKeg]),
+//             ),
+//           );
+//           const match = snapshot.docs.find(
+//             (d) => (d.data() as any).kelas_id === selKelas,
+//           );
+//           if (match) {
+//             const data = match.data();
+//             setAssess({ id: match.id, ...data } as AssessmentEksternal);
+//             setJudul(data.judul_kuis || "");
+//             setUrl(data.url_kuis || "");
+//           } else {
+//             setAssess(null);
+//             setJudul("");
+//             setUrl("");
+//           }
+//         } catch {
+//           setAssess(null);
+//           setJudul("");
+//           setUrl("");
+//         }
+//       }
+//     })();
+//   }, [selKelas, selKeg, kegIds]);
 
-  const save = async () => {
-    if (!profile || !kegIds[selKeg] || !selKelas) {
-      toast("Pilih kelas dan kegiatan terlebih dahulu", "warning");
-      return;
-    }
-    if (!url.trim()) {
-      toast("URL kuis wajib diisi", "warning");
-      return;
-    }
-    try {
-      new URL(url);
-    } catch {
-      toast("URL tidak valid", "error");
-      return;
-    }
+//   const save = async () => {
+//     if (!profile || !kegIds[selKeg] || !selKelas) {
+//       toast("Pilih kelas dan kegiatan terlebih dahulu", "warning");
+//       return;
+//     }
+//     if (!url.trim()) {
+//       toast("URL kuis wajib diisi", "warning");
+//       return;
+//     }
+//     try {
+//       new URL(url);
+//     } catch {
+//       toast("URL tidak valid", "error");
+//       return;
+//     }
 
-    const payload = {
-      kegiatan_id: kegIds[selKeg],
-      kelas_id: selKelas,
-      judul_kuis: judul || null,
-      url_kuis: url,
-      dibuat_oleh_guru_id: profile.id,
-      diperbarui_pada: new Date().toISOString(),
-    };
+//     const payload = {
+//       kegiatan_id: kegIds[selKeg],
+//       kelas_id: selKelas,
+//       judul_kuis: judul || null,
+//       url_kuis: url,
+//       dibuat_oleh_guru_id: profile.id,
+//       diperbarui_pada: new Date().toISOString(),
+//     };
 
-    try {
-      // Cari existing berdasarkan kegiatan_id + kelas_id
-      let existingId: string | null = null;
-      try {
-        const existingSnapshot = await getDocs(
-          query(
-            collection(db, "assessment_eksternal"),
-            where("kegiatan_id", "==", kegIds[selKeg]),
-            where("kelas_id", "==", selKelas),
-          ),
-        );
-        if (!existingSnapshot.empty) {
-          existingId = existingSnapshot.docs[0].id;
-        }
-      } catch {
-        // Composite index mungkin belum ada — fallback client-side
-        const allSnap = await getDocs(
-          query(
-            collection(db, "assessment_eksternal"),
-            where("kegiatan_id", "==", kegIds[selKeg]),
-          ),
-        );
-        const match = allSnap.docs.find(
-          (d) => (d.data() as any).kelas_id === selKelas,
-        );
-        if (match) existingId = match.id;
-      }
+//     try {
+//       // Cari existing berdasarkan kegiatan_id + kelas_id
+//       let existingId: string | null = null;
+//       try {
+//         const existingSnapshot = await getDocs(
+//           query(
+//             collection(db, "assessment_eksternal"),
+//             where("kegiatan_id", "==", kegIds[selKeg]),
+//             where("kelas_id", "==", selKelas),
+//           ),
+//         );
+//         if (!existingSnapshot.empty) {
+//           existingId = existingSnapshot.docs[0].id;
+//         }
+//       } catch {
+//         // Composite index mungkin belum ada — fallback client-side
+//         const allSnap = await getDocs(
+//           query(
+//             collection(db, "assessment_eksternal"),
+//             where("kegiatan_id", "==", kegIds[selKeg]),
+//           ),
+//         );
+//         const match = allSnap.docs.find(
+//           (d) => (d.data() as any).kelas_id === selKelas,
+//         );
+//         if (match) existingId = match.id;
+//       }
 
-      if (existingId) {
-        await updateDoc(doc(db, "assessment_eksternal", existingId), payload);
-      } else {
-        await addDoc(collection(db, "assessment_eksternal"), payload);
-      }
+//       if (existingId) {
+//         await updateDoc(doc(db, "assessment_eksternal", existingId), payload);
+//       } else {
+//         await addDoc(collection(db, "assessment_eksternal"), payload);
+//       }
 
-      // Update local allAssess
-      const key = `${selKelas}_${selKeg}`;
-      setAllAssess((prev) => ({
-        ...prev,
-        [key]: { ...payload, id: existingId || "new" } as AssessmentEksternal,
-      }));
-      setAssess({
-        ...(payload as any),
-        id: existingId || "new",
-      });
+//       // Update local allAssess
+//       const key = `${selKelas}_${selKeg}`;
+//       setAllAssess((prev) => ({
+//         ...prev,
+//         [key]: { ...payload, id: existingId || "new" } as AssessmentEksternal,
+//       }));
+//       setAssess({
+//         ...(payload as any),
+//         id: existingId || "new",
+//       });
 
-      toast(
-        "Tautan kuis tersimpan — siswa di kelas ini akan melihat embed & QR",
-        "success",
-      );
-    } catch (err) {
-      console.error("[TeacherAssessment] save error:", err);
-      toast("Gagal menyimpan tautan", "error");
-    }
-  };
+//       toast(
+//         "Tautan kuis tersimpan — siswa di kelas ini akan melihat embed & QR",
+//         "success",
+//       );
+//     } catch (err) {
+//       console.error("[TeacherAssessment] save error:", err);
+//       toast("Gagal menyimpan tautan", "error");
+//     }
+//   };
 
-  const selectedKegMeta = KEGIATAN_CONTENT.find((k) => k.nomor === selKeg);
+//   const selectedKegMeta = KEGIATAN_CONTENT.find((k) => k.nomor === selKeg);
 
-  if (loading)
-    return (
-      <DashboardLayout items={navItems} role="guru">
-        <div className="card animate-pulse h-96" />
-      </DashboardLayout>
-    );
+//   if (loading)
+//     return (
+//       <DashboardLayout items={navItems} role="guru">
+//         <div className="card animate-pulse h-96" />
+//       </DashboardLayout>
+//     );
 
-  return (
-    <DashboardLayout items={navItems} role="guru">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">
-            Kelola Tautan E-Assessment
-          </h1>
-          <p className="text-sm text-slate-500">
-            Pilih kelas terlebih dahulu, lalu tempel tautan kuis dari platform
-            eksternal (Google Forms/Quizizz/dll.). Sistem otomatis menampilkan
-            embed & QR hanya untuk siswa di kelas yang dipilih.
-          </p>
-        </div>
+//   return (
+//     <DashboardLayout items={navItems} role="guru">
+//       <div className="space-y-6">
+//         <div>
+//           <h1 className="text-2xl font-bold text-slate-800">
+//             Kelola Tautan E-Assessment
+//           </h1>
+//           <p className="text-sm text-slate-500">
+//             Pilih kelas terlebih dahulu, lalu tempel tautan kuis dari platform
+//             eksternal (Google Forms/Quizizz/dll.). Sistem otomatis menampilkan
+//             embed & QR hanya untuk siswa di kelas yang dipilih.
+//           </p>
+//         </div>
 
-        <div className="card">
-          {/* Pilih Kelas */}
-          <div className="mb-5">
-            <label className="label-base">Pilih Kelas</label>
-            <select
-              className="input-base min-w-[220px]"
-              value={selKelas}
-              onChange={(e) => {
-                setSelKelas(e.target.value);
-                // Reset form when switching class
-                setJudul("");
-                setUrl("");
-                setAssess(null);
-              }}>
-              <option value="">
-                {kelasList.length === 0
-                  ? "— Belum ada kelas —"
-                  : "— Pilih Kelas —"}
-              </option>
-              {kelasList.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.nama_kelas}
-                </option>
-              ))}
-            </select>
-            {kelasList.length === 0 && (
-              <p className="mt-1 text-xs text-amber-600">
-                Belum ada kelas. Buat kelas di menu{" "}
-                <strong>Kelas & Siswa</strong> terlebih dahulu.
-              </p>
-            )}
-          </div>
+//         <div className="card">
+//           {/* Pilih Kelas */}
+//           <div className="mb-5">
+//             <label className="label-base">Pilih Kelas</label>
+//             <select
+//               className="input-base min-w-[220px]"
+//               value={selKelas}
+//               onChange={(e) => {
+//                 setSelKelas(e.target.value);
+//                 // Reset form when switching class
+//                 setJudul("");
+//                 setUrl("");
+//                 setAssess(null);
+//               }}>
+//               <option value="">
+//                 {kelasList.length === 0
+//                   ? "— Belum ada kelas —"
+//                   : "— Pilih Kelas —"}
+//               </option>
+//               {kelasList.map((k) => (
+//                 <option key={k.id} value={k.id}>
+//                   {k.nama_kelas}
+//                 </option>
+//               ))}
+//             </select>
+//             {kelasList.length === 0 && (
+//               <p className="mt-1 text-xs text-amber-600">
+//                 Belum ada kelas. Buat kelas di menu{" "}
+//                 <strong>Kelas & Siswa</strong> terlebih dahulu.
+//               </p>
+//             )}
+//           </div>
 
-          {/* Pilih Kegiatan — hanya tampil setelah kelas dipilih */}
-          {selKelas ? (
-            <>
-              <label className="label-base">Pilih Kegiatan</label>
-              <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {kegiatanList.length === 0 ? (
-                  <p className="text-sm text-slate-400 col-span-full">
-                    Belum ada kegiatan di database.
-                  </p>
-                ) : (
-                  kegiatanList.map((k) => {
-                    const meta = KEGIATAN_CONTENT.find(
-                      (c) => c.nomor === k.nomor,
-                    );
-                    const hasAssess = !!allAssess[`${selKelas}_${k.nomor}`];
-                    const isSelected = selKeg === k.nomor;
-                    return (
-                      <button
-                        key={k.nomor}
-                        onClick={() => setSelKeg(k.nomor)}
-                        className={`relative rounded-xl border-2 p-3 text-left transition ${
-                          isSelected ? "" : "border-slate-200 hover:bg-slate-50"
-                        }`}
-                        style={
-                          isSelected && meta
-                            ? {
-                                borderColor: meta.warna,
-                                backgroundColor: meta.warnaLight,
-                              }
-                            : undefined
-                        }>
-                        {hasAssess && (
-                          <span
-                            className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-success/15 text-success"
-                            title="Tautan sudah diisi">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                          </span>
-                        )}
-                        <p className="text-xs font-semibold text-slate-400">
-                          Kegiatan {k.nomor}
-                        </p>
-                        <p className="text-sm font-bold text-slate-800 leading-tight">
-                          {k.subjudul || k.judul}
-                        </p>
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          {hasAssess ? "Kuis siap" : "Belum ada kuis"}
-                        </p>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+//           {/* Pilih Kegiatan — hanya tampil setelah kelas dipilih */}
+//           {selKelas ? (
+//             <>
+//               <label className="label-base">Pilih Kegiatan</label>
+//               <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+//                 {kegiatanList.length === 0 ? (
+//                   <p className="text-sm text-slate-400 col-span-full">
+//                     Belum ada kegiatan di database.
+//                   </p>
+//                 ) : (
+//                   kegiatanList.map((k) => {
+//                     const meta = KEGIATAN_CONTENT.find(
+//                       (c) => c.nomor === k.nomor,
+//                     );
+//                     const hasAssess = !!allAssess[`${selKelas}_${k.nomor}`];
+//                     const isSelected = selKeg === k.nomor;
+//                     return (
+//                       <button
+//                         key={k.nomor}
+//                         onClick={() => setSelKeg(k.nomor)}
+//                         className={`relative rounded-xl border-2 p-3 text-left transition ${
+//                           isSelected ? "" : "border-slate-200 hover:bg-slate-50"
+//                         }`}
+//                         style={
+//                           isSelected && meta
+//                             ? {
+//                                 borderColor: meta.warna,
+//                                 backgroundColor: meta.warnaLight,
+//                               }
+//                             : undefined
+//                         }>
+//                         {hasAssess && (
+//                           <span
+//                             className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-success/15 text-success"
+//                             title="Tautan sudah diisi">
+//                             <CheckCircle2 className="h-3.5 w-3.5" />
+//                           </span>
+//                         )}
+//                         <p className="text-xs font-semibold text-slate-400">
+//                           Kegiatan {k.nomor}
+//                         </p>
+//                         <p className="text-sm font-bold text-slate-800 leading-tight">
+//                           {k.subjudul || k.judul}
+//                         </p>
+//                         <p className="mt-1 text-[11px] text-slate-400">
+//                           {hasAssess ? "Kuis siap" : "Belum ada kuis"}
+//                         </p>
+//                       </button>
+//                     );
+//                   })
+//                 )}
+//               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="label-base">Judul Kuis</label>
-                  <input
-                    className="input-base"
-                    value={judul}
-                    onChange={(e) => setJudul(e.target.value)}
-                    placeholder="Contoh: Pretest / Kuis Formatif Kegiatan 1"
-                  />
-                </div>
-                <div>
-                  <label className="label-base">URL Kuis Eksternal</label>
-                  <input
-                    className="input-base"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://forms.gle/... atau https://quizizz.com/..."
-                  />
-                  <p className="mt-1.5 text-xs text-slate-400">
-                    Tempel link kuis dari Google Forms, Quizizz, Wordwall, atau
-                    platform sejenisnya.
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={save} className="btn-primary">
-                    <Save className="h-4 w-4" /> Simpan Tautan
-                  </button>
-                  {assess && (
-                    <span className="chip self-center">
-                      Tersimpan •{" "}
-                      {new Date(
-                        assess.diperbarui_pada || "",
-                      ).toLocaleDateString("id-ID")}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <EmptyState
-              icon={<Users className="h-7 w-7" />}
-              title="Pilih kelas terlebih dahulu"
-              description="Pilih kelas di atas agar tautan kuis hanya muncul untuk siswa di kelas tersebut."
-            />
-          )}
-        </div>
+//               <div className="space-y-3">
+//                 <div>
+//                   <label className="label-base">Judul Kuis</label>
+//                   <input
+//                     className="input-base"
+//                     value={judul}
+//                     onChange={(e) => setJudul(e.target.value)}
+//                     placeholder="Contoh: Pretest / Kuis Formatif Kegiatan 1"
+//                   />
+//                 </div>
+//                 <div>
+//                   <label className="label-base">URL Kuis Eksternal</label>
+//                   <input
+//                     className="input-base"
+//                     value={url}
+//                     onChange={(e) => setUrl(e.target.value)}
+//                     placeholder="https://forms.gle/... atau https://quizizz.com/..."
+//                   />
+//                   <p className="mt-1.5 text-xs text-slate-400">
+//                     Tempel link kuis dari Google Forms, Quizizz, Wordwall, atau
+//                     platform sejenisnya.
+//                   </p>
+//                 </div>
+//                 <div className="flex gap-2">
+//                   <button onClick={save} className="btn-primary">
+//                     <Save className="h-4 w-4" /> Simpan Tautan
+//                   </button>
+//                   {assess && (
+//                     <span className="chip self-center">
+//                       Tersimpan •{" "}
+//                       {new Date(
+//                         assess.diperbarui_pada || "",
+//                       ).toLocaleDateString("id-ID")}
+//                     </span>
+//                   )}
+//                 </div>
+//               </div>
+//             </>
+//           ) : (
+//             <EmptyState
+//               icon={<Users className="h-7 w-7" />}
+//               title="Pilih kelas terlebih dahulu"
+//               description="Pilih kelas di atas agar tautan kuis hanya muncul untuk siswa di kelas tersebut."
+//             />
+//           )}
+//         </div>
 
-        {/* Preview */}
-        {selKelas && url && (
-          <div className="card">
-            <h3 className="mb-3 text-lg font-bold text-slate-800">
-              Preview (apa yang siswa lihat)
-            </h3>
-            <div
-              className="overflow-hidden rounded-xl border-2"
-              style={{
-                borderColor: selectedKegMeta?.warna || "#22c55e",
-              }}>
-              <iframe
-                src={url}
-                title="Preview"
-                className="w-full"
-                style={{ height: "420px", border: "none" }}
-                sandbox="allow-scripts allow-same-origin allow-forms"
-              />
-            </div>
-            <p className="mt-2 text-xs text-slate-400">
-              Siswa di kelas yang dipilih juga dapat memindai kode QR dari tab
-              &quot;Scan QR&quot; di halaman kegiatan.
-            </p>
-          </div>
-        )}
-      </div>
-    </DashboardLayout>
-  );
-}
+//         {/* Preview */}
+//         {selKelas && url && (
+//           <div className="card">
+//             <h3 className="mb-3 text-lg font-bold text-slate-800">
+//               Preview (apa yang siswa lihat)
+//             </h3>
+//             <div
+//               className="overflow-hidden rounded-xl border-2"
+//               style={{
+//                 borderColor: selectedKegMeta?.warna || "#22c55e",
+//               }}>
+//               <iframe
+//                 src={url}
+//                 title="Preview"
+//                 className="w-full"
+//                 style={{ height: "420px", border: "none" }}
+//                 sandbox="allow-scripts allow-same-origin allow-forms"
+//               />
+//             </div>
+//             <p className="mt-2 text-xs text-slate-400">
+//               Siswa di kelas yang dipilih juga dapat memindai kode QR dari tab
+//               &quot;Scan QR&quot; di halaman kegiatan.
+//             </p>
+//           </div>
+//         )}
+//       </div>
+//     </DashboardLayout>
+//   );
+// }
 
 // ============ Materi Tambahan ============
 export function TeacherMateri() {
@@ -2307,7 +2306,6 @@ export function TeacherMateri() {
       <MateriKonten
         title="Materi"
         description="Pilih kegiatan lalu buka materi."
-        onlyGlobal
         detailBasePath="/guru/materi"
       />
     </DashboardLayout>

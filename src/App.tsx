@@ -18,7 +18,6 @@ import {
   TeacherKelas,
   TeacherRekap,
   TeacherSiswaDetail,
-  TeacherAssessment,
   TeacherEkspor,
   TeacherProfil,
   TeacherMateri,
@@ -190,14 +189,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/guru/assessment"
-              element={
-                <ProtectedRoute role="guru">
-                  <TeacherAssessment />
-                </ProtectedRoute>
-              }
-            />
+           
             <Route
               path="/guru/e-assessment"
               element={<TeacherEAssessmentList />}
