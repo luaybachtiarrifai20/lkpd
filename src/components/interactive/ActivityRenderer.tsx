@@ -52,183 +52,6 @@ const stepIcons = [
   <MessagesSquare className="h-4 w-4" />,
 ];
 
-/** Normalize various row formats → { cells: string[] }[] aligned to colCount */
-// function normalizeTableRows(
-//   rows: unknown,
-//   colCount: number,
-// ): { cells: string[] }[] {
-//   const pad = (cells: string[]) => {
-//     const next = cells.map((c) => String(c ?? ""));
-//     while (next.length < colCount) next.push("");
-//     return next.slice(0, Math.max(colCount, 1));
-//   };
-
-//   if (!Array.isArray(rows) || rows.length === 0) {
-//     return [{ cells: pad([]) }];
-//   }
-
-//   return rows.map((row) => {
-//     if (
-//       row &&
-//       typeof row === "object" &&
-//       "cells" in row &&
-//       Array.isArray((row as { cells: unknown }).cells)
-//     ) {
-//       return {
-//         cells: pad(
-//           ((row as { cells: unknown[] }).cells || []).map((c) =>
-//             String(c ?? ""),
-//           ),
-//         ),
-//       };
-//     }
-//     if (Array.isArray(row)) {
-//       return { cells: pad(row.map((c) => String(c ?? ""))) };
-//     }
-//     return { cells: pad([]) };
-//   });
-// }
-
-// /** Full table editor: headers + rows, add/remove columns & rows */
-// function AdminDataTableEditor({
-//   headers,
-//   rows,
-//   onChange,
-// }: {
-//   headers: string[];
-//   rows: unknown;
-//   onChange: (headers: string[], rows: { cells: string[] }[]) => void;
-// }) {
-//   const cols = headers?.length > 0 ? headers : ["Kolom 1"];
-//   const normalized = normalizeTableRows(rows, cols.length);
-
-//   const emit = (nextHeaders: string[], nextRows: { cells: string[] }[]) => {
-//     onChange(nextHeaders, nextRows);
-//   };
-
-//   const updateHeader = (ci: number, value: string) => {
-//     const next = [...cols];
-//     next[ci] = value;
-//     emit(next, normalized);
-//   };
-
-//   const addColumn = () => {
-//     const nextHeaders = [...cols, `Kolom ${cols.length + 1}`];
-//     const nextRows = normalized.map((r) => ({
-//       cells: [...r.cells, ""],
-//     }));
-//     emit(nextHeaders, nextRows);
-//   };
-
-//   const removeColumn = (ci: number) => {
-//     if (cols.length <= 1) return;
-//     const nextHeaders = cols.filter((_, i) => i !== ci);
-//     const nextRows = normalized.map((r) => ({
-//       cells: r.cells.filter((_, i) => i !== ci),
-//     }));
-//     emit(nextHeaders, nextRows);
-//   };
-
-//   const updateCell = (ri: number, ci: number, value: string) => {
-//     const nextRows = normalized.map((r, i) =>
-//       i === ri ? { cells: r.cells.map((c, j) => (j === ci ? value : c)) } : r,
-//     );
-//     emit(cols, nextRows);
-//   };
-
-//   const addRow = () => {
-//     emit(cols, [...normalized, { cells: cols.map(() => "") }]);
-//   };
-
-//   const removeRow = (ri: number) => {
-//     if (normalized.length <= 1) return;
-//     emit(
-//       cols,
-//       normalized.filter((_, i) => i !== ri),
-//     );
-//   };
-
-//   return (
-//     <div className="space-y-2">
-//       <p className="text-[11px] font-semibold uppercase tracking-wide text-purple-600">
-//         Edit Tabel (header & isi)
-//       </p>
-//       <div className="overflow-x-auto rounded-xl border border-purple-200 bg-white">
-//         <table className="w-full min-w-[320px] text-sm">
-//           <thead>
-//             <tr className="bg-purple-50/80">
-//               {cols.map((h, ci) => (
-//                 <th
-//                   key={ci}
-//                   className="relative p-1.5 border-b border-purple-100 min-w-[120px]">
-//                   <div className="flex items-center gap-1">
-//                     <input
-//                       type="text"
-//                       value={h}
-//                       onChange={(e) => updateHeader(ci, e.target.value)}
-//                       className="w-full rounded-lg border border-purple-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-purple-400"
-//                       placeholder={`Kolom ${ci + 1}`}
-//                     />
-//                     <button
-//                       type="button"
-//                       onClick={() => removeColumn(ci)}
-//                       disabled={cols.length <= 1}
-//                       title="Hapus kolom"
-//                       className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed">
-//                       <Trash2 className="h-3.5 w-3.5" />
-//                     </button>
-//                   </div>
-//                 </th>
-//               ))}
-//               <th className="w-10 p-1.5 border-b border-purple-100">
-//                 <button
-//                   type="button"
-//                   onClick={addColumn}
-//                   title="Tambah kolom"
-//                   className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition">
-//                   <Plus className="h-4 w-4" />
-//                 </button>
-//               </th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {normalized.map((row, ri) => (
-//               <tr key={ri} className={ri % 2 ? "bg-slate-50/50" : ""}>
-//                 {row.cells.map((cell, ci) => (
-//                   <td key={ci} className="p-1.5 border-b border-slate-100">
-//                     <input
-//                       type="text"
-//                       value={cell}
-//                       onChange={(e) => updateCell(ri, ci, e.target.value)}
-//                       className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-purple-400 focus:bg-purple-50/30"
-//                       placeholder="…"
-//                     />
-//                   </td>
-//                 ))}
-//                 <td className="p-1.5 border-b border-slate-100">
-//                   <button
-//                     type="button"
-//                     onClick={() => removeRow(ri)}
-//                     disabled={normalized.length <= 1}
-//                     title="Hapus baris"
-//                     className="flex h-7 w-7 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed">
-//                     <Trash2 className="h-3.5 w-3.5" />
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//       <button
-//         type="button"
-//         onClick={addRow}
-//         className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-200 px-3 py-2.5 text-xs font-semibold text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition">
-//         <Plus className="h-3.5 w-3.5" /> Tambah Baris
-//       </button>
-//     </div>
-//   );
-// }
 
 export interface ActivityRendererProps {
   kegiatan: KegiatanContent;
@@ -603,7 +426,7 @@ export function ActivityRenderer({
                   </li>
                 );
               })}
-              {steps.length > 0 && !editMode && (
+              {/* {steps.length > 0 && !editMode && (
                 <li>
                   <button
                     type="button"
@@ -631,7 +454,7 @@ export function ActivityRenderer({
                     </span>
                   </button>
                 </li>
-              )}
+              )} */}
             </ol>
           </div>
         </aside>
@@ -835,8 +658,6 @@ export function ActivityRenderer({
     </div>
   );
 }
-
-/* ========== Step content ========== */
 
 /* ========== Step content ========== */
 

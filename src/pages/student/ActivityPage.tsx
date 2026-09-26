@@ -2,14 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
-  BookOpen,
+  // BookOpen,
   // ClipboardList,
   Atom,
   FlaskConical,
   Sparkles,
-  LayoutDashboard,
-  History,
-  UserIcon,
 } from "lucide-react";
 import { type KegiatanContent } from "@/content/types";
 import { useAuth } from "@/context/AuthContext";
@@ -28,29 +25,30 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ActivityRenderer } from "@/components/interactive/ActivityRenderer";
 import { ConfirmModal } from "@/components/ui/Modal";
 import { MoleculeField } from "@/components/ui";
+import { navItemsSiswa } from "./StudentDashboard";
 
-const navItems = [
-  {
-    to: "/siswa",
-    label: "Dashboard",
-    icon: <LayoutDashboard className="h-5 w-5" />,
-  },
-  {
-    to: "/siswa/materi",
-    label: "Materi",
-    icon: <BookOpen className="h-5 w-5" />,
-  },
-  {
-    to: "/siswa/riwayat",
-    label: "Riwayat & Nilai",
-    icon: <History className="h-5 w-5" />,
-  },
-  {
-    to: "/siswa/profil",
-    label: "Profil",
-    icon: <UserIcon className="h-5 w-5" />,
-  },
-];
+// const navItems = [
+//   {
+//     to: "/siswa",
+//     label: "Dashboard",
+//     icon: <LayoutDashboard className="h-5 w-5" />,
+//   },
+//   {
+//     to: "/siswa/materi",
+//     label: "Materi",
+//     icon: <BookOpen className="h-5 w-5" />,
+//   },
+//   {
+//     to: "/siswa/riwayat",
+//     label: "Riwayat & Nilai",
+//     icon: <History className="h-5 w-5" />,
+//   },
+//   {
+//     to: "/siswa/profil",
+//     label: "Profil",
+//     icon: <UserIcon className="h-5 w-5" />,
+//   },
+// ];
 
 export function ActivityPage() {
   const { nomor } = useParams();
@@ -266,7 +264,7 @@ export function ActivityPage() {
 
   if (loading) {
     return (
-      <DashboardLayout items={navItems} role="siswa">
+      <DashboardLayout items={navItemsSiswa} role="siswa">
         <div className="card animate-pulse h-96" />
       </DashboardLayout>
     );
@@ -274,7 +272,7 @@ export function ActivityPage() {
 
   if (!kegiatan) {
     return (
-      <DashboardLayout items={navItems} role="siswa">
+      <DashboardLayout items={navItemsSiswa} role="siswa">
         <MoleculeField className="opacity-70" />
         <div className="card text-center py-12">
           <p className="text-slate-500">
@@ -292,7 +290,7 @@ export function ActivityPage() {
   }
 
   return (
-    <DashboardLayout items={navItems} role="siswa">
+    <DashboardLayout items={navItemsSiswa} role="siswa">
       <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-4 sm:p-6 md:p-8 border border-slate-100/80 shadow-soft">
         <MoleculeField className="opacity-70" />
         {/* Soft Ambient background glows */}
