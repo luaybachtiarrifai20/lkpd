@@ -11,6 +11,7 @@ import {
   StudentMateri,
   navItemsSiswa,
   StudentEAssessmentList,
+  StudentPetunjuk,
 } from "@/pages/student/StudentDashboard";
 import { ActivityPage } from "@/pages/student/ActivityPage";
 import {
@@ -23,6 +24,7 @@ import {
   TeacherMateri,
   navItems as navItemsGuru,
   TeacherEAssessmentList,
+  TeacherPetunjuk,
 } from "@/pages/teacher/TeacherPages";
 import { SuperAdminLogin } from "@/pages/SuperAdminLogin";
 import { SuperAdminDashboard } from "@/pages/SuperAdminDashboard";
@@ -142,6 +144,14 @@ export default function App() {
               }
             />
             <Route
+              path="/siswa/petunjuk"
+              element={
+                <ProtectedRoute role="siswa">
+                  <StudentPetunjuk />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/siswa/profil"
               element={
                 <ProtectedRoute role="siswa">
@@ -189,7 +199,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-           
+
             <Route
               path="/guru/e-assessment"
               element={<TeacherEAssessmentList />}
@@ -221,6 +231,14 @@ export default function App() {
                   listPath="/guru/materi"
                   navItems={navItemsGuru}
                 />
+              }
+            />
+            <Route
+              path="/guru/petunjuk"
+              element={
+                <ProtectedRoute role="guru">
+                  <TeacherPetunjuk />
+                </ProtectedRoute>
               }
             />
             <Route

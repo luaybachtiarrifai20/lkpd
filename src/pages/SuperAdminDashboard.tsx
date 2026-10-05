@@ -10,6 +10,7 @@ import {
   query,
   where,
   orderBy,
+  getDoc,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import {
@@ -20,6 +21,7 @@ import {
   type Jawaban,
   type Kegiatan,
   type LandingPageContent,
+  type PetunjukPemakaianContent,
 } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -60,7 +62,8 @@ type TabType =
   | "admins"
   | "questions"
   | "landing"
-  | "about";
+  | "about"
+  | "petunjuk";
 
 type MateriRow = {
   id: string;
@@ -161,6 +164,11 @@ const navItems = [
     icon: <FileText className="h-5 w-5" />,
   },
   {
+    to: "/super-admin?tab=petunjuk",
+    label: "Petunjuk Pemakaian",
+    icon: <BookOpen className="h-5 w-5" />,
+  },
+  {
     to: "/super-admin/about",
     label: "Kelola About",
     icon: <FileText className="h-5 w-5" />,
@@ -179,6 +187,7 @@ const TAB_TITLES: Record<TabType, string> = {
   questions: "Kelola Soal",
   landing: "Konten Landing Page",
   about: "Konten About Page",
+  petunjuk: "Konten Petunjuk Pemakaian",
 };
 
 function parseTab(search: string): TabType {
@@ -195,10 +204,39 @@ function parseTab(search: string): TabType {
     "questions",
     "landing",
     "about",
+    "petunjuk",
   ];
   if (q && (allowed as string[]).includes(q)) return q as TabType;
   return "pending";
 }
+
+const DEFAULT_PETUNJUK: PetunjukPemakaianContent = {
+  id: "default",
+  judul_siswa: "Petunjuk Pemakaian",
+  deskripsi_siswa: "Panduan singkat menggunakan LajuNalar sebagai siswa.",
+  langkah_siswa: [
+    "Daftar sebagai siswa dengan Nama, Email, Password, dan Kode Kelas.",
+    "Login, lalu kerjakan kegiatan sesuai sintaks PBL.",
+    "Gunakan menu Materi dan E-Assessment.",
+    "Kumpulkan jawaban dan cek Riwayat & Nilai.",
+  ],
+  tips_siswa: [
+    "Kode kelas wajib agar akun langsung aktif.",
+    "Simpan draft sebelum keluar halaman.",
+  ],
+  judul_guru: "Petunjuk Pemakaian",
+  deskripsi_guru: "Panduan singkat menggunakan LajuNalar sebagai guru.",
+  langkah_guru: [
+    "Daftar guru, tunggu persetujuan Super Admin, lalu login.",
+    "Buat kelas dan bagikan kode undangan.",
+    "Pantau rekap, nilai jawaban, ekspor PDF.",
+  ],
+  tips_guru: [
+    "Bagikan kode kelas ke siswa.",
+    "Cek Rekap Progres secara berkala.",
+  ],
+  diperbarui_pada: new Date().toISOString(),
+};
 
 export function SuperAdminDashboard() {
   const { profile } = useAuth();
@@ -258,6 +296,10 @@ export function SuperAdminDashboard() {
   const [creatingAdmin, setCreatingAdmin] = useState(false);
 
   const [showKegiatanForm, setShowKegiatanForm] = useState(false);
+
+  const [petunjukContent, setPetunjukContent] =
+    useState<PetunjukPemakaianContent | null>(null);
+  const [savingPetunjuk, setSavingPetunjuk] = useState(false);
 
   function namaKelasList(a: AssessmentRow): string {
     const ids: string[] = Array.isArray((a as any).kelas_ids)
@@ -397,6 +439,24 @@ export function SuperAdminDashboard() {
             (b.dibuat_pada || "").localeCompare(a.dibuat_pada || ""),
           );
           setMateriList(list);
+          break;
+        }
+
+        case "petunjuk": {
+          const snap = await getDoc(doc(db, "petunjuk_pemakaian", "default"));
+          if (snap.exists()) {
+            setPetunjukContent({
+              ...DEFAULT_PETUNJUK,
+              ...snap.data(),
+              id: snap.id,
+            } as PetunjukPemakaianContent);
+          } else {
+            await setDoc(
+              doc(db, "petunjuk_pemakaian", "default"),
+              DEFAULT_PETUNJUK,
+            );
+            setPetunjukContent(DEFAULT_PETUNJUK);
+          }
           break;
         }
 
@@ -1484,6 +1544,179 @@ export function SuperAdminDashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+          {activeTab === "petunjuk" && petunjukContent && (
+            <div className="space-y-6">
+              {/* SISWA */}
+              <div className="card space-y-3">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Konten untuk Siswa
+                </h3>
+                <div>
+                  <label className="label-base">Judul</label>
+                  <input
+                    className="input-base"
+                    value={petunjukContent.judul_siswa}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        judul_siswa: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="label-base">Deskripsi</label>
+                  <input
+                    className="input-base"
+                    value={petunjukContent.deskripsi_siswa}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        deskripsi_siswa: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="label-base">
+                    Langkah (satu baris = satu langkah)
+                  </label>
+                  <textarea
+                    className="input-base"
+                    rows={8}
+                    value={(petunjukContent.langkah_siswa || []).join("\n")}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        langkah_siswa: e.target.value
+                          .split("\n")
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="label-base">
+                    Tips (satu baris = satu tips)
+                  </label>
+                  <textarea
+                    className="input-base"
+                    rows={4}
+                    value={(petunjukContent.tips_siswa || []).join("\n")}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        tips_siswa: e.target.value
+                          .split("\n")
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* GURU */}
+              <div className="card space-y-3">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Konten untuk Guru
+                </h3>
+                <div>
+                  <label className="label-base">Judul</label>
+                  <input
+                    className="input-base"
+                    value={petunjukContent.judul_guru}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        judul_guru: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="label-base">Deskripsi</label>
+                  <input
+                    className="input-base"
+                    value={petunjukContent.deskripsi_guru}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        deskripsi_guru: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="label-base">
+                    Langkah (satu baris = satu langkah)
+                  </label>
+                  <textarea
+                    className="input-base"
+                    rows={8}
+                    value={(petunjukContent.langkah_guru || []).join("\n")}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        langkah_guru: e.target.value
+                          .split("\n")
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="label-base">
+                    Tips (satu baris = satu tips)
+                  </label>
+                  <textarea
+                    className="input-base"
+                    rows={4}
+                    value={(petunjukContent.tips_guru || []).join("\n")}
+                    onChange={(e) =>
+                      setPetunjukContent({
+                        ...petunjukContent,
+                        tips_guru: e.target.value
+                          .split("\n")
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={savingPetunjuk}
+                className="btn-primary"
+                onClick={async () => {
+                  if (!petunjukContent) return;
+                  setSavingPetunjuk(true);
+                  try {
+                    const payload = {
+                      ...petunjukContent,
+                      diperbarui_pada: new Date().toISOString(),
+                    };
+                    await setDoc(
+                      doc(db, "petunjuk_pemakaian", "default"),
+                      payload,
+                    );
+                    toast("Petunjuk pemakaian disimpan", "success");
+                  } catch (err) {
+                    console.error(err);
+                    toast("Gagal menyimpan", "error");
+                  } finally {
+                    setSavingPetunjuk(false);
+                  }
+                }}>
+                <Save className="h-4 w-4" />
+                {savingPetunjuk ? "Menyimpan…" : "Simpan Petunjuk"}
+              </button>
             </div>
           )}
 

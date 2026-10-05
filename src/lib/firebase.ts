@@ -35,6 +35,19 @@ export type Profile = {
   dibuat_pada: string;
 };
 
+export type PetunjukPemakaianContent = {
+  id: string;
+  judul_siswa: string;
+  deskripsi_siswa: string;
+  langkah_siswa: string[]; // satu langkah = satu item array
+  tips_siswa: string[];
+  judul_guru: string;
+  deskripsi_guru: string;
+  langkah_guru: string[];
+  tips_guru: string[];
+  diperbarui_pada: string;
+};
+
 export type AboutPageContent = {
   id: string;
   badge: string;

@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   Link2,
+  HelpCircle,
   // ExternalLink,
   // Youtube,
 } from "lucide-react";
@@ -58,6 +59,7 @@ import {
 import { Modal } from "@/components/ui/Modal";
 import { MateriKonten } from "@/components/components/MateriKonten";
 import { AssessmentKonten } from "@/components/components/AssessmentKonten";
+import { PetunjukPemakaian } from "../PetunjukPemakaian";
 
 export const navItemsSiswa = [
   {
@@ -79,6 +81,11 @@ export const navItemsSiswa = [
     to: "/siswa/riwayat",
     label: "Riwayat & Nilai",
     icon: <History className="h-5 w-5" />,
+  },
+  {
+    to: "/siswa/petunjuk",
+    label: "Petunjuk Pemakaian",
+    icon: <HelpCircle className="h-5 w-5" />,
   },
   {
     to: "/siswa/profil",
@@ -965,6 +972,10 @@ export function StudentMateri() {
       <MateriKonten detailBasePath="/siswa/materi" />
     </DashboardLayout>
   );
+}
+
+export function StudentPetunjuk() {
+  return <PetunjukPemakaian role="siswa" navItems={navItemsSiswa} />;
 }
 
 // ============ Profil ============
