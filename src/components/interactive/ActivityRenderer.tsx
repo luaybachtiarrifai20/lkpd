@@ -179,19 +179,18 @@ export function ActivityRenderer({
     <div className="space-y-5">
       {/* Header banner */}
       <div
-        className="overflow-hidden rounded-2xl shadow-soft relative"
+        className="overflow-hidden rounded-xl sm:rounded-2xl shadow-soft relative"
         style={{ backgroundColor: kegiatan.warna }}>
-        {/* Background icon decoration */}
-        <div className="absolute right-6 bottom-[-20px] text-white/10 pointer-events-none">
-          <FlaskConical className="h-28 w-28" />
+        <div className="absolute right-4 sm:right-6 bottom-[-20px] text-white/10 pointer-events-none">
+          <FlaskConical className="h-16 w-16 sm:h-28 sm:w-28" />
         </div>
-        <div className="absolute left-1/3 top-[-10px] text-white/5 pointer-events-none">
+        <div className="absolute left-1/3 top-[-10px] text-white/5 pointer-events-none hidden sm:block">
           <Atom className="h-16 w-16 animate-pulse" />
         </div>
-        <div className="px-5 py-6 sm:px-7 relative z-10">
-          <div className="flex flex-wrap items-start justify-between gap-3 text-white">
+        <div className="px-3 py-4 sm:px-7 sm:py-6 relative z-10">
+          <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3 text-white">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/70">
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-white/70">
                 Kegiatan {kegiatan.nomor}
               </p>
               {editMode ? (
@@ -218,11 +217,11 @@ export function ActivityRenderer({
               ) : (
                 <>
                   <h1
-                    className="mt-1 text-2xl font-extrabold sm:text-3xl"
+                    className="mt-0.5 text-lg font-extrabold sm:text-2xl md:text-3xl leading-snug"
                     style={{ color: "white" }}>
                     {kegiatan.judul?.replace(/^Kegiatan \d+\s*[—-]\s*/, "")}
                   </h1>
-                  <p className="mt-1 text-sm text-white/85">
+                  <p className="mt-0.5 text-xs sm:text-sm text-white/85">
                     {kegiatan.subjudul}
                   </p>
                 </>
@@ -233,7 +232,7 @@ export function ActivityRenderer({
                   onChange={(next) => patchRoot("sdg", next)}
                 />
               ) : (
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-1.5">
                   {Array.isArray(kegiatan.sdg) &&
                     kegiatan.sdg.map((s) => (
                       <SDGBadgeChip key={s.nomor} sdg={s} />
@@ -242,29 +241,29 @@ export function ActivityRenderer({
               )}
             </div>
             {readOnly && status !== "preview" && (
-              <span className="badge bg-white/20 text-white">
-                <Lock className="h-3.5 w-3.5" />{" "}
+              <span className="badge bg-white/20 text-white text-[10px] sm:text-xs">
+                <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />{" "}
                 {status === "dinilai" ? "Dinilai" : "Terkumpul"}
               </span>
             )}
             {status === "preview" && !editMode && (
-              <span className="badge bg-white/20 text-white">
-                <Lock className="h-3.5 w-3.5" /> Preview
+              <span className="badge bg-white/20 text-white text-[10px] sm:text-xs">
+                <Lock className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Preview
               </span>
             )}
             {editMode && (
-              <span className="badge bg-white/20 text-white">
-                <Pencil className="h-3.5 w-3.5" /> Mode Edit
+              <span className="badge bg-white/20 text-white text-[10px] sm:text-xs">
+                <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Mode Edit
               </span>
             )}
           </div>
           {!editMode && (
-            <div className="mt-4 max-w-md">
-              <div className="mb-1 flex justify-between text-xs text-white/80">
+            <div className="mt-3 sm:mt-4 max-w-md">
+              <div className="mb-1 flex justify-between text-[10px] sm:text-xs text-white/80">
                 <span>Progres kegiatan</span>
                 <span>{overallPct}%</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/25">
+              <div className="h-1.5 sm:h-2 overflow-hidden rounded-full bg-white/25">
                 <div
                   className="h-full rounded-full bg-white transition-all"
                   style={{ width: `${overallPct}%` }}
@@ -273,23 +272,24 @@ export function ActivityRenderer({
             </div>
           )}
 
-          {/* Teacher's score & feedback (visible when collected or graded) */}
           {!editMode && (skor != null || (feedback && feedback.trim())) && (
-            <div className="card">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <div className="card mt-3 p-3 sm:p-4">
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Penilaian Guru
               </p>
-              <div className="mt-2 flex items-center gap-3">
+              <div className="mt-1.5 sm:mt-2 flex items-center gap-2 sm:gap-3">
                 {skor != null ? (
                   <Badge color="teal">
                     <Award className="h-3.5 w-3.5" /> Skor: {skor}
                   </Badge>
                 ) : (
-                  <span className="text-sm text-slate-500">Belum dinilai</span>
+                  <span className="text-xs sm:text-sm text-slate-500">
+                    Belum dinilai
+                  </span>
                 )}
               </div>
               {feedback && feedback.trim() && (
-                <div className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
+                <div className="mt-2 sm:mt-3 whitespace-pre-wrap text-xs sm:text-sm text-slate-700">
                   {feedback}
                 </div>
               )}
@@ -298,18 +298,18 @@ export function ActivityRenderer({
         </div>
       </div>
 
-      {/* Materi & Tujuan accordion */}
-      <details className="card group" open={editMode || undefined}>
+      {/* Materi & Tujuan */}
+      <details className="card group p-3 sm:p-5" open={editMode || undefined}>
         <summary className="flex cursor-pointer items-center justify-between list-none">
-          <span className="flex items-center gap-2 font-bold text-slate-800">
-            <BookOpen className="h-5 w-5 text-brand-green" /> Materi & Tujuan
-            Pembelajaran
+          <span className="flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base font-bold text-slate-800">
+            <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-brand-green" />{" "}
+            Materi & Tujuan Pembelajaran
           </span>
-          <span className="text-slate-400 group-open:rotate-180 transition">
+          <span className="text-slate-400 group-open:rotate-180 transition text-sm">
             ▾
           </span>
         </summary>
-        <div className="mt-4 space-y-4">
+        <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4">
           <div>
             <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
               Cakupan Materi
@@ -365,34 +365,16 @@ export function ActivityRenderer({
               </ol>
             )}
           </div>
-          {/* <div>
-            <p className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
-              <FlaskConical className="h-4 w-4 text-brand-green" /> Materi Singkat
-            </p>
-            {editMode ? (
-              <AdminTextArea
-                label="Materi"
-                value={kegiatan.materi || ""}
-                onChange={(v) => patchRoot("materi", v)}
-                rows={6}
-              />
-            ) : (
-              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-                {kegiatan.materi}
-              </p>
-            )}
-          </div> */}
         </div>
       </details>
 
-      <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
-        {/* Sidebar stepper */}
+      <div className="grid gap-3 sm:gap-5 lg:grid-cols-[240px_1fr]">
         <aside className="lg:sticky lg:top-[80px] lg:self-start">
-          <div className="card-tight">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <div className="card-tight p-2.5 sm:p-3">
+            <p className="mb-2 sm:mb-3 text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-400">
               Sintaks PBL
             </p>
-            <ol className="space-y-1">
+            <ol className="space-y-0.5 sm:space-y-1">
               {steps.map((s, i) => {
                 const done = stepCompletion[i];
                 const active = i === activeStep;
@@ -401,7 +383,7 @@ export function ActivityRenderer({
                     <button
                       type="button"
                       onClick={() => setActiveStep(i)}
-                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                      className={`flex w-full items-center gap-2 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left text-xs sm:text-sm transition ${
                         active
                           ? "bg-brand-green-light text-brand-green-dark font-semibold"
                           : "text-slate-600 hover:bg-slate-50"
@@ -409,50 +391,23 @@ export function ActivityRenderer({
                       <span
                         className={`shrink-0 ${done ? "text-success" : "text-slate-300"}`}>
                         {done ? (
-                          <CheckCircle2 className="h-5 w-5" />
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         ) : (
-                          <Circle className="h-5 w-5" />
+                          <Circle className="h-4 w-4 sm:h-5 sm:w-5" />
                         )}
                       </span>
-                      <span className="flex-1">
-                        <span className="block text-[11px] font-semibold text-slate-400">
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[10px] sm:text-[11px] font-semibold text-slate-400">
                           Sintaks {s.sintaks}
                         </span>
-                        <span className="block leading-tight">{s.label}</span>
+                        <span className="block leading-tight truncate sm:whitespace-normal">
+                          {s.label}
+                        </span>
                       </span>
                     </button>
                   </li>
                 );
               })}
-              {/* {steps.length > 0 && !editMode && (
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setActiveStep(steps.length)}
-                    className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                      activeStep === steps.length
-                        ? "bg-brand-green-light text-brand-green-dark font-semibold"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}>
-                    <span
-                      className={`shrink-0 ${kuisDone ? "text-success" : "text-slate-300"}`}>
-                      {kuisDone ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        <Circle className="h-5 w-5" />
-                      )}
-                    </span>
-                    <span className="flex-1">
-                      <span className="block text-[11px] font-semibold text-slate-400">
-                        E-Assessment
-                      </span>
-                      <span className="block leading-tight">
-                        Uji Pemahamanmu
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              )} */}
             </ol>
           </div>
         </aside>
@@ -556,25 +511,29 @@ export function ActivityRenderer({
 
           {/* Step nav */}
           {steps.length > 0 && (
-            <div className="mt-5 flex items-center justify-between">
+            <div className="mt-3 sm:mt-5 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
                 disabled={activeStep === 0}
-                className="btn-ghost disabled:opacity-40">
-                <ArrowLeft className="h-4 w-4" /> Sebelumnya
+                className="btn-ghost text-xs sm:text-sm px-2 sm:px-3 disabled:opacity-40">
+                <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />{" "}
+                <span className="hidden xs:inline">Sebelumnya</span>
               </button>
-              {activeStep < steps.length ? (
+              {activeStep < steps.length - 1 ? (
                 <button
                   type="button"
                   onClick={() =>
-                    setActiveStep((s) => Math.min(steps.length, s + 1))
+                    setActiveStep((s) => Math.min(steps.length - 1, s + 1))
                   }
-                  className="btn-outline">
-                  Berikutnya <ArrowRight className="h-4 w-4" />
+                  className="btn-outline text-xs sm:text-sm px-2.5 sm:px-4">
+                  Berikutnya{" "}
+                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               ) : (
-                <span className="text-xs text-slate-400">Tahap akhir</span>
+                <span className="text-[10px] sm:text-xs text-slate-400">
+                  Tahap akhir
+                </span>
               )}
             </div>
           )}
@@ -582,7 +541,7 @@ export function ActivityRenderer({
       </div>
 
       {/* Action bar */}
-      <div className="sticky bottom-4 z-30 flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white/95 px-4 py-3 shadow-float backdrop-blur">
+      <div className="sticky bottom-2 sm:bottom-4 z-30 flex items-center justify-between gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-100 bg-white/95 px-2.5 py-2 sm:px-4 sm:py-3 shadow-float backdrop-blur">
         {editMode ? (
           <>
             <div className="flex items-center gap-2 text-xs text-slate-500">

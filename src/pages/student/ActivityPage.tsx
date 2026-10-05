@@ -268,17 +268,13 @@ export function ActivityPage() {
 
   return (
     <DashboardLayout items={navItemsSiswa} role="siswa">
-      <div className="relative min-h-[calc(100vh-140px)] overflow-hidden rounded-3xl bg-slate-50/40 p-1 sm:p-2 md:p-3 border border-slate-100/80 shadow-soft">
+      <div className="relative min-h-[calc(100vh-120px)] overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-50/40 p-2 sm:p-4 md:p-6 border border-slate-100/80 shadow-soft">
         <MoleculeField className="opacity-70" />
-        {/* Soft Ambient background glows */}
         <div className="absolute top-10 left-10 w-72 h-72 bg-brand-green-light/40 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-20 right-20 w-80 h-80 bg-brand-teal-light/45 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-amber-100/30 rounded-full blur-2xl pointer-events-none" />
-
-        {/* Dotted sains grid pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px] opacity-50 pointer-events-none" />
 
-        {/* Floating Science Doodles */}
         <div className="absolute -left-2 top-32 hidden xl:block text-brand-green/10 animate-float-slow pointer-events-none">
           <FlaskConical className="h-16 w-16" />
         </div>
@@ -289,13 +285,12 @@ export function ActivityPage() {
           <Sparkles className="h-14 w-14" />
         </div>
 
-        {/* Content wrapper with higher z-index */}
         <div className="relative z-10">
-          <div className="mb-5">
+          <div className="mb-3 sm:mb-5">
             <Link
               to="/siswa"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-green">
-              <ArrowLeft className="h-4 w-4" /> Dashboard
+              className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-slate-500 hover:text-brand-green">
+              <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Dashboard
             </Link>
           </div>
 
