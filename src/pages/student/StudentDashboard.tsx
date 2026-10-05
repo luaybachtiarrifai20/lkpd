@@ -1136,7 +1136,7 @@ export function StudentProfil() {
   };
 
   return (
-    <DashboardLayout items={navItems} role="siswa">
+    <DashboardLayout items={navItemsSiswa} role="siswa">
       <div className="max-w-lg space-y-6">
         <h1 className="text-2xl font-bold text-slate-800">Profil Siswa</h1>
 
