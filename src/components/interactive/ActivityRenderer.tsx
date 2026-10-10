@@ -1340,6 +1340,86 @@ function getAddBlockOptions(
             kanan: { label: "Kondisi B", deskripsi: "" },
           },
         },
+        {
+          label: "Kartu Materi (judul + teks + gambar)",
+          desc: "Satu kartu: judul, deskripsi, gambar",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: {
+            kind: "materi-card",
+            title: "Konsep inti",
+            body: "",
+            imageUrl: "",
+            imageCaption: "",
+          } as ContentBlock,
+        },
+        {
+          label: "Tabel Data (isi yang kosong)",
+          desc: "Tabel sebagian terisi, siswa mengisi sel [?]",
+          icon: <ClipboardList className="h-4 w-4" />,
+          block: {
+            kind: "tabel-isian",
+            id: genId("ti"),
+            title: "Tabel data: isi yang kosong",
+            headers: ["Percobaan", "[A]", "[B]", "Laju"],
+            rows: [
+              [
+                { value: "1", editable: false },
+                { value: "0,1", editable: false },
+                { value: "0,1", editable: false },
+                { value: "2", editable: false },
+              ],
+              [
+                { value: "2", editable: false },
+                { value: "0,2", editable: false },
+                { value: "0,1", editable: false },
+                { value: "", editable: true },
+              ],
+              [
+                { value: "3", editable: false },
+                { value: "0,1", editable: false },
+                { value: "0,2", editable: false },
+                { value: "", editable: true },
+              ],
+            ],
+            pertanyaanText:
+              "Lalu tentukan orde m dan n dan tulis persamaan lajunya.",
+            pertanyaanId: genId("tip"),
+          } as ContentBlock,
+        },
+        {
+          label: "Soal Variatif (pasang + PG)",
+          desc: "Pasangkan istilah + pilihan ganda",
+          icon: <FileQuestion className="h-4 w-4" />,
+          block: {
+            kind: "soal-variatif",
+            id: genId("sv"),
+            title: "Soal variatif: pasangkan & pilihan ganda",
+            intro: "Pasangkan istilah dengan pengertian, lalu kerjakan PG.",
+            matching: {
+              left: [
+                { id: "L1", text: "Katalis" },
+                { id: "L2", text: "Energi aktivasi" },
+              ],
+              right: [
+                { id: "R1", text: "Menurunkan Ea tanpa habis bereaksi" },
+                { id: "R2", text: "Energi minimum agar reaksi terjadi" },
+              ],
+              kunci: { L1: "R1", L2: "R2" },
+            },
+            pg: [
+              {
+                id: genId("pg"),
+                pertanyaan: "Katalis mempercepat reaksi dengan cara …",
+                options: [
+                  { id: "a", text: "Menaikkan suhu sistem" },
+                  { id: "b", text: "Menurunkan energi aktivasi" },
+                  { id: "c", text: "Menambah konsentrasi produk" },
+                ],
+                kunciId: "b",
+              },
+            ],
+          } as ContentBlock,
+        },
       ];
     case 4:
       return [
