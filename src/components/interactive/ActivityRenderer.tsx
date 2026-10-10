@@ -101,16 +101,77 @@ export function ActivityRenderer({
   const steps = Array.isArray(kegiatan.steps) ? kegiatan.steps : [];
   const current = steps[activeStep];
 
+  const isFilled = (v: AnswerValue | undefined): boolean => {
+    if (v == null) return false;
+    if (typeof v === "string") return v.trim().length > 0;
+    if (Array.isArray(v)) return v.some((x) => String(x).trim().length > 0);
+    if (typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if (Array.isArray(o.rows)) {
+        return (o.rows as string[][]).some((row) =>
+          row?.some((c) => String(c ?? "").trim().length > 0),
+        );
+      }
+      if (o.tap && typeof o.tap === "object") {
+        return Object.values(o.tap as Record<string, string>).some(
+          (s) => String(s ?? "").trim().length > 0,
+        );
+      }
+      return Object.keys(o).length > 0;
+    }
+    return true;
+  };
+
   const stepCompletion = steps.map((s) => {
-    const keys = s.blocks.map((b) => blockKey(b)).filter(Boolean) as string[];
-    return keys.some((k) => {
-      const v = answers[k];
-      if (v == null) return false;
-      if (typeof v === "string") return v.trim().length > 0;
-      if (Array.isArray(v)) return v.some((x) => String(x).trim());
-      return true;
-    });
+    const keys = (s.blocks || [])
+      .flatMap((b) => {
+        const ids: string[] = [];
+        if ("id" in b && b.id) ids.push(b.id);
+        if ("alasanId" in b && (b as { alasanId?: string }).alasanId)
+          ids.push((b as { alasanId: string }).alasanId);
+        if (
+          "pertanyaanId" in b &&
+          (b as { pertanyaanId?: string }).pertanyaanId
+        )
+          ids.push((b as { pertanyaanId: string }).pertanyaanId);
+        return ids;
+      })
+      .filter(Boolean);
+    // Sintaks dianggap selesai jika SEMUA blok jawaban terisi
+    // (jika tidak ada blok jawaban → dianggap selesai)
+    if (keys.length === 0) return true;
+    return keys.every((k) => isFilled(answers[k]));
   });
+
+  /** Sintaks ke-i boleh dikerjakan jika semua sebelumnya selesai */
+  const isStepUnlocked = (index: number) => {
+    if (editMode) return true; // admin bebas
+    for (let i = 0; i < index; i++) {
+      if (!stepCompletion[i]) return false;
+    }
+    return true;
+  };
+
+  // Jika activeStep terkunci (mis. data berubah), mundur ke yang boleh
+  useEffect(() => {
+    if (!isStepUnlocked(activeStep)) {
+      const firstLocked = steps.findIndex((_, i) => !isStepUnlocked(i));
+      const target = Math.max(0, firstLocked === -1 ? 0 : firstLocked - 1);
+      setActiveStep(target);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepCompletion.join(","), activeStep, editMode]);
+
+  // const stepCompletion = steps.map((s) => {
+  //   const keys = s.blocks.map((b) => blockKey(b)).filter(Boolean) as string[];
+  //   return keys.some((k) => {
+  //     const v = answers[k];
+  //     if (v == null) return false;
+  //     if (typeof v === "string") return v.trim().length > 0;
+  //     if (Array.isArray(v)) return v.some((x) => String(x).trim());
+  //     return true;
+  //   });
+  // });
   const completedCount = stepCompletion.filter(Boolean).length;
   const totalSteps = steps.length > 0 ? steps.length + 1 : 1;
   const overallPct = Math.round(
@@ -378,19 +439,31 @@ export function ActivityRenderer({
               {steps.map((s, i) => {
                 const done = stepCompletion[i];
                 const active = i === activeStep;
+                const unlocked = isStepUnlocked(i);
                 return (
                   <li key={s.id || i}>
                     <button
                       type="button"
-                      onClick={() => setActiveStep(i)}
+                      disabled={!unlocked}
+                      onClick={() => unlocked && setActiveStep(i)}
                       className={`flex w-full items-center gap-2 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left text-xs sm:text-sm transition ${
-                        active
-                          ? "bg-brand-green-light text-brand-green-dark font-semibold"
-                          : "text-slate-600 hover:bg-slate-50"
+                        !unlocked
+                          ? "opacity-50 cursor-not-allowed text-slate-400"
+                          : active
+                            ? "bg-brand-green-light text-brand-green-dark font-semibold"
+                            : "text-slate-600 hover:bg-slate-50"
                       }`}>
                       <span
-                        className={`shrink-0 ${done ? "text-success" : "text-slate-300"}`}>
-                        {done ? (
+                        className={`shrink-0 ${
+                          done
+                            ? "text-success"
+                            : unlocked
+                              ? "text-slate-300"
+                              : "text-slate-300"
+                        }`}>
+                        {!unlocked ? (
+                          <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
+                        ) : done ? (
                           <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         ) : (
                           <Circle className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -399,6 +472,7 @@ export function ActivityRenderer({
                       <span className="flex-1 min-w-0">
                         <span className="block text-[10px] sm:text-[11px] font-semibold text-slate-400">
                           Sintaks {s.sintaks}
+                          {!unlocked && " · Terkunci"}
                         </span>
                         <span className="block leading-tight truncate sm:whitespace-normal">
                           {s.label}
@@ -523,10 +597,12 @@ export function ActivityRenderer({
               {activeStep < steps.length - 1 ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    setActiveStep((s) => Math.min(steps.length - 1, s + 1))
-                  }
-                  className="btn-outline text-xs sm:text-sm px-2.5 sm:px-4">
+                  disabled={!stepCompletion[activeStep]}
+                  onClick={() => {
+                    if (!stepCompletion[activeStep]) return;
+                    setActiveStep((s) => Math.min(steps.length - 1, s + 1));
+                  }}
+                  className="btn-outline text-xs sm:text-sm px-2.5 sm:px-4 disabled:opacity-40">
                   Berikutnya{" "}
                   <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
@@ -699,6 +775,46 @@ function StepContent({
 
   /** Add-block options */
   const addOptions = getAddBlockOptions(step.sintaks, genId);
+  const [activeSection, setActiveSection] = useState(0);
+
+  // Reset section saat ganti sintaks
+  useEffect(() => {
+    setActiveSection(0);
+  }, [stepIndex]);
+
+  // Pecah blok berdasarkan bagian-header
+  type SectionItem = {
+    label: string;
+    blocks: { block: ContentBlock; index: number }[];
+  };
+
+  const allBlocks = step.blocks || [];
+  const sections: SectionItem[] = [];
+  let currentSec: SectionItem = { label: "Utama", blocks: [] };
+
+  allBlocks.forEach((block, index) => {
+    if (block.kind === "bagian-header") {
+      if (currentSec.blocks.length > 0) {
+        sections.push(currentSec);
+      }
+      currentSec = {
+        label:
+          (block as { label?: string }).label ||
+          `Bagian ${sections.length + 1}`,
+        blocks: [],
+      };
+      return; // header tidak ikut dirender di isi section
+    }
+    currentSec.blocks.push({ block, index });
+  });
+  if (currentSec.blocks.length > 0 || sections.length === 0) {
+    sections.push(currentSec);
+  }
+
+  const hasMultipleSections = sections.length > 1;
+  const visibleBlocks = hasMultipleSections
+    ? sections[activeSection]?.blocks || []
+    : sections[0]?.blocks || [];
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -767,15 +883,35 @@ function StepContent({
         </div>
       )}
 
-      {step.blocks?.map((block, i) => (
-        <div key={i} className="relative group/block">
+      {/* Tombol section (muncul jika ada >1 bagian-header) */}
+      {hasMultipleSections && (
+        <div className="flex flex-wrap gap-2">
+          {sections.map((sec, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setActiveSection(i)}
+              className={`rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold transition border ${
+                activeSection === i
+                  ? "border-brand-green bg-brand-green-light text-brand-green-dark"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              }`}>
+              {sec.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Blok section aktif */}
+      {visibleBlocks.map(({ block, index }) => (
+        <div key={index} className="relative group/block">
           {editMode && (
             <div className="absolute -top-2 -right-2 z-10 opacity-0 group-hover/block:opacity-100 transition-opacity">
               <button
                 type="button"
                 onClick={() => {
                   if (window.confirm("Hapus blok ini?")) {
-                    onRemoveBlock(stepIndex, i);
+                    onRemoveBlock(stepIndex, index);
                   }
                 }}
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors"
@@ -786,7 +922,7 @@ function StepContent({
           )}
           <BlockRenderer
             block={block}
-            blockIndex={i}
+            blockIndex={index}
             stepIndex={stepIndex}
             kegiatan={kegiatan}
             answers={answers}
