@@ -139,8 +139,9 @@ export type AnswerValue =
   | string[]
   | { rows: string[][]; headers?: string[] }
   | { tap: Record<string, string> }
-  | { cells: string[][] } // tabel-isian
-  | Record<string, string> // matching / PG: { leftId: rightId } atau { questionId: optionId }
+  | { cells: string[][] }
+  | Record<string, string>
+  | Record<string, number> // skala refleksi 1–4
   | null;
 
 export type UploadedFile = {

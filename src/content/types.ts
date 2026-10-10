@@ -132,7 +132,7 @@ export type ContentBlock =
         feedbackSalah?: string;
       }>;
     }
-    | {
+  | {
       kind: "materi-card";
       title?: string;
       body?: string;
@@ -165,7 +165,7 @@ export type ContentBlock =
         kunciId?: string;
       }>;
     }
-      | {
+  | {
       kind: "kamus-kimia";
       title?: string;
       intro?: string;
@@ -182,6 +182,77 @@ export type ContentBlock =
       title?: string; // bisa diubah Super Admin
       prompt?: string; // teks petunjuk / kalimat rumpang
       hint?: string;
+    }
+  | {
+      kind: "galeri-karya";
+      title?: string;
+      caption?: string;
+      items: Array<{
+        id: string;
+        label: string;
+        imageUrl?: string;
+        linkUrl?: string;
+      }>;
+    }
+  | {
+      kind: "daftar-periksa";
+      id: string; // jawaban: string[] id item tercentang
+      title?: string;
+      items: Array<{ id: string; text: string }>;
+    }
+  | {
+      kind: "kerangka-rekomendasi";
+      title?: string;
+      body?: string;
+      downloadUrl?: string; // URL file template
+      downloadLabel?: string;
+    }
+  | {
+      kind: "contoh-tap";
+      title?: string;
+      intro?: string;
+      /** baris tabel: label komponen + contoh teks */
+      rows: Array<{ label: string; contoh: string }>;
+    }
+  | {
+      kind: "tap-terbimbing";
+      id: string; // jawaban: { tap: Record<string, string> }
+      title?: string;
+      intro?: string;
+      fields: Array<{
+        key: string; // claim, data, warrant, ...
+        label: string;
+        starter?: string; // "Karena data menunjukkan …"
+      }>;
+    }
+  | {
+      kind: "kuis-akhir";
+      id: string;
+      title?: string;
+      intro?: string;
+      /** Benar/Salah */
+      bsItems?: Array<{
+        id: string;
+        pernyataan: string;
+        jawabanBenar: boolean;
+        feedbackBenar?: string;
+        feedbackSalah?: string;
+      }>;
+      /** Isian rumpang */
+      rumpangItems?: Array<{
+        id: string;
+        prompt: string;
+      }>;
+    }
+  | {
+      kind: "refleksi-pemahaman";
+      id: string; // skala: Record<konsepId, number>
+      title?: string;
+      intro?: string;
+      konsep: Array<{ id: string; label: string }>;
+      skalaMax?: number; // default 4
+      catatanId?: string; // isian "bagian yang masih membingungkan"
+      catatanPlaceholder?: string;
     }
   | {
       kind: "penalaran-level";

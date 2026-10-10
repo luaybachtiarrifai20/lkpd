@@ -26,6 +26,7 @@ import {
   Plus,
   Award,
   ChevronDown,
+  Download,
 } from "lucide-react";
 import {
   type KegiatanContent,
@@ -162,6 +163,22 @@ export function ActivityRenderer({
       if (b.kind === "soal-variatif" && "id" in b && b.id) {
         keys.push(`${b.id}__match`);
         keys.push(`${b.id}__pg`);
+      }
+      if (b.kind === "tap-terbimbing" && "id" in b && b.id) keys.push(b.id);
+      if (b.kind === "kuis-akhir") {
+        (b as { bsItems?: { id: string }[] }).bsItems?.forEach((it) => {
+          if (it.id) keys.push(it.id);
+        });
+        (b as { rumpangItems?: { id: string }[] }).rumpangItems?.forEach(
+          (it) => {
+            if (it.id) keys.push(it.id);
+          },
+        );
+      }
+      if (b.kind === "refleksi-pemahaman") {
+        if ("id" in b && b.id) keys.push(b.id);
+        if ((b as { catatanId?: string }).catatanId)
+          keys.push((b as { catatanId: string }).catatanId);
       }
     });
 
@@ -1479,6 +1496,83 @@ function getAddBlockOptions(
     case 4:
       return [
         {
+          label: "Galeri Contoh Karya",
+          desc: "Kartu contoh (slide/poster/infografis) + gambar/link",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: {
+            kind: "galeri-karya",
+            title: "Galeri contoh karya",
+            caption:
+              "Contoh dari kasus lain agar siswa punya gambaran bentuk dan isi.",
+            items: [
+              {
+                id: genId("gk"),
+                label: "Contoh slide",
+                imageUrl: "",
+                linkUrl: "",
+              },
+              {
+                id: genId("gk"),
+                label: "Contoh poster",
+                imageUrl: "",
+                linkUrl: "",
+              },
+              {
+                id: genId("gk"),
+                label: "Contoh infografis",
+                imageUrl: "",
+                linkUrl: "",
+              },
+            ],
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Kartu Materi",
+          desc: "Judul + teks + gambar (sama seperti Sintaks 2/3)",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: {
+            kind: "materi-card",
+            title: "Materi singkat",
+            body: "",
+            imageUrl: "",
+            imageCaption: "",
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Daftar Periksa Isi Karya",
+          desc: "Checklist rubrik singkat (siswa mencentang)",
+          icon: <CheckCircle2 className="h-4 w-4" />,
+          block: {
+            kind: "daftar-periksa",
+            id: genId("dp"),
+            title: "Daftar periksa isi karya (rubrik singkat)",
+            items: [
+              { id: genId("dpi"), text: "Hasil data dari tabel" },
+              {
+                id: genId("dpi"),
+                text: "Penjelasan teori tumbukan, energi aktivasi, katalis",
+              },
+              {
+                id: genId("dpi"),
+                text: "Rekomendasi kombinasi untuk UMKM",
+              },
+              { id: genId("dpi"), text: "Ada gambar atau grafik" },
+            ],
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Kerangka Rekomendasi",
+          desc: "Deskripsi + tombol unduh template",
+          icon: <Download className="h-4 w-4" />, // pastikan lucide Download di-import
+          block: {
+            kind: "kerangka-rekomendasi",
+            title: "Kerangka rekomendasi (unduh)",
+            body: "Template kosong: Masalah, Data, Penjelasan, Rekomendasi, Dampak SDG.",
+            downloadUrl: "",
+            downloadLabel: "Unduh template",
+          } as unknown as ContentBlock,
+        },
+        {
           label: "Instruksi Pengembangan",
           desc: "Instruksi tugas dengan bullet points",
           icon: <UploadCloud className="h-4 w-4" />,
@@ -1504,13 +1598,32 @@ function getAddBlockOptions(
     case 5:
       return [
         {
+          label: "Contoh Argumen TAP",
+          desc: "Tabel contoh Claim–Data–Warrant (hanya baca)",
+          icon: <MessagesSquare className="h-4 w-4" />,
+          block: {
+            kind: "contoh-tap",
+            title: "Contoh argumen TAP terpandu",
+            intro:
+              "Satu contoh TAP terisi penuh pada kasus lain. Muncul sebelum siswa menulis sendiri.",
+            rows: [
+              { label: "Claim", contoh: "Pilih penyimpanan 5 °C" },
+              { label: "Data", contoh: "Waktu busuk 10 hari pada 5 °C" },
+              {
+                label: "Warrant",
+                contoh: "Suhu rendah menurunkan frekuensi tumbukan",
+              },
+            ],
+          } as unknown as ContentBlock,
+        },
+        {
           label: "Studi Kasus / Alternatif",
           desc: "Pilihan alternatif dengan alasan",
           icon: <ClipboardList className="h-4 w-4" />,
           block: {
             kind: "alternatif-kasus",
             id: genId("alt"),
-            title: "Studi Kasus Baru",
+            title: "Studi kasus: pilih alternatif",
             options: [
               { id: "a", label: "Alternatif A", deskripsi: "" },
               { id: "b", label: "Alternatif B", deskripsi: "" },
@@ -1519,8 +1632,98 @@ function getAddBlockOptions(
           },
         },
         {
-          label: "Argumentasi TAP",
-          desc: "Kerangka argumentasi Toulmin",
+          label: "TAP Kosong + Bantuan Kalimat",
+          desc: "6 kotak TAP dengan kalimat pembuka",
+          icon: <MessagesSquare className="h-4 w-4" />,
+          block: {
+            kind: "tap-terbimbing",
+            id: genId("tapt"),
+            title: "TAP kosong dengan bantuan kalimat",
+            intro: "Enam kotak dengan awal kalimat sebagai petunjuk.",
+            fields: [
+              { key: "claim", label: "Claim", starter: "Claim: ..." },
+              { key: "data", label: "Data", starter: "Data: ..." },
+              {
+                key: "warrant",
+                label: "Warrant",
+                starter: "Karena data menunjukkan ...",
+              },
+              {
+                key: "backing",
+                label: "Backing",
+                starter: "Hal ini didukung oleh ...",
+              },
+              {
+                key: "qualifier",
+                label: "Qualifier",
+                starter: "Pernyataan ini berlaku jika ...",
+              },
+              {
+                key: "rebuttal",
+                label: "Rebuttal",
+                starter: "Namun, perlu diperhatikan ...",
+              },
+            ],
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Kuis Akhir Singkat",
+          desc: "Benar/Salah + isian rumpang",
+          icon: <FileQuestion className="h-4 w-4" />,
+          block: {
+            kind: "kuis-akhir",
+            id: genId("ka"),
+            title: "Kuis akhir singkat",
+            intro:
+              "Beberapa soal Benar/Salah dan isian rumpang tentang konsep inti.",
+            bsItems: [
+              {
+                id: genId("kabs"),
+                pernyataan: "Katalis menurunkan energi aktivasi.",
+                jawabanBenar: true,
+                feedbackBenar: "Benar!",
+                feedbackSalah: "Coba ingat fungsi katalis.",
+              },
+              {
+                id: genId("kabs"),
+                pernyataan:
+                  "Orde reaksi selalu sama dengan koefisien stoikiometri.",
+                jawabanBenar: false,
+                feedbackBenar: "Benar!",
+                feedbackSalah: "Orde ditentukan dari data eksperimen.",
+              },
+            ],
+            rumpangItems: [
+              {
+                id: genId("kar"),
+                prompt: "Energi minimum agar partikel bereaksi disebut ...",
+              },
+            ],
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Refleksi Pemahaman",
+          desc: "Skala 1–4 per konsep + catatan bebas",
+          icon: <Target className="h-4 w-4" />,
+          block: {
+            kind: "refleksi-pemahaman",
+            id: genId("ref"),
+            title: "Refleksi pemahaman",
+            intro: "Skala 1 sampai 4 untuk tiap konsep.",
+            skalaMax: 4,
+            konsep: [
+              { id: "k1", label: "Tumbukan efektif" },
+              { id: "k2", label: "Energi aktivasi" },
+              { id: "k3", label: "Orde reaksi" },
+              { id: "k4", label: "Katalis dan suhu optimal" },
+            ],
+            catatanId: genId("refcat"),
+            catatanPlaceholder: "Bagian yang masih membingungkan...",
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Argumentasi TAP (bebas)",
+          desc: "Kerangka TAP tanpa starter",
           icon: <MessagesSquare className="h-4 w-4" />,
           block: {
             kind: "argumentasi-tap",
@@ -1530,7 +1733,7 @@ function getAddBlockOptions(
           },
         },
         {
-          label: "Penalaran Level (3 Representasi)",
+          label: "Penalaran Level",
           desc: "Makroskopik, Submikroskopik, Simbolik",
           icon: <Atom className="h-4 w-4" />,
           block: {
@@ -2580,6 +2783,523 @@ function BlockRenderer({
           editMode={editMode}
           patch={patch}
         />
+      );
+    }
+    case "contoh-tap": {
+      const rows =
+        (block as { rows?: Array<{ label: string; contoh: string }> }).rows ||
+        [];
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextArea
+                label="Intro"
+                value={(block as { intro?: string }).intro || ""}
+                onChange={(v) => patch({ intro: v })}
+                rows={2}
+              />
+              {rows.map((r, i) => (
+                <div key={i} className="grid gap-2 sm:grid-cols-2">
+                  <AdminTextInput
+                    label="Label"
+                    value={r.label}
+                    onChange={(v) => {
+                      const next = rows.map((x, idx) =>
+                        idx === i ? { ...x, label: v } : x,
+                      );
+                      patch({ rows: next });
+                    }}
+                  />
+                  <AdminTextInput
+                    label="Contoh"
+                    value={r.contoh}
+                    onChange={(v) => {
+                      const next = rows.map((x, idx) =>
+                        idx === i ? { ...x, contoh: v } : x,
+                      );
+                      patch({ rows: next });
+                    }}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-ghost text-xs"
+                onClick={() =>
+                  patch({
+                    rows: [...rows, { label: "Komponen", contoh: "" }],
+                  })
+                }>
+                + Baris
+              </button>
+            </div>
+          ) : (
+            <>
+              {(block as { intro?: string }).intro && (
+                <p className="text-sm text-slate-600">
+                  {(block as { intro?: string }).intro}
+                </p>
+              )}
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {rows.map((r, i) => (
+                      <tr key={i} className="border-b border-slate-100">
+                        <td className="w-28 bg-slate-50 px-3 py-2 font-semibold text-slate-700">
+                          {r.label}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">{r.contoh}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    case "tap-terbimbing": {
+      const fields =
+        (
+          block as {
+            fields?: Array<{ key: string; label: string; starter?: string }>;
+          }
+        ).fields || [];
+      const tapVal =
+        (answers[block.id] as unknown as { tap?: Record<string, string> })
+          ?.tap || {};
+
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextArea
+                label="Intro"
+                value={(block as { intro?: string }).intro || ""}
+                onChange={(v) => patch({ intro: v })}
+                rows={2}
+              />
+              {fields.map((f, i) => (
+                <div key={f.key} className="grid gap-2 sm:grid-cols-2">
+                  <AdminTextInput
+                    label="Label"
+                    value={f.label}
+                    onChange={(v) => {
+                      const next = fields.map((x, idx) =>
+                        idx === i ? { ...x, label: v } : x,
+                      );
+                      patch({ fields: next });
+                    }}
+                  />
+                  <AdminTextInput
+                    label="Kalimat pembuka / placeholder"
+                    value={f.starter || ""}
+                    onChange={(v) => {
+                      const next = fields.map((x, idx) =>
+                        idx === i ? { ...x, starter: v } : x,
+                      );
+                      patch({ fields: next });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {(block as { intro?: string }).intro && (
+                <p className="text-sm text-slate-600">
+                  {(block as { intro?: string }).intro}
+                </p>
+              )}
+              <div className="space-y-2">
+                {fields.map((f) => (
+                  <div key={f.key}>
+                    <label className="mb-1 block text-xs font-semibold text-slate-500">
+                      {f.label}
+                    </label>
+                    <textarea
+                      className="input-base min-h-[72px]"
+                      disabled={readOnly}
+                      placeholder={f.starter || `${f.label}: ...`}
+                      value={tapVal[f.key] || ""}
+                      onChange={(e) =>
+                        onUpdate(block.id, {
+                          tap: { ...tapVal, [f.key]: e.target.value },
+                        } as AnswerValue)
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    case "kuis-akhir": {
+      const bsItems =
+        (
+          block as {
+            bsItems?: Array<{
+              id: string;
+              pernyataan: string;
+              jawabanBenar: boolean;
+              feedbackBenar?: string;
+              feedbackSalah?: string;
+            }>;
+          }
+        ).bsItems || [];
+      const rumpangItems =
+        (
+          block as {
+            rumpangItems?: Array<{ id: string; prompt: string }>;
+          }
+        ).rumpangItems || [];
+
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-4">
+          <div className="flex items-start justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+
+          {editMode ? (
+            <div className="space-y-3">
+              <AdminTextArea
+                label="Intro"
+                value={(block as { intro?: string }).intro || ""}
+                onChange={(v) => patch({ intro: v })}
+                rows={2}
+              />
+              <p className="text-xs font-semibold text-purple-600">
+                Benar / Salah
+              </p>
+              {bsItems.map((it, i) => (
+                <div
+                  key={it.id}
+                  className="space-y-2 rounded-xl border border-dashed border-purple-200 p-3">
+                  <AdminTextArea
+                    label={`Pernyataan ${i + 1}`}
+                    value={it.pernyataan}
+                    onChange={(v) => {
+                      const next = bsItems.map((x, idx) =>
+                        idx === i ? { ...x, pernyataan: v } : x,
+                      );
+                      patch({ bsItems: next });
+                    }}
+                    rows={2}
+                  />
+                  <select
+                    className="input-base"
+                    value={it.jawabanBenar ? "benar" : "salah"}
+                    onChange={(e) => {
+                      const next = bsItems.map((x, idx) =>
+                        idx === i
+                          ? { ...x, jawabanBenar: e.target.value === "benar" }
+                          : x,
+                      );
+                      patch({ bsItems: next });
+                    }}>
+                    <option value="benar">Kunci: Benar</option>
+                    <option value="salah">Kunci: Salah</option>
+                  </select>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-ghost text-xs"
+                onClick={() =>
+                  patch({
+                    bsItems: [
+                      ...bsItems,
+                      {
+                        id: `kabs_${Date.now()}`,
+                        pernyataan: "",
+                        jawabanBenar: true,
+                      },
+                    ],
+                  })
+                }>
+                + Soal B/S
+              </button>
+              <p className="text-xs font-semibold text-purple-600">
+                Isian rumpang
+              </p>
+              {rumpangItems.map((it, i) => (
+                <AdminTextArea
+                  key={it.id}
+                  label={`Rumpang ${i + 1}`}
+                  value={it.prompt}
+                  onChange={(v) => {
+                    const next = rumpangItems.map((x, idx) =>
+                      idx === i ? { ...x, prompt: v } : x,
+                    );
+                    patch({ rumpangItems: next });
+                  }}
+                  rows={2}
+                />
+              ))}
+              <button
+                type="button"
+                className="btn-ghost text-xs"
+                onClick={() =>
+                  patch({
+                    rumpangItems: [
+                      ...rumpangItems,
+                      { id: `kar_${Date.now()}`, prompt: "" },
+                    ],
+                  })
+                }>
+                + Isian rumpang
+              </button>
+            </div>
+          ) : (
+            <>
+              {(block as { intro?: string }).intro && (
+                <p className="text-sm text-slate-600">
+                  {(block as { intro?: string }).intro}
+                </p>
+              )}
+              {bsItems.map((it, i) => {
+                const chosen = answers[it.id] as string | undefined;
+                const showFb = chosen === "benar" || chosen === "salah";
+                const isCorrect =
+                  (chosen === "benar" && it.jawabanBenar) ||
+                  (chosen === "salah" && !it.jawabanBenar);
+                return (
+                  <div key={it.id} className="space-y-2">
+                    <p className="text-sm font-medium text-slate-800">
+                      {i + 1}. {it.pernyataan}
+                    </p>
+                    <div className="flex gap-2">
+                      {(["benar", "salah"] as const).map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => onUpdate(it.id, opt)}
+                          className={`rounded-xl border-2 px-4 py-1.5 text-sm font-semibold ${
+                            chosen === opt
+                              ? "border-brand-green bg-brand-green-light text-brand-green-dark"
+                              : "border-slate-200 bg-white text-slate-600"
+                          }`}>
+                          {opt === "benar" ? "Benar" : "Salah"}
+                        </button>
+                      ))}
+                    </div>
+                    {showFb && (
+                      <p
+                        className={`text-xs font-medium ${
+                          isCorrect ? "text-emerald-700" : "text-amber-700"
+                        }`}>
+                        {isCorrect
+                          ? it.feedbackBenar || "Benar!"
+                          : it.feedbackSalah || "Kurang tepat."}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+              {rumpangItems.map((it) => (
+                <div key={it.id} className="space-y-1">
+                  <p className="text-sm text-slate-700">{it.prompt}</p>
+                  <MultiTextAnswer
+                    value={(answers[it.id] as string | string[]) || ""}
+                    onChange={(v) => onUpdate(it.id, v)}
+                    disabled={readOnly}
+                    rows={2}
+                    savedAt={savedAt}
+                  />
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    case "refleksi-pemahaman": {
+      const konsep =
+        (block as { konsep?: Array<{ id: string; label: string }> }).konsep ||
+        [];
+      const max = (block as { skalaMax?: number }).skalaMax || 4;
+      const skala =
+        (answers[block.id] as unknown as Record<string, number>) || {};
+      const catatanId = (block as { catatanId?: string }).catatanId;
+
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextInput
+                label="Intro"
+                value={(block as { intro?: string }).intro || ""}
+                onChange={(v) => patch({ intro: v })}
+              />
+              {konsep.map((k, i) => (
+                <AdminTextInput
+                  key={k.id}
+                  label={`Konsep ${i + 1}`}
+                  value={k.label}
+                  onChange={(v) => {
+                    const next = konsep.map((x, idx) =>
+                      idx === i ? { ...x, label: v } : x,
+                    );
+                    patch({ konsep: next });
+                  }}
+                />
+              ))}
+              <button
+                type="button"
+                className="btn-ghost text-xs"
+                onClick={() =>
+                  patch({
+                    konsep: [
+                      ...konsep,
+                      { id: `k_${Date.now()}`, label: "Konsep baru" },
+                    ],
+                  })
+                }>
+                + Konsep
+              </button>
+              <AdminTextInput
+                label="Placeholder catatan"
+                value={
+                  (block as { catatanPlaceholder?: string })
+                    .catatanPlaceholder || ""
+                }
+                onChange={(v) => patch({ catatanPlaceholder: v })}
+              />
+            </div>
+          ) : (
+            <>
+              {(block as { intro?: string }).intro && (
+                <p className="text-sm text-slate-600">
+                  {(block as { intro?: string }).intro}
+                </p>
+              )}
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700">
+                        Konsep
+                      </th>
+                      {Array.from({ length: max }, (_, n) => (
+                        <th
+                          key={n}
+                          className="px-2 py-2 text-center font-semibold text-slate-600 w-10">
+                          {n + 1}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {konsep.map((k) => (
+                      <tr key={k.id} className="border-b border-slate-100">
+                        <td className="px-3 py-2 text-slate-700">{k.label}</td>
+                        {Array.from({ length: max }, (_, n) => {
+                          const val = n + 1;
+                          const selected = skala[k.id] === val;
+                          return (
+                            <td key={val} className="px-1 py-2 text-center">
+                              <button
+                                type="button"
+                                disabled={readOnly}
+                                onClick={() =>
+                                  onUpdate(block.id, {
+                                    ...skala,
+                                    [k.id]: val,
+                                  } as AnswerValue)
+                                }
+                                className={`h-7 w-7 rounded-full border text-xs font-semibold transition ${
+                                  selected
+                                    ? "border-brand-green bg-brand-green text-white"
+                                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                                }`}>
+                                {val}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {catatanId && (
+                <MultiTextAnswer
+                  value={(answers[catatanId] as string | string[]) || ""}
+                  onChange={(v) => onUpdate(catatanId, v)}
+                  disabled={readOnly}
+                  rows={3}
+                  savedAt={savedAt}
+                  hint={
+                    (block as { catatanPlaceholder?: string })
+                      .catatanPlaceholder
+                  }
+                />
+              )}
+            </>
+          )}
+        </div>
       );
     }
 
