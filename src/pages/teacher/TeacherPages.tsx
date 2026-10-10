@@ -43,7 +43,7 @@ import {
   type Jawaban,
   type TestAnswer,
   type StatusKuisSiswa,
-  type AssessmentEksternal,
+  // type AssessmentEksternal,
   type Question,
 } from "@/lib/firebase";
 import {
@@ -163,6 +163,80 @@ function buildKegiatanList(
   });
   list.sort((a, b) => a.nomor - b.nomor);
   return list;
+}
+
+/** Apakah value jawaban dianggap terisi */
+function isAnswerFilled(v: unknown): boolean {
+  if (v == null) return false;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (Array.isArray(v)) return v.some((x) => String(x).trim().length > 0);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    // tabel: { rows: string[][] }
+    if (Array.isArray(o.rows)) {
+      return o.rows.some(
+        (row) =>
+          Array.isArray(row) &&
+          row.some((cell) => String(cell ?? "").trim().length > 0),
+      );
+    }
+    // TAP: { tap: Record<string, string> }
+    if (o.tap && typeof o.tap === "object") {
+      return Object.values(o.tap as Record<string, string>).some(
+        (s) => String(s ?? "").trim().length > 0,
+      );
+    }
+    return Object.keys(o).length > 0;
+  }
+  return true;
+}
+
+type StepMeta = {
+  sintaks: number;
+  label: string;
+  blockIds: string[];
+};
+
+/** Ambil steps + id blok dari dokumen kegiatan */
+function extractSteps(kegData: Record<string, unknown> | null): StepMeta[] {
+  if (!kegData || !Array.isArray(kegData.steps)) return [];
+  return (kegData.steps as Array<Record<string, unknown>>).map((s, i) => {
+    const blocks = Array.isArray(s.blocks) ? s.blocks : [];
+    const blockIds = blocks
+      .map((b) =>
+        b && typeof b === "object" && "id" in b
+          ? String((b as { id: string }).id)
+          : "",
+      )
+      .filter(Boolean);
+    // ikut field sekunder yang sering diisi siswa
+    blocks.forEach((b) => {
+      if (!b || typeof b !== "object") return;
+      const extra = b as Record<string, unknown>;
+      if (typeof extra.alasanId === "string") blockIds.push(extra.alasanId);
+      if (typeof extra.pertanyaanId === "string")
+        blockIds.push(extra.pertanyaanId);
+    });
+    return {
+      sintaks: Number(s.sintaks ?? i + 1),
+      label: String(s.label || `Sintaks ${i + 1}`),
+      blockIds: [...new Set(blockIds)],
+    };
+  });
+}
+
+/** % pengerjaan satu sintaks (0–100) */
+function sintaksPercent(
+  answers: Record<string, unknown> | undefined,
+  step: StepMeta,
+): number {
+  if (!step.blockIds.length) return 0;
+  const ans = answers || {};
+  let filled = 0;
+  for (const id of step.blockIds) {
+    if (isAnswerFilled(ans[id])) filled += 1;
+  }
+  return Math.round((filled / step.blockIds.length) * 100);
 }
 
 // ============ Dashboard ============
@@ -593,6 +667,7 @@ export function TeacherRekap() {
   const [kegiatanList, setKegiatanList] = useState<
     { nomor: number; judul: string; subjudul: string }[]
   >([]);
+  const [stepsMeta, setStepsMeta] = useState<StepMeta[]>([]);
   // const [kegiatanList, setKegiatanList] = useState<
   //   { nomor: number; judul: string; subjudul: string }[]
   // >([]);
@@ -655,6 +730,34 @@ export function TeacherRekap() {
       cancelled = true;
     };
   }, [profile, toast]);
+
+  // Load struktur sintaks kegiatan terpilih
+  useEffect(() => {
+    const nomor = Number(selKeg);
+    const kegId = kegIds[nomor];
+    if (!kegId) {
+      setStepsMeta([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "kegiatan", kegId));
+        if (cancelled) return;
+        if (snap.exists()) {
+          setStepsMeta(extractSteps(snap.data() as Record<string, unknown>));
+        } else {
+          setStepsMeta([]);
+        }
+      } catch (err) {
+        console.error("[TeacherRekap] load steps:", err);
+        if (!cancelled) setStepsMeta([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selKeg, kegIds]);
 
   const loadRekap = useCallback(async () => {
     if (!selKelas) return;
@@ -871,22 +974,21 @@ export function TeacherRekap() {
                     Nama
                   </th>
                   <th className="px-3 py-2.5 font-semibold text-slate-700">
-                    Status Jawaban
+                    Status
+                  </th>
+                  {stepsMeta.map((s) => (
+                    <th
+                      key={s.sintaks}
+                      className="px-2 py-2.5 font-semibold text-slate-700 text-center whitespace-nowrap"
+                      title={s.label}>
+                      S{s.sintaks}
+                    </th>
+                  ))}
+                  <th className="px-3 py-2.5 font-semibold text-slate-700 text-center">
+                    Total
                   </th>
                   <th className="px-3 py-2.5 font-semibold text-slate-700">
                     Kuis
-                  </th>
-                  <th className="px-3 py-2.5 font-semibold text-slate-700">
-                    Pretest
-                  </th>
-                  <th className="px-3 py-2.5 font-semibold text-slate-700">
-                    Posttest
-                  </th>
-                  <th className="px-3 py-2.5 font-semibold text-slate-700">
-                    Skor Kuis
-                  </th>
-                  <th className="px-3 py-2.5 font-semibold text-slate-700">
-                    Waktu Kumpul
                   </th>
                   <th className="px-3 py-2.5 font-semibold text-slate-700">
                     Aksi
@@ -894,57 +996,87 @@ export function TeacherRekap() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={r.siswa.id} className="border-b border-slate-100">
-                    <td className="px-3 py-2.5 font-medium text-slate-800">
-                      {r.siswa.nama}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <Badge
-                        color={
-                          r.jawaban?.status === "terkumpul"
-                            ? "success"
-                            : r.jawaban?.status === "dinilai"
-                              ? "teal"
-                              : r.jawaban?.status === "draft"
-                                ? "amber"
-                                : "slate"
-                        }>
-                        {r.jawaban?.status || "Belum"}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {r.kuis?.sudah_mengerjakan ? (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
-                      ) : (
-                        <Circle className="h-4 w-4 text-slate-300" />
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-sm">
-                      {r.pretest?.score != null ? r.pretest.score : "-"}
-                    </td>
-                    <td className="px-3 py-2.5 text-sm">
-                      {r.posttest?.score != null ? r.posttest.score : "-"}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {r.kuis?.skor_manual ?? "-"}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs text-slate-500">
-                      {r.jawaban?.waktu_dikumpulkan
-                        ? new Date(
-                            r.jawaban.waktu_dikumpulkan,
-                          ).toLocaleDateString("id-ID")
-                        : "-"}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <Link
-                        to={`/guru/siswa/${r.siswa.id}`}
-                        className="text-brand-green hover:underline text-sm">
-                        Detail
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const answers = (r.jawaban?.isi_jawaban || {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  const perStep = stepsMeta.map((s) =>
+                    sintaksPercent(answers, s),
+                  );
+                  const totalPct =
+                    perStep.length > 0
+                      ? Math.round(
+                          perStep.reduce((a, b) => a + b, 0) / perStep.length,
+                        )
+                      : 0;
+
+                  return (
+                    <tr key={r.siswa.id} className="border-b border-slate-100">
+                      <td className="px-3 py-2.5 font-medium text-slate-800">
+                        {r.siswa.nama}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge
+                          color={
+                            r.jawaban?.status === "terkumpul"
+                              ? "success"
+                              : r.jawaban?.status === "dinilai"
+                                ? "teal"
+                                : r.jawaban?.status === "draft"
+                                  ? "amber"
+                                  : "slate"
+                          }>
+                          {r.jawaban?.status || "Belum"}
+                        </Badge>
+                      </td>
+                      {perStep.map((pct, i) => (
+                        <td
+                          key={stepsMeta[i].sintaks}
+                          className="px-2 py-2.5 text-center">
+                          <span
+                            className={`inline-block min-w-[2.5rem] rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              pct >= 100
+                                ? "bg-emerald-50 text-emerald-700"
+                                : pct > 0
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-slate-100 text-slate-400"
+                            }`}
+                            title={`${stepsMeta[i].label}: ${pct}%`}>
+                            {pct}%
+                          </span>
+                        </td>
+                      ))}
+                      <td className="px-3 py-2.5 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-xs font-bold text-slate-700">
+                            {totalPct}%
+                          </span>
+                          <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-brand-green transition-all"
+                              style={{ width: `${totalPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {r.kuis?.sudah_mengerjakan ? (
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-slate-300" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Link
+                          to={`/guru/siswa/${r.siswa.id}`}
+                          className="text-brand-green hover:underline text-sm">
+                          Detail
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -954,7 +1086,6 @@ export function TeacherRekap() {
   );
 }
 
-// ============ Siswa Detail (jawaban viewer + nilai) ============
 // ============ Siswa Detail (jawaban viewer + nilai) ============
 export function TeacherSiswaDetail() {
   const { toast } = useToast();
