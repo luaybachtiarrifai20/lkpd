@@ -43,6 +43,7 @@ import { RadioCardSelector } from "./RadioCardSelector";
 // import { EAssessment } from "./EAssessment";
 import { SDGBadgeChip, Badge } from "@/components/ui";
 import { Link } from "react-router-dom";
+import { ExtraAnswers } from "../components/ExtraAnswer";
 
 const stepIcons = [
   <AlertTriangle className="h-4 w-4" />,
@@ -2157,6 +2158,13 @@ function BlockRenderer({
                 onChange={(v) => onUpdate(block.id, v)}
                 disabled={readOnly}
                 hint={block.hint}
+                savedAt={savedAt}
+              />
+              <ExtraAnswers
+                blockId={block.id}
+                answers={answers}
+                onUpdate={onUpdate}
+                disabled={readOnly}
                 savedAt={savedAt}
               />
             </>
