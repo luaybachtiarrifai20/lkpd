@@ -124,24 +124,44 @@ export function ActivityRenderer({
   };
 
   const stepCompletion = steps.map((s) => {
-    const keys = (s.blocks || [])
-      .flatMap((b) => {
-        const ids: string[] = [];
-        if ("id" in b && b.id) ids.push(b.id);
-        if ("alasanId" in b && (b as { alasanId?: string }).alasanId)
-          ids.push((b as { alasanId: string }).alasanId);
-        if (
-          "pertanyaanId" in b &&
-          (b as { pertanyaanId?: string }).pertanyaanId
-        )
-          ids.push((b as { pertanyaanId: string }).pertanyaanId);
-        return ids;
-      })
-      .filter(Boolean);
-    // Sintaks dianggap selesai jika SEMUA blok jawaban terisi
-    // (jika tidak ada blok jawaban → dianggap selesai)
+    const keys: string[] = [];
+
+    (s.blocks || []).forEach((b) => {
+      // id utama blok
+      const main = blockKey(b);
+      if (main) keys.push(main);
+
+      // field sekunder
+      if ("alasanId" in b && (b as { alasanId?: string }).alasanId) {
+        keys.push((b as { alasanId: string }).alasanId);
+      }
+      if (
+        "pertanyaanId" in b &&
+        (b as { pertanyaanId?: string }).pertanyaanId
+      ) {
+        keys.push((b as { pertanyaanId: string }).pertanyaanId);
+      }
+
+      // soal benar-salah: setiap item punya id jawaban
+      if (
+        b.kind === "benar-salah" &&
+        Array.isArray((b as { items?: { id?: string }[] }).items)
+      ) {
+        (b as { items: { id?: string }[] }).items.forEach((it) => {
+          if (it.id) keys.push(it.id);
+        });
+      }
+    });
+
+    // contoh: selesai jika SEMUA terisi (sesuai logika kunci urutan)
     if (keys.length === 0) return true;
-    return keys.every((k) => isFilled(answers[k]));
+    return keys.every((k) => {
+      const v = answers[k];
+      if (v == null) return false;
+      if (typeof v === "string") return v.trim().length > 0;
+      if (Array.isArray(v)) return v.some((x) => String(x).trim());
+      return true;
+    });
   });
 
   /** Sintaks ke-i boleh dikerjakan jika semua sebelumnya selesai */
@@ -1012,8 +1032,67 @@ function getAddBlockOptions(
     case 1:
       return [
         {
+          label: "Gambar Utama / Infografis",
+          desc: "Gambar besar sebelum video/narasi",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: {
+            kind: "gambar-utama",
+            title: "Gambar utama / infografis masalah",
+            imageUrl: "",
+            caption: "",
+          } as ContentBlock,
+        },
+        {
+          label: "Narasi Masalah",
+          desc: "Deskripsi narasi masalah",
+          icon: <AlertTriangle className="h-4 w-4" />,
+          block: { kind: "masalah", title: "Narasi Masalah", body: "" },
+        },
+        {
+          label: "Media / Video",
+          desc: "YouTube atau tautan di level sintaks / blok",
+          icon: <UploadCloud className="h-4 w-4" />,
+          block: {
+            kind: "media",
+            title: "Video / Media",
+            mediaUrl: "",
+            mediaType: "youtube",
+            caption: "",
+          } as ContentBlock,
+        },
+        {
+          label: "Corner: Tahukah Kamu?",
+          desc: "Kartu fakta singkat + label SDG",
+          icon: <Atom className="h-4 w-4" />,
+          block: {
+            kind: "tahukah-kamu",
+            title: "Corner: Tahukah Kamu?",
+            body: "",
+            sdgLabel: "SDG 2 / 11 / 12",
+          } as ContentBlock,
+        },
+        {
+          label: "Soal Benar / Salah",
+          desc: "Beberapa pernyataan Benar/Salah + feedback",
+          icon: <CheckCircle2 className="h-4 w-4" />,
+          block: {
+            kind: "benar-salah",
+            title: "Soal Benar / Salah",
+            intro: "Tandai tiap pernyataan.",
+            items: [
+              {
+                id: genId("bs"),
+                pernyataan: "",
+                jawabanBenar: true,
+                feedbackBenar: "Benar!",
+                feedbackSalah: "Kurang tepat.",
+              },
+            ],
+          } as ContentBlock,
+        },
+        {
           label: "Pertanyaan Pemantik",
-          desc: "Pertanyaan teks dengan kolom jawaban",
+          desc: "Pertanyaan uraian dengan kolom jawaban",
           icon: <AlertTriangle className="h-4 w-4" />,
           block: { kind: "pertanyaan", id: genId("p"), text: "", hint: "" },
         },
@@ -1022,12 +1101,6 @@ function getAddBlockOptions(
           desc: "Teks stimulus / konteks masalah",
           icon: <BookOpen className="h-4 w-4" />,
           block: { kind: "stimulus", title: "Amati dan Simak", body: "" },
-        },
-        {
-          label: "Narasi Masalah",
-          desc: "Deskripsi narasi masalah",
-          icon: <AlertTriangle className="h-4 w-4" />,
-          block: { kind: "masalah", title: "Narasi Masalah", body: "" },
         },
       ];
     case 2:
@@ -2031,6 +2104,287 @@ function BlockRenderer({
     onPatchBlock(stepIndex, blockIndex, p);
 
   switch (block.kind) {
+    case "gambar-utama":
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">
+                {block.title || "Gambar utama / infografis masalah"}
+              </p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextInput
+                label="URL Gambar"
+                value={(block as { imageUrl?: string }).imageUrl || ""}
+                onChange={(v) => patch({ imageUrl: v })}
+              />
+              <AdminTextArea
+                label="Caption / deskripsi"
+                value={(block as { caption?: string }).caption || ""}
+                onChange={(v) => patch({ caption: v })}
+                rows={2}
+              />
+            </div>
+          ) : (block as { imageUrl?: string }).imageUrl ? (
+            <figure className="overflow-hidden rounded-xl bg-white/80">
+              <img
+                src={(block as { imageUrl?: string }).imageUrl}
+                alt={block.title || "Infografis"}
+                className="max-h-80 w-full object-contain"
+              />
+              {(block as { caption?: string }).caption && (
+                <figcaption className="px-3 py-2 text-center text-xs text-slate-600">
+                  {(block as { caption?: string }).caption}
+                </figcaption>
+              )}
+            </figure>
+          ) : (
+            <div className="flex min-h-[120px] items-center justify-center rounded-xl bg-emerald-50/80 px-4 text-center text-sm text-slate-500">
+              {(block as { caption?: string }).caption ||
+                "Gambar belum diunggah Super Admin"}
+            </div>
+          )}
+        </div>
+      );
+
+    case "tahukah-kamu":
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/50 p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul corner"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">
+                {block.title || "Corner: Tahukah Kamu?"}
+              </p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextArea
+                label="Isi fakta"
+                value={(block as { body?: string }).body || ""}
+                onChange={(v) => patch({ body: v })}
+                rows={3}
+              />
+              <AdminTextInput
+                label="Label SDG (contoh: SDG 2 / 11 / 12)"
+                value={(block as { sdgLabel?: string }).sdgLabel || ""}
+                onChange={(v) => patch({ sdgLabel: v })}
+              />
+            </div>
+          ) : (
+            <>
+              <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+                {(block as { body?: string }).body}
+              </p>
+              {(block as { sdgLabel?: string }).sdgLabel && (
+                <div className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-slate-600">
+                  {(block as { sdgLabel?: string }).sdgLabel}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+
+    case "benar-salah": {
+      const items =
+        (
+          block as {
+            items?: Array<{
+              id: string;
+              pernyataan: string;
+              jawabanBenar: boolean;
+              feedbackBenar?: string;
+              feedbackSalah?: string;
+            }>;
+          }
+        ).items || [];
+
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">
+                {block.title || "Soal Benar / Salah"}
+              </p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+
+          {editMode ? (
+            <div className="space-y-3">
+              <AdminTextInput
+                label="Intro"
+                value={(block as { intro?: string }).intro || ""}
+                onChange={(v) => patch({ intro: v })}
+              />
+              {items.map((it, i) => (
+                <div
+                  key={it.id || i}
+                  className="space-y-2 rounded-xl border border-dashed border-purple-200 p-3 relative">
+                  <button
+                    type="button"
+                    className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs"
+                    onClick={() => {
+                      const next = items.filter((_, idx) => idx !== i);
+                      patch({ items: next });
+                    }}>
+                    ×
+                  </button>
+                  <AdminTextArea
+                    label={`Pernyataan ${i + 1}`}
+                    value={it.pernyataan}
+                    onChange={(v) => {
+                      const next = items.map((x, idx) =>
+                        idx === i ? { ...x, pernyataan: v } : x,
+                      );
+                      patch({ items: next });
+                    }}
+                    rows={2}
+                  />
+                  <label className="label-base">Kunci jawaban</label>
+                  <select
+                    className="input-base"
+                    value={it.jawabanBenar ? "benar" : "salah"}
+                    onChange={(e) => {
+                      const next = items.map((x, idx) =>
+                        idx === i
+                          ? { ...x, jawabanBenar: e.target.value === "benar" }
+                          : x,
+                      );
+                      patch({ items: next });
+                    }}>
+                    <option value="benar">Benar</option>
+                    <option value="salah">Salah</option>
+                  </select>
+                  <AdminTextInput
+                    label="Feedback jika benar"
+                    value={it.feedbackBenar || ""}
+                    onChange={(v) => {
+                      const next = items.map((x, idx) =>
+                        idx === i ? { ...x, feedbackBenar: v } : x,
+                      );
+                      patch({ items: next });
+                    }}
+                  />
+                  <AdminTextInput
+                    label="Feedback jika salah"
+                    value={it.feedbackSalah || ""}
+                    onChange={(v) => {
+                      const next = items.map((x, idx) =>
+                        idx === i ? { ...x, feedbackSalah: v } : x,
+                      );
+                      patch({ items: next });
+                    }}
+                  />
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn-ghost text-xs w-full"
+                onClick={() =>
+                  patch({
+                    items: [
+                      ...items,
+                      {
+                        id: `bs_${Date.now()}`,
+                        pernyataan: "",
+                        jawabanBenar: true,
+                        feedbackBenar: "Benar!",
+                        feedbackSalah: "Kurang tepat.",
+                      },
+                    ],
+                  })
+                }>
+                + Tambah pernyataan
+              </button>
+            </div>
+          ) : (
+            <>
+              {(block as { intro?: string }).intro && (
+                <p className="text-sm text-slate-600">
+                  {(block as { intro?: string }).intro}
+                </p>
+              )}
+              <div className="space-y-4">
+                {items.map((it, i) => {
+                  const ansKey = it.id;
+                  const chosen = answers[ansKey] as string | undefined; // "benar" | "salah"
+                  const showFb = chosen === "benar" || chosen === "salah";
+                  const isCorrect =
+                    (chosen === "benar" && it.jawabanBenar) ||
+                    (chosen === "salah" && !it.jawabanBenar);
+                  return (
+                    <div key={ansKey || i} className="space-y-2">
+                      <p className="text-sm font-medium text-slate-800">
+                        {i + 1}. {it.pernyataan}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {(["benar", "salah"] as const).map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            disabled={readOnly}
+                            onClick={() => onUpdate(ansKey, opt)}
+                            className={`rounded-xl border-2 px-4 py-1.5 text-sm font-semibold transition ${
+                              chosen === opt
+                                ? opt === "benar"
+                                  ? "border-brand-green bg-brand-green-light text-brand-green-dark"
+                                  : "border-red-300 bg-red-50 text-red-700"
+                                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                            }`}>
+                            {opt === "benar" ? "Benar" : "Salah"}
+                          </button>
+                        ))}
+                      </div>
+                      {showFb && (
+                        <p
+                          className={`text-xs font-medium ${
+                            isCorrect ? "text-emerald-700" : "text-amber-700"
+                          }`}>
+                          {isCorrect
+                            ? it.feedbackBenar || "Benar!"
+                            : it.feedbackSalah || "Kurang tepat."}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
     case "media":
       return (
         <div className="card">

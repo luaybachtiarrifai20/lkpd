@@ -109,6 +109,30 @@ export type ContentBlock =
       pertanyaanText: string;
     }
   | {
+      kind: "gambar-utama";
+      title?: string;
+      imageUrl?: string;
+      caption?: string;
+    }
+  | {
+      kind: "tahukah-kamu";
+      title?: string;
+      body?: string;
+      sdgLabel?: string; // contoh: "SDG 2 / 11 / 12"
+    }
+  | {
+      kind: "benar-salah";
+      title?: string;
+      intro?: string;
+      items: Array<{
+        id: string;
+        pernyataan: string;
+        jawabanBenar: boolean; // true = Benar
+        feedbackBenar?: string;
+        feedbackSalah?: string;
+      }>;
+    }
+  | {
       kind: "penalaran-level";
       makroskopik: string;
       submikroskopik: string;
