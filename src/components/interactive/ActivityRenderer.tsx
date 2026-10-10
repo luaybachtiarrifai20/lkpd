@@ -151,6 +151,18 @@ export function ActivityRenderer({
           if (it.id) keys.push(it.id);
         });
       }
+      if (b.kind === "tabel-isian") {
+        if ("id" in b && b.id) keys.push(b.id);
+        if (
+          "pertanyaanId" in b &&
+          (b as { pertanyaanId?: string }).pertanyaanId
+        )
+          keys.push((b as { pertanyaanId: string }).pertanyaanId);
+      }
+      if (b.kind === "soal-variatif" && "id" in b && b.id) {
+        keys.push(`${b.id}__match`);
+        keys.push(`${b.id}__pg`);
+      }
     });
 
     // contoh: selesai jika SEMUA terisi (sesuai logika kunci urutan)
@@ -1165,8 +1177,54 @@ function getAddBlockOptions(
     case 2:
       return [
         {
+          label: "Kartu Materi (judul + teks + gambar)",
+          desc: "Satu kartu: judul, deskripsi, gambar",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: {
+            kind: "materi-card",
+            title: "Konsep inti",
+            body: "",
+            imageUrl: "",
+            imageCaption: "",
+          } as ContentBlock,
+        },
+        {
+          label: "Tabel Data (isi yang kosong)",
+          desc: "Tabel sebagian terisi, siswa mengisi sel [?]",
+          icon: <ClipboardList className="h-4 w-4" />,
+          block: {
+            kind: "tabel-isian",
+            id: genId("ti"),
+            title: "Tabel data: isi yang kosong",
+            headers: ["Percobaan", "[A]", "[B]", "Laju"],
+            rows: [
+              [
+                { value: "1", editable: false },
+                { value: "0,1", editable: false },
+                { value: "0,1", editable: false },
+                { value: "2", editable: false },
+              ],
+              [
+                { value: "2", editable: false },
+                { value: "0,2", editable: false },
+                { value: "0,1", editable: false },
+                { value: "", editable: true },
+              ],
+              [
+                { value: "3", editable: false },
+                { value: "0,1", editable: false },
+                { value: "0,2", editable: false },
+                { value: "", editable: true },
+              ],
+            ],
+            pertanyaanText:
+              "Lalu tentukan orde m dan n dan tulis persamaan lajunya.",
+            pertanyaanId: genId("tip"),
+          } as ContentBlock,
+        },
+        {
           label: "Tabel Organisasi (Aktivitas)",
-          desc: "Tabel diagnosis / perencanaan",
+          desc: "Tabel diagnosis / perencanaan (sudah ada)",
           icon: <ClipboardList className="h-4 w-4" />,
           block: {
             kind: "tabel-org",
@@ -1181,6 +1239,40 @@ function getAddBlockOptions(
             perencanaanId: genId("rencana"),
             perencanaanText: "",
           },
+        },
+        {
+          label: "Soal Variatif (pasang + PG)",
+          desc: "Pasangkan istilah + pilihan ganda",
+          icon: <FileQuestion className="h-4 w-4" />,
+          block: {
+            kind: "soal-variatif",
+            id: genId("sv"),
+            title: "Soal variatif: pasangkan & pilihan ganda",
+            intro: "Pasangkan istilah dengan pengertian, lalu kerjakan PG.",
+            matching: {
+              left: [
+                { id: "L1", text: "Katalis" },
+                { id: "L2", text: "Energi aktivasi" },
+              ],
+              right: [
+                { id: "R1", text: "Menurunkan Ea tanpa habis bereaksi" },
+                { id: "R2", text: "Energi minimum agar reaksi terjadi" },
+              ],
+              kunci: { L1: "R1", L2: "R2" },
+            },
+            pg: [
+              {
+                id: genId("pg"),
+                pertanyaan: "Katalis mempercepat reaksi dengan cara …",
+                options: [
+                  { id: "a", text: "Menaikkan suhu sistem" },
+                  { id: "b", text: "Menurunkan energi aktivasi" },
+                  { id: "c", text: "Menambah konsentrasi produk" },
+                ],
+                kunciId: "b",
+              },
+            ],
+          } as ContentBlock,
         },
       ];
     case 3:
@@ -2163,6 +2255,334 @@ function BlockRenderer({
     onPatchBlock(stepIndex, blockIndex, p);
 
   switch (block.kind) {
+    case "materi-card":
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextArea
+                label="Teks / deskripsi"
+                value={(block as { body?: string }).body || ""}
+                onChange={(v) => patch({ body: v })}
+                rows={3}
+              />
+              <AdminTextInput
+                label="URL Gambar"
+                value={(block as { imageUrl?: string }).imageUrl || ""}
+                onChange={(v) => patch({ imageUrl: v })}
+              />
+              <AdminTextInput
+                label="Caption gambar"
+                value={(block as { imageCaption?: string }).imageCaption || ""}
+                onChange={(v) => patch({ imageCaption: v })}
+              />
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {(block as { body?: string }).body}
+              </p>
+              <div className="mt-2 overflow-hidden rounded-xl bg-emerald-50/90">
+                {(block as { imageUrl?: string }).imageUrl ? (
+                  <img
+                    src={(block as { imageUrl?: string }).imageUrl}
+                    alt={block.title || ""}
+                    className="max-h-64 w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex min-h-[100px] items-center justify-center px-3 py-6 text-center text-xs text-slate-500">
+                    {(block as { imageCaption?: string }).imageCaption ||
+                      "Gambar belum diisi Super Admin"}
+                  </div>
+                )}
+                {(block as { imageCaption?: string }).imageCaption &&
+                  (block as { imageUrl?: string }).imageUrl && (
+                    <p className="px-3 py-2 text-center text-xs text-slate-500">
+                      {(block as { imageCaption?: string }).imageCaption}
+                    </p>
+                  )}
+              </div>
+            </>
+          )}
+        </div>
+      );
+
+    case "tabel-isian": {
+      const headers = (block as { headers: string[] }).headers || [];
+      const rows =
+        (
+          block as {
+            rows: Array<Array<{ value: string; editable: boolean }>>;
+          }
+        ).rows || [];
+      const saved =
+        (answers[block.id] as { cells?: string[][] } | undefined)?.cells || [];
+
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul tabel"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+
+          {editMode && (
+            <p className="text-[11px] text-purple-600">
+              Edit struktur tabel lewat JSON di bawah (headers & rows) atau
+              perluas form admin nanti. Sel editable=true = diisi siswa.
+            </p>
+          )}
+
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-amber-50">
+                  {headers.map((h) => (
+                    <th
+                      key={h}
+                      className="px-3 py-2 text-left font-semibold text-slate-700 border-b">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td
+                        key={ci}
+                        className={`border-b border-slate-100 px-2 py-1.5 ${
+                          cell.editable ? "bg-amber-50/80" : ""
+                        }`}>
+                        {cell.editable && !editMode ? (
+                          <input
+                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                            disabled={readOnly}
+                            placeholder="[?]"
+                            value={saved[ri]?.[ci] ?? ""}
+                            onChange={(e) => {
+                              const next = rows.map((r, rii) =>
+                                r.map((c, cii) =>
+                                  rii === ri && cii === ci
+                                    ? e.target.value
+                                    : (saved[rii]?.[cii] ?? ""),
+                                ),
+                              );
+                              // pastikan dimensi
+                              rows.forEach((r, rii) => {
+                                if (!next[rii]) next[rii] = r.map(() => "");
+                                r.forEach((_, cii) => {
+                                  if (next[rii][cii] === undefined)
+                                    next[rii][cii] = saved[rii]?.[cii] ?? "";
+                                });
+                              });
+                              next[ri][ci] = e.target.value;
+                              onUpdate(block.id, { cells: next });
+                            }}
+                          />
+                        ) : (
+                          <span className="text-slate-700">
+                            {cell.value || (cell.editable ? "[?]" : "")}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {(block as { pertanyaanText?: string }).pertanyaanText && (
+            <div>
+              <p className="mb-2 text-sm text-slate-700">
+                {(block as { pertanyaanText?: string }).pertanyaanText}
+              </p>
+              {!editMode &&
+                (block as { pertanyaanId?: string }).pertanyaanId && (
+                  <MultiTextAnswer
+                    value={
+                      (answers[
+                        (block as { pertanyaanId: string }).pertanyaanId
+                      ] as string | string[]) || ""
+                    }
+                    onChange={(v) =>
+                      onUpdate(
+                        (block as { pertanyaanId: string }).pertanyaanId,
+                        v,
+                      )
+                    }
+                    disabled={readOnly}
+                    rows={3}
+                    savedAt={savedAt}
+                  />
+                )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    case "soal-variatif": {
+      const matching = (
+        block as {
+          matching?: {
+            left: Array<{ id: string; text: string }>;
+            right: Array<{ id: string; text: string }>;
+          };
+        }
+      ).matching;
+      const pg =
+        (
+          block as {
+            pg?: Array<{
+              id: string;
+              pertanyaan: string;
+              options: Array<{ id: string; text: string }>;
+            }>;
+          }
+        ).pg || [];
+
+      const matchAns =
+        (answers[`${block.id}__match`] as Record<string, string>) || {};
+      const pgAns =
+        (answers[`${block.id}__pg`] as Record<string, string>) || {};
+
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">{block.title}</p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextArea
+                label="Intro"
+                value={(block as { intro?: string }).intro || ""}
+                onChange={(v) => patch({ intro: v })}
+                rows={2}
+              />
+              <p className="text-[11px] text-purple-600">
+                Struktur matching & PG bisa diedit lewat Simpan konten / JSON
+                lanjutan. Default sudah punya contoh 2 pasangan + 1 PG.
+              </p>
+            </div>
+          ) : (
+            <>
+              {(block as { intro?: string }).intro && (
+                <p className="text-sm text-slate-600">
+                  {(block as { intro?: string }).intro}
+                </p>
+              )}
+
+              {/* Pasangkan */}
+              {matching && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Pasangkan
+                  </p>
+                  {matching.left.map((L) => (
+                    <div
+                      key={L.id}
+                      className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                      <span className="min-w-[140px] text-sm font-medium text-slate-800">
+                        {L.text}
+                      </span>
+                      <select
+                        className="input-base flex-1"
+                        disabled={readOnly}
+                        value={matchAns[L.id] || ""}
+                        onChange={(e) =>
+                          onUpdate(`${block.id}__match`, {
+                            ...matchAns,
+                            [L.id]: e.target.value,
+                          })
+                        }>
+                        <option value="">— Pilih —</option>
+                        {matching.right.map((R) => (
+                          <option key={R.id} value={R.id}>
+                            {R.text}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* PG */}
+              {pg.map((q, qi) => (
+                <div key={q.id} className="space-y-2">
+                  <p className="text-sm font-medium text-slate-800">
+                    {qi + 1}. {q.pertanyaan}
+                  </p>
+                  <div className="space-y-1.5">
+                    {q.options.map((opt) => (
+                      <label
+                        key={opt.id}
+                        className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                          pgAns[q.id] === opt.id
+                            ? "border-brand-green bg-brand-green-light/50"
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        }`}>
+                        <input
+                          type="radio"
+                          name={q.id}
+                          disabled={readOnly}
+                          checked={pgAns[q.id] === opt.id}
+                          onChange={() =>
+                            onUpdate(`${block.id}__pg`, {
+                              ...pgAns,
+                              [q.id]: opt.id,
+                            })
+                          }
+                        />
+                        {opt.text}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      );
+    }
     case "gambar-utama":
       return (
         <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4">

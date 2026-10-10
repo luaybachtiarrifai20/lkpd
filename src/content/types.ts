@@ -132,6 +132,39 @@ export type ContentBlock =
         feedbackSalah?: string;
       }>;
     }
+    | {
+      kind: "materi-card";
+      title?: string;
+      body?: string;
+      imageUrl?: string;
+      imageCaption?: string;
+    }
+  | {
+      kind: "tabel-isian";
+      id: string;
+      title?: string;
+      headers: string[];
+      rows: Array<Array<{ value: string; editable: boolean }>>;
+      pertanyaanText?: string;
+      pertanyaanId?: string;
+    }
+  | {
+      kind: "soal-variatif";
+      id: string;
+      title?: string;
+      intro?: string;
+      matching?: {
+        left: Array<{ id: string; text: string }>;
+        right: Array<{ id: string; text: string }>;
+        kunci?: Record<string, string>;
+      };
+      pg?: Array<{
+        id: string;
+        pertanyaan: string;
+        options: Array<{ id: string; text: string }>;
+        kunciId?: string;
+      }>;
+    };
   | {
       kind: "penalaran-level";
       makroskopik: string;
