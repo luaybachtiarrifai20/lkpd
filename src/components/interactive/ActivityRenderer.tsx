@@ -1177,6 +1177,61 @@ function getAddBlockOptions(
     case 2:
       return [
         {
+          label: "Corner: Kamus Kimia",
+          desc: "Tap istilah → definisi + gambar",
+          icon: <BookOpen className="h-4 w-4" />,
+          block: {
+            kind: "kamus-kimia",
+            title: "Corner: Kamus Kimia",
+            intro: "Tap istilah untuk membuka definisi singkat dan gambar.",
+            terms: [
+              {
+                id: genId("term"),
+                label: "laju reaksi",
+                definisi: "",
+                imageUrl: "",
+              },
+              {
+                id: genId("term"),
+                label: "tumbukan efektif",
+                definisi: "",
+                imageUrl: "",
+              },
+              {
+                id: genId("term"),
+                label: "energi aktivasi",
+                definisi: "",
+                imageUrl: "",
+              },
+              {
+                id: genId("term"),
+                label: "orde reaksi",
+                definisi: "",
+                imageUrl: "",
+              },
+              {
+                id: genId("term"),
+                label: "katalis",
+                definisi: "",
+                imageUrl: "",
+              },
+            ],
+          } as unknown as ContentBlock,
+        },
+        {
+          label: "Kalimat Rumpang / Hipotesis",
+          desc: "Judul + teks rumpang + kolom jawaban (judul bisa diubah)",
+          icon: <Pencil className="h-4 w-4" />,
+          block: {
+            kind: "kalimat-rumpang",
+            id: genId("kr"),
+            title: "Hipotesis dengan kalimat rumpang",
+            prompt:
+              "Jika ukuran cacahan [ lebih kecil / lebih besar ], maka waktu pengomposan [ lebih singkat / lebih lama ], karena …",
+            hint: "",
+          } as unknown as ContentBlock,
+        },
+        {
           label: "Kartu Materi (judul + teks + gambar)",
           desc: "Satu kartu: judul, deskripsi, gambar",
           icon: <BookOpen className="h-4 w-4" />,
@@ -2304,6 +2359,163 @@ function renderRows(rows: unknown) {
   }
 }
 
+function KamusKimiaBlock({
+  block,
+  editMode,
+  patch,
+}: {
+  block: {
+    title?: string;
+    intro?: string;
+    terms: Array<{
+      id: string;
+      label: string;
+      definisi?: string;
+      imageUrl?: string;
+    }>;
+  };
+  editMode: boolean;
+  patch: (p: Record<string, unknown>) => void;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const terms = block.terms || [];
+  const active = terms.find((t) => t.id === openId);
+
+  return (
+    <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        {editMode ? (
+          <AdminTextInput
+            label="Judul"
+            value={block.title || ""}
+            onChange={(v) => patch({ title: v })}
+          />
+        ) : (
+          <p className="text-sm font-bold text-slate-800">
+            {block.title || "Corner: Kamus Kimia"}
+          </p>
+        )}
+        <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+          Baru
+        </span>
+      </div>
+
+      {editMode ? (
+        <div className="space-y-3">
+          <AdminTextInput
+            label="Intro"
+            value={block.intro || ""}
+            onChange={(v) => patch({ intro: v })}
+          />
+          {terms.map((t, i) => (
+            <div
+              key={t.id}
+              className="relative space-y-2 rounded-xl border border-dashed border-purple-200 p-3">
+              <button
+                type="button"
+                className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs"
+                onClick={() => {
+                  patch({ terms: terms.filter((_, idx) => idx !== i) });
+                }}>
+                ×
+              </button>
+              <AdminTextInput
+                label="Label tombol"
+                value={t.label}
+                onChange={(v) => {
+                  const next = terms.map((x, idx) =>
+                    idx === i ? { ...x, label: v } : x,
+                  );
+                  patch({ terms: next });
+                }}
+              />
+              <AdminTextArea
+                label="Definisi"
+                value={t.definisi || ""}
+                onChange={(v) => {
+                  const next = terms.map((x, idx) =>
+                    idx === i ? { ...x, definisi: v } : x,
+                  );
+                  patch({ terms: next });
+                }}
+                rows={2}
+              />
+              <AdminTextInput
+                label="URL Gambar (opsional)"
+                value={t.imageUrl || ""}
+                onChange={(v) => {
+                  const next = terms.map((x, idx) =>
+                    idx === i ? { ...x, imageUrl: v } : x,
+                  );
+                  patch({ terms: next });
+                }}
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            className="btn-ghost text-xs w-full"
+            onClick={() =>
+              patch({
+                terms: [
+                  ...terms,
+                  {
+                    id: `term_${Date.now()}`,
+                    label: "istilah baru",
+                    definisi: "",
+                    imageUrl: "",
+                  },
+                ],
+              })
+            }>
+            + Tambah istilah
+          </button>
+        </div>
+      ) : (
+        <>
+          {block.intro && (
+            <p className="text-sm text-slate-600">{block.intro}</p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {terms.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setOpenId((id) => (id === t.id ? null : t.id))}
+                className={`rounded-xl border-2 px-3 py-1.5 text-sm font-medium transition ${
+                  openId === t.id
+                    ? "border-brand-green bg-brand-green-light text-brand-green-dark"
+                    : "border-brand-green/40 bg-white text-brand-green hover:bg-brand-green-light/40"
+                }`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {active && (
+            <div className="mt-2 space-y-2 rounded-xl border border-slate-100 bg-white p-3">
+              <p className="text-sm font-semibold text-slate-800">
+                {active.label}
+              </p>
+              {active.definisi && (
+                <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                  {active.definisi}
+                </p>
+              )}
+              {active.imageUrl && (
+                <img
+                  src={active.imageUrl}
+                  alt={active.label}
+                  className="max-h-48 w-full rounded-lg object-contain"
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function BlockRenderer({
   block,
   blockIndex,
@@ -2335,6 +2547,93 @@ function BlockRenderer({
     onPatchBlock(stepIndex, blockIndex, p);
 
   switch (block.kind) {
+    case "kamus-kimia": {
+      // const terms =
+      //   (
+      //     block as {
+      //       terms?: Array<{
+      //         id: string;
+      //         label: string;
+      //         definisi?: string;
+      //         imageUrl?: string;
+      //       }>;
+      //     }
+      //   ).terms || [];
+
+      // state lokal per instance: id istilah yang dibuka
+      // Karena BlockRenderer function component, gunakan pola sederhana dengan answers
+      // ATAU komponen kecil KamusKimiaView di bawah
+      return (
+        <KamusKimiaBlock
+          block={
+            block as {
+              title?: string;
+              intro?: string;
+              terms: Array<{
+                id: string;
+                label: string;
+                definisi?: string;
+                imageUrl?: string;
+              }>;
+            }
+          }
+          editMode={editMode}
+          patch={patch}
+        />
+      );
+    }
+
+    case "kalimat-rumpang":
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            {editMode ? (
+              <AdminTextInput
+                label="Judul (bisa diubah bebas)"
+                value={block.title || ""}
+                onChange={(v) => patch({ title: v })}
+              />
+            ) : (
+              <p className="text-sm font-bold text-slate-800">
+                {block.title || "Kalimat rumpang"}
+              </p>
+            )}
+            <span className="shrink-0 rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800">
+              Baru
+            </span>
+          </div>
+
+          {editMode ? (
+            <div className="space-y-2">
+              <AdminTextArea
+                label="Teks / kalimat rumpang"
+                value={(block as { prompt?: string }).prompt || ""}
+                onChange={(v) => patch({ prompt: v })}
+                rows={3}
+              />
+              <AdminTextInput
+                label="Hint (opsional)"
+                value={(block as { hint?: string }).hint || ""}
+                onChange={(v) => patch({ hint: v })}
+              />
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {(block as { prompt?: string }).prompt}
+              </p>
+              <MultiTextAnswer
+                value={(answers[block.id] as string | string[]) || ""}
+                onChange={(v) => onUpdate(block.id, v)}
+                disabled={readOnly}
+                rows={3}
+                savedAt={savedAt}
+                hint={(block as { hint?: string }).hint}
+              />
+            </>
+          )}
+        </div>
+      );
     case "materi-card":
       return (
         <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-2">

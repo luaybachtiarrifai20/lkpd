@@ -164,7 +164,25 @@ export type ContentBlock =
         options: Array<{ id: string; text: string }>;
         kunciId?: string;
       }>;
-    };
+    }
+      | {
+      kind: "kamus-kimia";
+      title?: string;
+      intro?: string;
+      terms: Array<{
+        id: string;
+        label: string; // teks tombol, mis. "laju reaksi"
+        definisi?: string;
+        imageUrl?: string;
+      }>;
+    }
+  | {
+      kind: "kalimat-rumpang";
+      id: string;
+      title?: string; // bisa diubah Super Admin
+      prompt?: string; // teks petunjuk / kalimat rumpang
+      hint?: string;
+    }
   | {
       kind: "penalaran-level";
       makroskopik: string;
