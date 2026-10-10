@@ -756,6 +756,17 @@ function StepContent({
     width: 0,
   });
 
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const reorderBlocks = (from: number, to: number) => {
+    if (!editMode || from === to || from < 0 || to < 0) return;
+    const list = [...(step.blocks || [])];
+    if (from >= list.length || to >= list.length) return;
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+    onPatchStep(stepIndex, { blocks: list });
+  };
+
   // --- LOGIKA PORTAL ---
   const updateMenuPosition = () => {
     if (buttonRef.current) {
@@ -925,9 +936,57 @@ function StepContent({
 
       {/* Blok section aktif */}
       {visibleBlocks.map(({ block, index }) => (
-        <div key={index} className="relative group/block">
+        <div
+          key={index}
+          className={`relative group/block ${
+            editMode ? "cursor-default" : ""
+          } ${dragIndex === index ? "opacity-50 ring-2 ring-purple-300 rounded-xl" : ""}`}
+          draggable={editMode}
+          onDragStart={(e) => {
+            if (!editMode) return;
+            setDragIndex(index);
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", String(index));
+          }}
+          onDragEnd={() => setDragIndex(null)}
+          onDragOver={(e) => {
+            if (!editMode) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            if (!editMode) return;
+            e.preventDefault();
+            const from = Number(e.dataTransfer.getData("text/plain"));
+            if (Number.isNaN(from)) return;
+            reorderBlocks(from, index);
+            setDragIndex(null);
+          }}>
           {editMode && (
-            <div className="absolute -top-2 -right-2 z-10 opacity-0 group-hover/block:opacity-100 transition-opacity">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span
+                className="inline-flex cursor-grab active:cursor-grabbing items-center gap-1 rounded-lg bg-purple-50 px-2 py-1 text-[11px] font-semibold text-purple-700 select-none"
+                title="Tahan lalu geser untuk mengubah urutan">
+                ⋮⋮ Geser urutan
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50"
+                  disabled={index === 0}
+                  onClick={() => reorderBlocks(index, index - 1)}
+                  title="Naikkan">
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-50"
+                  disabled={index >= (step.blocks?.length || 0) - 1}
+                  onClick={() => reorderBlocks(index, index + 1)}
+                  title="Turunkan">
+                  ↓
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -935,7 +994,7 @@ function StepContent({
                     onRemoveBlock(stepIndex, index);
                   }
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
                 title="Hapus blok">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
