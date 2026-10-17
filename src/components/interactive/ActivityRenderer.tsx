@@ -1792,10 +1792,16 @@ function blockKey(b: ContentBlock): string | null {
 //           </div>
 //         );
 //       }
+//       // Fallback: tampilkan sebagai tautan jika URL YouTube tidak valid
 //       return (
-//         <p className="mt-2 text-xs text-amber-600">
-//           URL YouTube tidak valid: {block.mediaUrl}
-//         </p>
+//         <a
+//           href={block.mediaUrl}
+//           target="_blank"
+//           rel="noopener noreferrer"
+//           className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-brand-teal hover:bg-brand-teal-light/40 hover:border-brand-teal transition">
+//           <UploadCloud className="h-4 w-4 shrink-0" />
+//           <span className="truncate">{block.mediaUrl}</span>
+//         </a>
 //       );
 //     } else if (block.mediaType === "image") {
 //       return (
@@ -1807,81 +1813,147 @@ function blockKey(b: ContentBlock): string | null {
 //           />
 //         </div>
 //       );
+//     } else if (block.mediaType === "link") {
+//       const href =
+//         block.mediaUrl.startsWith("http://") ||
+//         block.mediaUrl.startsWith("https://")
+//           ? block.mediaUrl
+//           : `https://${block.mediaUrl}`;
+//       return (
+//         <a
+//           href={href}
+//           target="_blank"
+//           rel="noopener noreferrer"
+//           className="mt-3 flex items-center gap-2 rounded-xl border border-brand-teal/30 bg-brand-teal-light/30 px-4 py-3 text-sm font-semibold text-brand-teal hover:bg-brand-teal-light hover:border-brand-teal transition">
+//           <UploadCloud className="h-4 w-4 shrink-0" />
+//           <span className="truncate">
+//             {"caption" in block && block.caption
+//               ? block.caption
+//               : block.mediaUrl}
+//           </span>
+//           <ArrowRight className="h-4 w-4 shrink-0 ml-auto opacity-60" />
+//         </a>
+//       );
 //     }
 //   }
 //   return null;
 // }
 
+function isLikelyImageUrl(url: string): boolean {
+  if (!url) return false;
+  const u = url.trim().toLowerCase();
+  // ekstensi gambar, data URL, atau path umum CDN
+  if (/\.(png|jpe?g|gif|webp|svg|bmp|avif)(\?|#|$)/i.test(u)) return true;
+  if (u.startsWith("data:image/")) return true;
+  // Firebase Storage / Googleusercontent sering tanpa ekstensi di path akhir
+  if (u.includes("firebasestorage.googleapis.com") && u.includes("alt=media"))
+    return true;
+  if (u.includes("googleusercontent.com")) return true;
+  return false;
+}
+
 function renderMedia(block: ContentBlock) {
-  if ("mediaUrl" in block && block.mediaUrl) {
-    if (block.mediaType === "youtube") {
-      const getYoutubeId = (url: string) => {
-        const match = url.match(
-          /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/,
-        );
-        return match ? match[1] : null;
-      };
-      const videoId = getYoutubeId(block.mediaUrl);
-      if (videoId) {
-        return (
-          <div className="mt-3 aspect-video rounded-xl overflow-hidden shadow-sm">
-            <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${videoId}`}
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        );
-      }
-      // Fallback: tampilkan sebagai tautan jika URL YouTube tidak valid
-      return (
-        <a
-          href={block.mediaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-brand-teal hover:bg-brand-teal-light/40 hover:border-brand-teal transition">
-          <UploadCloud className="h-4 w-4 shrink-0" />
-          <span className="truncate">{block.mediaUrl}</span>
-        </a>
+  if (!("mediaUrl" in block) || !block.mediaUrl) return null;
+
+  const url = String(block.mediaUrl).trim();
+  let mediaType = (block as { mediaType?: string }).mediaType || "youtube";
+
+  // Auto: jika URL terlihat seperti gambar, paksa tampil sebagai image
+  if (mediaType !== "image" && isLikelyImageUrl(url)) {
+    mediaType = "image";
+  }
+
+  if (mediaType === "youtube") {
+    const getYoutubeId = (raw: string) => {
+      const match = raw.match(
+        /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/,
       );
-    } else if (block.mediaType === "image") {
+      return match ? match[1] : null;
+    };
+    const videoId = getYoutubeId(url);
+    if (videoId) {
       return (
-        <div className="mt-3 rounded-xl overflow-hidden shadow-sm">
-          <img
-            src={block.mediaUrl}
-            alt="Media"
-            className="w-full h-auto object-cover"
+        <div className="mt-3 aspect-video rounded-xl overflow-hidden shadow-sm">
+          <iframe
+            width="100%"
+            height="100%"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
           />
         </div>
       );
-    } else if (block.mediaType === "link") {
-      const href =
-        block.mediaUrl.startsWith("http://") ||
-        block.mediaUrl.startsWith("https://")
-          ? block.mediaUrl
-          : `https://${block.mediaUrl}`;
-      return (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 flex items-center gap-2 rounded-xl border border-brand-teal/30 bg-brand-teal-light/30 px-4 py-3 text-sm font-semibold text-brand-teal hover:bg-brand-teal-light hover:border-brand-teal transition">
-          <UploadCloud className="h-4 w-4 shrink-0" />
-          <span className="truncate">
-            {"caption" in block && block.caption
-              ? block.caption
-              : block.mediaUrl}
-          </span>
-          <ArrowRight className="h-4 w-4 shrink-0 ml-auto opacity-60" />
-        </a>
-      );
     }
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-brand-teal hover:bg-brand-teal-light/40 hover:border-brand-teal transition">
+        <UploadCloud className="h-4 w-4 shrink-0" />
+        <span className="truncate">{url}</span>
+      </a>
+    );
   }
-  return null;
+
+  function toDirectImageUrl(url: string): string {
+    const m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (m?.[1]) {
+      return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+    }
+    // format: open?id=XXX
+    const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+    if (m2?.[1]) {
+      return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+    }
+    return url;
+  }
+
+  if (mediaType === "image") {
+    return (
+      <div className="mt-3 rounded-xl overflow-hidden border border-slate-100 bg-white shadow-sm">
+        <img
+          src={toDirectImageUrl(url)}
+          alt={"title" in block && block.title ? String(block.title) : "Media"}
+          className="max-h-96 w-full object-contain bg-slate-50"
+          onError={(e) => {
+            const el = e.currentTarget;
+            el.style.display = "none";
+            const parent = el.parentElement;
+            if (parent && !parent.querySelector("[data-img-error]")) {
+              const tip = document.createElement("p");
+              tip.setAttribute("data-img-error", "1");
+              tip.className = "px-3 py-4 text-center text-xs text-red-500";
+              tip.textContent =
+                "Gambar gagal dimuat. Pastikan URL langsung ke file gambar (bukan halaman share).";
+              parent.appendChild(tip);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  // link
+  const href =
+    url.startsWith("http://") || url.startsWith("https://")
+      ? url
+      : `https://${url}`;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-3 flex items-center gap-2 rounded-xl border border-brand-teal/30 bg-brand-teal-light/30 px-4 py-3 text-sm font-semibold text-brand-teal hover:bg-brand-teal-light hover:border-brand-teal transition">
+      <UploadCloud className="h-4 w-4 shrink-0" />
+      <span className="truncate">
+        {"caption" in block && block.caption ? block.caption : url}
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 ml-auto opacity-60" />
+    </a>
+  );
 }
 
 /* ========== Admin field helpers ========== */
@@ -2415,6 +2487,28 @@ function AdminMediaFields({
           ...block,
           mediaType: mediaType as "youtube" | "image" | "link",
         } as ContentBlock)}
+      {block.mediaUrl &&
+        (mediaType === "image" || isLikelyImageUrl(block.mediaUrl)) && (
+          <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+            <p className="px-2 pt-2 text-[10px] font-semibold uppercase text-slate-400">
+              Preview gambar
+            </p>
+            <img
+              src={block.mediaUrl}
+              alt="Preview"
+              className="max-h-48 w-full object-contain p-2"
+              onError={(e) => {
+                e.currentTarget.replaceWith(
+                  Object.assign(document.createElement("p"), {
+                    className: "px-3 py-4 text-center text-xs text-red-500",
+                    textContent:
+                      "Preview gagal — cek URL (harus langsung ke .jpg/.png/.webp).",
+                  }),
+                );
+              }}
+            />
+          </div>
+        )}
     </div>
   );
 }
@@ -3433,15 +3527,21 @@ function BlockRenderer({
       );
 
     case "tabel-isian": {
-      const headers = (block as { headers: string[] }).headers || [];
+      const headers = (block as { headers?: string[] }).headers || [];
       const rows =
         (
           block as {
-            rows: Array<Array<{ value: string; editable: boolean }>>;
+            rows?: Array<Array<{ value: string; editable: boolean }>>;
           }
         ).rows || [];
       const saved =
-        (answers[block.id] as { cells?: string[][] } | undefined)?.cells || [];
+        (answers[block.id] as unknown as { cells?: string[][] } | undefined)
+          ?.cells || [];
+
+      const setHeaders = (next: string[]) => patch({ headers: next });
+      const setRows = (
+        next: Array<Array<{ value: string; editable: boolean }>>,
+      ) => patch({ rows: next });
 
       return (
         <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
@@ -3460,99 +3560,275 @@ function BlockRenderer({
             </span>
           </div>
 
-          {editMode && (
-            <p className="text-[11px] text-purple-600">
-              Edit struktur tabel lewat JSON di bawah (headers & rows) atau
-              perluas form admin nanti. Sel editable=true = diisi siswa.
-            </p>
-          )}
-
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-amber-50">
-                  {headers.map((h) => (
-                    <th
-                      key={h}
-                      className="px-3 py-2 text-left font-semibold text-slate-700 border-b">
-                      {h}
-                    </th>
+          {editMode ? (
+            <div className="space-y-3">
+              {/* Header kolom */}
+              <div>
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-purple-600">
+                  Header kolom
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {headers.map((h, hi) => (
+                    <div key={hi} className="flex items-center gap-1">
+                      <input
+                        className="input-base w-28 text-sm"
+                        value={h}
+                        onChange={(e) => {
+                          const next = [...headers];
+                          next[hi] = e.target.value;
+                          setHeaders(next);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="text-red-500 text-xs px-1"
+                        title="Hapus kolom"
+                        onClick={() => {
+                          setHeaders(headers.filter((_, i) => i !== hi));
+                          setRows(
+                            rows.map((row) => row.filter((_, i) => i !== hi)),
+                          );
+                        }}>
+                        ×
+                      </button>
+                    </div>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, ri) => (
-                  <tr key={ri}>
-                    {row.map((cell, ci) => (
-                      <td
-                        key={ci}
-                        className={`border-b border-slate-100 px-2 py-1.5 ${
-                          cell.editable ? "bg-amber-50/80" : ""
-                        }`}>
-                        {cell.editable && !editMode ? (
-                          <input
-                            className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
-                            disabled={readOnly}
-                            placeholder="[?]"
-                            value={saved[ri]?.[ci] ?? ""}
-                            onChange={(e) => {
-                              const next = rows.map((r, rii) =>
-                                r.map((c, cii) =>
-                                  rii === ri && cii === ci
-                                    ? e.target.value
-                                    : (saved[rii]?.[cii] ?? ""),
-                                ),
-                              );
-                              // pastikan dimensi
-                              rows.forEach((r, rii) => {
-                                if (!next[rii]) next[rii] = r.map(() => "");
-                                r.forEach((_, cii) => {
-                                  if (next[rii][cii] === undefined)
-                                    next[rii][cii] = saved[rii]?.[cii] ?? "";
-                                });
-                              });
-                              next[ri][ci] = e.target.value;
-                              onUpdate(block.id, { cells: next });
-                            }}
-                          />
-                        ) : (
-                          <span className="text-slate-700">
-                            {cell.value || (cell.editable ? "[?]" : "")}
-                          </span>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  <button
+                    type="button"
+                    className="btn-ghost text-xs"
+                    onClick={() => {
+                      setHeaders([...headers, `Kolom ${headers.length + 1}`]);
+                      setRows(
+                        rows.map((row) => [
+                          ...row,
+                          { value: "", editable: false },
+                        ]),
+                      );
+                    }}>
+                    + Kolom
+                  </button>
+                </div>
+              </div>
 
-          {(block as { pertanyaanText?: string }).pertanyaanText && (
-            <div>
-              <p className="mb-2 text-sm text-slate-700">
-                {(block as { pertanyaanText?: string }).pertanyaanText}
-              </p>
-              {!editMode &&
-                (block as { pertanyaanId?: string }).pertanyaanId && (
-                  <MultiTextAnswer
-                    value={
-                      (answers[
-                        (block as { pertanyaanId: string }).pertanyaanId
-                      ] as string | string[]) || ""
-                    }
-                    onChange={(v) =>
-                      onUpdate(
-                        (block as { pertanyaanId: string }).pertanyaanId,
-                        v,
-                      )
-                    }
-                    disabled={readOnly}
-                    rows={3}
-                    savedAt={savedAt}
-                  />
-                )}
+              {/* Isi baris */}
+              <div className="overflow-x-auto rounded-xl border border-purple-200 bg-white p-2">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-amber-50">
+                      {headers.map((h, hi) => (
+                        <th
+                          key={hi}
+                          className="px-2 py-1.5 text-left font-semibold text-slate-700">
+                          {h}
+                        </th>
+                      ))}
+                      <th className="w-10" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, ri) => (
+                      <tr key={ri} className="border-t border-slate-100">
+                        {headers.map((_, ci) => {
+                          const cell = row[ci] || {
+                            value: "",
+                            editable: false,
+                          };
+                          return (
+                            <td key={ci} className="px-1 py-1 align-top">
+                              <input
+                                className={`input-base text-sm mb-1 ${
+                                  cell.editable
+                                    ? "bg-amber-50 border-amber-300"
+                                    : ""
+                                }`}
+                                value={cell.value}
+                                placeholder={cell.editable ? "[?]" : ""}
+                                onChange={(e) => {
+                                  const next = rows.map((r, rii) =>
+                                    r.map((c, cii) =>
+                                      rii === ri && cii === ci
+                                        ? { ...c, value: e.target.value }
+                                        : c,
+                                    ),
+                                  );
+                                  // pastikan sel ada
+                                  if (!next[ri]) next[ri] = [];
+                                  while (next[ri].length < headers.length) {
+                                    next[ri].push({
+                                      value: "",
+                                      editable: false,
+                                    });
+                                  }
+                                  next[ri][ci] = {
+                                    ...next[ri][ci],
+                                    value: e.target.value,
+                                  };
+                                  setRows(next);
+                                }}
+                              />
+                              <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                                <input
+                                  type="checkbox"
+                                  checked={!!cell.editable}
+                                  onChange={(e) => {
+                                    const next = rows.map((r, rii) =>
+                                      r.map((c, cii) =>
+                                        rii === ri && cii === ci
+                                          ? {
+                                              ...c,
+                                              editable: e.target.checked,
+                                            }
+                                          : c,
+                                      ),
+                                    );
+                                    if (!next[ri]?.[ci]) {
+                                      /* sync length */
+                                    }
+                                    const copy = rows.map((r) =>
+                                      r.map((c) => ({ ...c })),
+                                    );
+                                    while (copy.length <= ri)
+                                      copy.push(
+                                        headers.map(() => ({
+                                          value: "",
+                                          editable: false,
+                                        })),
+                                      );
+                                    while (copy[ri].length <= ci)
+                                      copy[ri].push({
+                                        value: "",
+                                        editable: false,
+                                      });
+                                    copy[ri][ci] = {
+                                      value: copy[ri][ci]?.value || "",
+                                      editable: e.target.checked,
+                                    };
+                                    setRows(copy);
+                                  }}
+                                />
+                                diisi siswa
+                              </label>
+                            </td>
+                          );
+                        })}
+                        <td className="px-1 py-1">
+                          <button
+                            type="button"
+                            className="text-red-500 text-xs"
+                            title="Hapus baris"
+                            onClick={() =>
+                              setRows(rows.filter((_, i) => i !== ri))
+                            }>
+                            Hapus
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <button
+                type="button"
+                className="btn-ghost text-xs w-full"
+                onClick={() =>
+                  setRows([
+                    ...rows,
+                    headers.map(() => ({ value: "", editable: false })),
+                  ])
+                }>
+                + Tambah baris
+              </button>
+
+              <AdminTextArea
+                label="Teks di bawah tabel (pertanyaan)"
+                value={
+                  (block as { pertanyaanText?: string }).pertanyaanText || ""
+                }
+                onChange={(v) => patch({ pertanyaanText: v })}
+                rows={2}
+              />
             </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-amber-50">
+                      {headers.map((h) => (
+                        <th
+                          key={h}
+                          className="px-3 py-2 text-left font-semibold text-slate-700 border-b">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, ri) => (
+                      <tr key={ri}>
+                        {row.map((cell, ci) => (
+                          <td
+                            key={ci}
+                            className={`border-b border-slate-100 px-2 py-1.5 ${
+                              cell.editable ? "bg-amber-50/80" : ""
+                            }`}>
+                            {cell.editable ? (
+                              <input
+                                className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                disabled={readOnly}
+                                placeholder="[?]"
+                                value={saved[ri]?.[ci] ?? ""}
+                                onChange={(e) => {
+                                  const next: string[][] = rows.map((r, rii) =>
+                                    r.map((_, cii) => saved[rii]?.[cii] ?? ""),
+                                  );
+                                  if (!next[ri]) next[ri] = row.map(() => "");
+                                  next[ri][ci] = e.target.value;
+                                  onUpdate(block.id, {
+                                    cells: next,
+                                  } as AnswerValue);
+                                }}
+                              />
+                            ) : (
+                              <span className="text-slate-700">
+                                {cell.value}
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {(block as { pertanyaanText?: string }).pertanyaanText && (
+                <div>
+                  <p className="mb-2 text-sm text-slate-700">
+                    {(block as { pertanyaanText?: string }).pertanyaanText}
+                  </p>
+                  {(block as { pertanyaanId?: string }).pertanyaanId && (
+                    <MultiTextAnswer
+                      value={
+                        (answers[
+                          (block as { pertanyaanId: string }).pertanyaanId
+                        ] as string | string[]) || ""
+                      }
+                      onChange={(v) =>
+                        onUpdate(
+                          (block as { pertanyaanId: string }).pertanyaanId,
+                          v,
+                        )
+                      }
+                      disabled={readOnly}
+                      rows={3}
+                      savedAt={savedAt}
+                    />
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       );
