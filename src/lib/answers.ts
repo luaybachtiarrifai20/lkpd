@@ -25,6 +25,72 @@ import {
  * allowed). On read we convert them back to `string[][]`.
  */
 
+type CellMap = Record<string, string>; // { c0: "1", c1: "0,2" }
+
+/** string[][] → [{c0,c1,...}, ...]  (aman Firestore) */
+export function encodeTableCells(rows: string[][]): CellMap[] {
+  return (rows || []).map((row) => {
+    const obj: CellMap = {};
+    (row || []).forEach((cell, j) => {
+      obj[`c${j}`] = cell == null ? "" : String(cell);
+    });
+    return obj;
+  });
+}
+
+/** Firestore / legacy → string[][] untuk UI */
+export function decodeTableCells(
+  raw: unknown,
+  rowCount: number,
+  colCount: number,
+): string[][] {
+  const empty = () =>
+    Array.from({ length: rowCount }, () =>
+      Array.from({ length: colCount }, () => ""),
+    );
+
+  if (!raw) return empty();
+
+  // { cells: ... }
+  let rows: unknown = raw;
+  if (typeof raw === "object" && raw !== null && "cells" in raw) {
+    rows = (raw as { cells: unknown }).cells;
+  }
+  if (!Array.isArray(rows)) return empty();
+
+  return Array.from({ length: rowCount }, (_, ri) => {
+    const row = rows[ri];
+    return Array.from({ length: colCount }, (_, ci) => {
+      if (Array.isArray(row)) return String(row[ci] ?? "");
+      if (row && typeof row === "object") {
+        const o = row as CellMap;
+        return String(o[`c${ci}`] ?? o[String(ci)] ?? "");
+      }
+      return "";
+    });
+  });
+}
+
+export function isTableCellsFilled(raw: unknown): boolean {
+  if (raw == null) return false;
+  let rows: unknown = raw;
+  if (typeof raw === "object" && raw !== null && "cells" in raw) {
+    rows = (raw as { cells: unknown }).cells;
+  }
+  if (!Array.isArray(rows) || rows.length === 0) return false;
+  return rows.some((row) => {
+    if (Array.isArray(row)) {
+      return row.some((c) => String(c ?? "").trim().length > 0);
+    }
+    if (row && typeof row === "object") {
+      return Object.values(row as object).some(
+        (c) => String(c ?? "").trim().length > 0,
+      );
+    }
+    return false;
+  });
+}
+
 function sanitizeAnswerValue(value: AnswerValue): AnswerValue {
   if (value === null || value === undefined) return null;
   if (Array.isArray(value)) {

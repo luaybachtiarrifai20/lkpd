@@ -137,9 +137,9 @@ export type Jawaban = {
 export type AnswerValue =
   | string
   | string[]
-  | { rows: string[][]; headers?: string[] }
+  | { rows: Array<Record<string, string>>; headers?: string[] } // bukan string[][]
+  | { cells: Array<Record<string, string>> } // [{c0,c1}, ...]
   | { tap: Record<string, string> }
-  | { cells: string[][] }
   | Record<string, string>
   | Record<string, number> // skala refleksi 1–4
   | null;

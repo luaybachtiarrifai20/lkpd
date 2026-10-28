@@ -45,6 +45,11 @@ import { RadioCardSelector } from "./RadioCardSelector";
 import { SDGBadgeChip, Badge } from "@/components/ui";
 import { Link } from "react-router-dom";
 import { ExtraAnswers } from "../components/ExtraAnswer";
+import {
+  decodeTableCells,
+  encodeTableCells,
+  isTableCellsFilled,
+} from "@/lib/answers";
 
 const stepIcons = [
   <AlertTriangle className="h-4 w-4" />,
@@ -102,6 +107,7 @@ export function ActivityRenderer({
 
   const steps = Array.isArray(kegiatan.steps) ? kegiatan.steps : [];
   const current = steps[activeStep];
+  const [focusAnswerKey, setFocusAnswerKey] = useState<string | null>(null);
 
   const isFilled = (v: AnswerValue | undefined): boolean => {
     if (v == null) return false;
@@ -124,74 +130,360 @@ export function ActivityRenderer({
     return true;
   };
 
-  const stepCompletion = steps.map((s) => {
+  // const stepCompletion = steps.map((s) => {
+  //   const keys: string[] = [];
+
+  //   (s.blocks || []).forEach((b) => {
+  //     // id utama blok
+  //     const main = blockKey(b);
+  //     if (main) keys.push(main);
+
+  //     // field sekunder
+  //     if ("alasanId" in b && (b as { alasanId?: string }).alasanId) {
+  //       keys.push((b as { alasanId: string }).alasanId);
+  //     }
+  //     if (
+  //       "pertanyaanId" in b &&
+  //       (b as { pertanyaanId?: string }).pertanyaanId
+  //     ) {
+  //       keys.push((b as { pertanyaanId: string }).pertanyaanId);
+  //     }
+
+  //     // soal benar-salah: setiap item punya id jawaban
+  //     if (
+  //       b.kind === "benar-salah" &&
+  //       Array.isArray((b as { items?: { id?: string }[] }).items)
+  //     ) {
+  //       (b as { items: { id?: string }[] }).items.forEach((it) => {
+  //         if (it.id) keys.push(it.id);
+  //       });
+  //     }
+  //     if (b.kind === "tabel-isian") {
+  //       if ("id" in b && b.id) keys.push(b.id);
+  //       if (
+  //         "pertanyaanId" in b &&
+  //         (b as { pertanyaanId?: string }).pertanyaanId
+  //       )
+  //         keys.push((b as { pertanyaanId: string }).pertanyaanId);
+  //     }
+  //     if (b.kind === "soal-variatif" && "id" in b && b.id) {
+  //       keys.push(`${b.id}__match`);
+  //       keys.push(`${b.id}__pg`);
+  //     }
+  //     if (b.kind === "tap-terbimbing" && "id" in b && b.id) keys.push(b.id);
+  //     if (b.kind === "kuis-akhir") {
+  //       (b as { bsItems?: { id: string }[] }).bsItems?.forEach((it) => {
+  //         if (it.id) keys.push(it.id);
+  //       });
+  //       (b as { rumpangItems?: { id: string }[] }).rumpangItems?.forEach(
+  //         (it) => {
+  //           if (it.id) keys.push(it.id);
+  //         },
+  //       );
+  //     }
+  //     if (b.kind === "refleksi-pemahaman") {
+  //       if ("id" in b && b.id) keys.push(b.id);
+  //       if ((b as { catatanId?: string }).catatanId)
+  //         keys.push((b as { catatanId: string }).catatanId);
+  //     }
+  //   });
+
+  //   // contoh: selesai jika SEMUA terisi (sesuai logika kunci urutan)
+  //   if (keys.length === 0) return true;
+  //   return keys.every((k) => {
+  //     const v = answers[k];
+  //     if (v == null) return false;
+  //     if (typeof v === "string") return v.trim().length > 0;
+  //     if (Array.isArray(v)) return v.some((x) => String(x).trim());
+  //     return true;
+  //   });
+  // });
+
+  /** Key jawaban yang BENAR-BENAR diisi siswa (bukan id blok info) */
+  const collectAnswerKeys = (blocks: ContentBlock[]): string[] => {
     const keys: string[] = [];
 
-    (s.blocks || []).forEach((b) => {
-      // id utama blok
-      const main = blockKey(b);
-      if (main) keys.push(main);
+    for (const b of blocks || []) {
+      switch (b.kind) {
+        case "pertanyaan":
+        case "analitis":
+        case "input-hitung":
+        case "analisis-prediksi":
+        case "upload-hasil":
+        case "kalimat-rumpang":
+        case "daftar-periksa":
+        case "argumentasi-tap":
+        case "tap-terbimbing":
+          if ("id" in b && b.id) keys.push(b.id);
+          break;
 
-      // field sekunder
-      if ("alasanId" in b && (b as { alasanId?: string }).alasanId) {
-        keys.push((b as { alasanId: string }).alasanId);
-      }
-      if (
-        "pertanyaanId" in b &&
-        (b as { pertanyaanId?: string }).pertanyaanId
-      ) {
-        keys.push((b as { pertanyaanId: string }).pertanyaanId);
-      }
+        case "alternatif-kasus":
+          if ("id" in b && b.id) keys.push(b.id);
+          if ("alasanId" in b && (b as { alasanId?: string }).alasanId) {
+            keys.push((b as { alasanId: string }).alasanId);
+          }
+          break;
 
-      // soal benar-salah: setiap item punya id jawaban
-      if (
-        b.kind === "benar-salah" &&
-        Array.isArray((b as { items?: { id?: string }[] }).items)
-      ) {
-        (b as { items: { id?: string }[] }).items.forEach((it) => {
-          if (it.id) keys.push(it.id);
-        });
-      }
-      if (b.kind === "tabel-isian") {
-        if ("id" in b && b.id) keys.push(b.id);
-        if (
-          "pertanyaanId" in b &&
-          (b as { pertanyaanId?: string }).pertanyaanId
-        )
-          keys.push((b as { pertanyaanId: string }).pertanyaanId);
-      }
-      if (b.kind === "soal-variatif" && "id" in b && b.id) {
-        keys.push(`${b.id}__match`);
-        keys.push(`${b.id}__pg`);
-      }
-      if (b.kind === "tap-terbimbing" && "id" in b && b.id) keys.push(b.id);
-      if (b.kind === "kuis-akhir") {
-        (b as { bsItems?: { id: string }[] }).bsItems?.forEach((it) => {
-          if (it.id) keys.push(it.id);
-        });
-        (b as { rumpangItems?: { id: string }[] }).rumpangItems?.forEach(
-          (it) => {
+        case "tabel-isian":
+        case "tabel-org":
+        case "tabel-integrasi":
+          if ("id" in b && b.id) keys.push(b.id);
+          // hanya wajib jika ada teks pertanyaan
+          if (
+            "pertanyaanId" in b &&
+            (b as { pertanyaanId?: string }).pertanyaanId &&
+            String(
+              (b as { pertanyaanText?: string }).pertanyaanText || "",
+            ).trim()
+          ) {
+            keys.push((b as { pertanyaanId: string }).pertanyaanId);
+          }
+          if (
+            "perencanaanId" in b &&
+            (b as { perencanaanId?: string }).perencanaanId
+          ) {
+            keys.push((b as { perencanaanId: string }).perencanaanId);
+          }
+          break;
+        case "data-eksperimen":
+          if ("id" in b && b.id) keys.push(b.id);
+          if (
+            "pertanyaanId" in b &&
+            (b as { pertanyaanId?: string }).pertanyaanId
+          ) {
+            keys.push((b as { pertanyaanId: string }).pertanyaanId);
+          }
+          if (
+            "perencanaanId" in b &&
+            (b as { perencanaanId?: string }).perencanaanId
+          ) {
+            keys.push((b as { perencanaanId: string }).perencanaanId);
+          }
+          break;
+
+        case "analisis-efisiensi":
+          if (
+            "pertanyaanId" in b &&
+            (b as { pertanyaanId?: string }).pertanyaanId
+          ) {
+            keys.push((b as { pertanyaanId: string }).pertanyaanId);
+          }
+          break;
+
+        case "benar-salah":
+          (b as { items?: Array<{ id?: string }> }).items?.forEach((it) => {
             if (it.id) keys.push(it.id);
-          },
+          });
+          break;
+
+        case "soal-variatif":
+          // siswa mengisi __match dan __pg, BUKAN id blok
+          if ("id" in b && b.id) {
+            keys.push(`${b.id}__match`);
+            keys.push(`${b.id}__pg`);
+          }
+          break;
+
+        case "kuis-akhir":
+          (b as { bsItems?: Array<{ id?: string }> }).bsItems?.forEach((it) => {
+            if (it.id) keys.push(it.id);
+          });
+          (
+            b as { rumpangItems?: Array<{ id?: string }> }
+          ).rumpangItems?.forEach((it) => {
+            if (it.id) keys.push(it.id);
+          });
+          break;
+
+        case "refleksi-pemahaman":
+          if ("id" in b && b.id) keys.push(b.id);
+          if ((b as { catatanId?: string }).catatanId) {
+            keys.push((b as { catatanId: string }).catatanId);
+          }
+          break;
+
+        // blok info saja — tidak perlu jawaban
+        case "materi-card":
+        case "gambar-utama":
+        case "tahukah-kamu":
+        case "media":
+        case "stimulus":
+        case "masalah":
+        case "bagian-header":
+        case "galeri-karya":
+        case "kerangka-rekomendasi":
+        case "contoh-tap":
+        case "kamus-kimia":
+        case "instruksi-pengembangan":
+        case "penalaran-level":
+        case "diagram-submikro":
+        default:
+          break;
+      }
+    }
+    return keys;
+  };
+
+  const isAnswerFilled = (v: AnswerValue | undefined): boolean => {
+    if (v == null) return false;
+
+    // teks
+    if (typeof v === "string") return v.trim().length > 0;
+
+    // angka (skala refleksi, dll.)
+    if (typeof v === "number") return !Number.isNaN(v);
+
+    // array string / checklist
+    if (Array.isArray(v)) {
+      return v.some((x) => {
+        if (x == null) return false;
+        if (typeof x === "string") return x.trim().length > 0;
+        if (typeof x === "number") return true;
+        if (typeof x === "object") {
+          return Object.values(x as object).some(
+            (c) => String(c ?? "").trim().length > 0,
+          );
+        }
+        return String(x).trim().length > 0;
+      });
+    }
+
+    if (typeof v === "object") {
+      const o = v as Record<string, unknown>;
+
+      // tabel: { cells: [{c0,c1}, ...] } atau legacy string[][]
+      if ("cells" in o) {
+        const cells = o.cells;
+        if (!Array.isArray(cells) || cells.length === 0) return false;
+        return cells.some((row) => {
+          if (Array.isArray(row)) {
+            return row.some((c) => String(c ?? "").trim().length > 0);
+          }
+          if (row && typeof row === "object") {
+            return Object.values(row as object).some(
+              (c) => String(c ?? "").trim().length > 0,
+            );
+          }
+          return false;
+        });
+      }
+
+      // tabel editable: { rows: ... }
+      if ("rows" in o) {
+        const rows = o.rows;
+        if (!Array.isArray(rows) || rows.length === 0) return false;
+        return rows.some((row) => {
+          if (Array.isArray(row)) {
+            return row.some((c) => String(c ?? "").trim().length > 0);
+          }
+          if (row && typeof row === "object") {
+            const r = row as Record<string, unknown>;
+            if (Array.isArray(r.cells)) {
+              return r.cells.some((c) => String(c ?? "").trim().length > 0);
+            }
+            return Object.values(r).some(
+              (c) => String(c ?? "").trim().length > 0,
+            );
+          }
+          return false;
+        });
+      }
+
+      // TAP
+      if (o.tap && typeof o.tap === "object") {
+        return Object.values(o.tap as Record<string, string>).some(
+          (s) => String(s ?? "").trim().length > 0,
         );
       }
-      if (b.kind === "refleksi-pemahaman") {
-        if ("id" in b && b.id) keys.push(b.id);
-        if ((b as { catatanId?: string }).catatanId)
-          keys.push((b as { catatanId: string }).catatanId);
-      }
-    });
 
-    // contoh: selesai jika SEMUA terisi (sesuai logika kunci urutan)
-    if (keys.length === 0) return true;
-    return keys.every((k) => {
-      const v = answers[k];
-      if (v == null) return false;
-      if (typeof v === "string") return v.trim().length > 0;
-      if (Array.isArray(v)) return v.some((x) => String(x).trim());
-      return true;
-    });
+      // matching / PG / object biasa: { L1: "R1", ... }
+      const vals = Object.values(o);
+      if (vals.length === 0) return false;
+      return vals.some((x) => {
+        if (x == null) return false;
+        if (typeof x === "string") return x.trim().length > 0;
+        if (typeof x === "number" || typeof x === "boolean") return true;
+        if (Array.isArray(x)) {
+          return x.some((i) => String(i ?? "").trim().length > 0);
+        }
+        if (typeof x === "object") {
+          return Object.values(x as object).some(
+            (c) => String(c ?? "").trim().length > 0,
+          );
+        }
+        return true;
+      });
+    }
+
+    return false;
+  };
+  const labelForKey = (blocks: ContentBlock[], key: string): string => {
+    for (const b of blocks || []) {
+      const title =
+        ("title" in b && (b as { title?: string }).title) ||
+        ("text" in b && (b as { text?: string }).text) ||
+        ("label" in b && (b as { label?: string }).label) ||
+        b.kind;
+
+      if ("id" in b && b.id === key) return String(title);
+      if (
+        "pertanyaanId" in b &&
+        (b as { pertanyaanId?: string }).pertanyaanId === key
+      ) {
+        return `${title} (isian bawah)`;
+      }
+      if ("alasanId" in b && (b as { alasanId?: string }).alasanId === key) {
+        return `${title} (alasan)`;
+      }
+      if (
+        "perencanaanId" in b &&
+        (b as { perencanaanId?: string }).perencanaanId === key
+      ) {
+        return `${title} (perencanaan)`;
+      }
+      if ("catatanId" in b && (b as { catatanId?: string }).catatanId === key) {
+        return `${title} (catatan)`;
+      }
+      if (b.kind === "benar-salah") {
+        const items =
+          (b as { items?: { id: string; pernyataan?: string }[] }).items || [];
+        const it = items.find((x) => x.id === key);
+        if (it) return `B/S: ${(it.pernyataan || "").slice(0, 40)}…`;
+      }
+      if (b.kind === "soal-variatif" && "id" in b && b.id) {
+        if (key === `${b.id}__match`) return `${title} (pasangkan)`;
+        if (key === `${b.id}__pg`) return `${title} (pilihan ganda)`;
+      }
+      if (b.kind === "kuis-akhir") {
+        const bs =
+          (b as { bsItems?: { id: string; pernyataan?: string }[] }).bsItems ||
+          [];
+        const r =
+          (b as { rumpangItems?: { id: string; prompt?: string }[] })
+            .rumpangItems || [];
+        const it = bs.find((x) => x.id === key);
+        if (it) return `Kuis B/S: ${(it.pernyataan || "").slice(0, 40)}…`;
+        const rp = r.find((x) => x.id === key);
+        if (rp) return `Kuis rumpang: ${(rp.prompt || "").slice(0, 40)}…`;
+      }
+    }
+    return key;
+  };
+
+  const missingByStep = steps.map((s) => {
+    const keys = collectAnswerKeys(s.blocks || []);
+    return keys
+      .filter((k) => !isAnswerFilled(answers[k]))
+      .map((k) => ({ key: k, label: labelForKey(s.blocks || [], k) }));
   });
+
+  const stepCompletion = missingByStep.map((m) => m.length === 0);
+
+  // const stepCompletion = steps.map((s) => {
+  //   const keys = collectAnswerKeys(s.blocks || []);
+  //   if (keys.length === 0) return true; // hanya materi/info
+  //   return keys.every((k) => isAnswerFilled(answers[k]));
+  // });
 
   /** Sintaks ke-i boleh dikerjakan jika semua sebelumnya selesai */
   const isStepUnlocked = (index: number) => {
@@ -552,6 +844,8 @@ export function ActivityRenderer({
               onPatchBlock={patchBlock}
               onAddBlock={addBlock}
               onRemoveBlock={removeBlock}
+              focusAnswerKey={focusAnswerKey}
+              onFocusedAnswer={() => setFocusAnswerKey(null)}
             />
           ) : steps.length > 0 ? (
             <div className="space-y-4 animate-fade-in">
@@ -661,6 +955,60 @@ export function ActivityRenderer({
                   Tahap akhir
                 </span>
               )}
+
+              {activeStep < steps.length - 1 ? (
+                <div className="flex flex-col items-end gap-1 max-w-[70%]">
+                  <button
+                    type="button"
+                    disabled={!stepCompletion[activeStep]}
+                    onClick={() => {
+                      if (!stepCompletion[activeStep]) return;
+                      setActiveStep((s) => Math.min(steps.length - 1, s + 1));
+                    }}
+                    className="btn-outline text-xs sm:text-sm px-2.5 sm:px-4 disabled:opacity-40">
+                    Berikutnya{" "}
+                    <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </button>
+                  {!stepCompletion[activeStep] &&
+                    missingByStep[activeStep]?.length > 0 && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-left w-full sm:min-w-[220px]">
+                        <p className="text-[11px] font-semibold text-amber-800 mb-1">
+                          Belum diisi ({missingByStep[activeStep].length}):
+                        </p>
+                        <ul className="list-disc ml-4 space-y-0.5 text-[11px] text-amber-900">
+                          {missingByStep[activeStep].slice(0, 10).map((m) => (
+                            <li key={m.key}>
+                              <button
+                                type="button"
+                                className="text-left underline-offset-2 hover:underline"
+                                onClick={() => setFocusAnswerKey(m.key)}>
+                                {m.label}
+                              </button>
+                              <span className="block text-[10px] text-slate-400 font-mono break-all">
+                                key: {m.key} | val:{" "}
+                                {JSON.stringify(answers[m.key])}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-1 text-[10px] text-amber-700">
+                          Cek semua tab di sintaks ini.
+                        </p>
+                      </div>
+                    )}
+                </div>
+              ) : (
+                <span className="text-[10px] sm:text-xs text-slate-400">
+                  Tahap akhir
+                </span>
+              )}
+
+              {activeStep < steps.length - 1 && !stepCompletion[activeStep] && (
+                <p className="w-full text-center text-[11px] text-amber-600 mt-1">
+                  Lengkapi semua isian di <strong>semua tab</strong> sintaks ini
+                  sebelum lanjut.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -755,6 +1103,7 @@ function StepContent({
   onPatchBlock,
   onAddBlock,
   onRemoveBlock,
+  focusAnswerKey = null,
 }: {
   step: PBLStep;
   stepIndex: number;
@@ -776,6 +1125,8 @@ function StepContent({
     afterIndex?: number,
   ) => void;
   onRemoveBlock: (stepIndex: number, blockIndex: number) => void;
+  focusAnswerKey?: string | null;
+  onFocusedAnswer?: () => void;
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -795,6 +1146,121 @@ function StepContent({
     list.splice(to, 0, moved);
     onPatchStep(stepIndex, { blocks: list });
   };
+  const keysOfBlock = (b: ContentBlock): string[] => {
+    // samakan logika dengan collectAnswerKeys per-blok
+    const keys: string[] = [];
+    switch (b.kind) {
+      case "pertanyaan":
+      case "analitis":
+      case "input-hitung":
+      case "analisis-prediksi":
+      case "upload-hasil":
+      case "kalimat-rumpang":
+      case "daftar-periksa":
+      case "argumentasi-tap":
+      case "tap-terbimbing":
+        if ("id" in b && b.id) keys.push(b.id);
+        break;
+      case "alternatif-kasus":
+        if ("id" in b && b.id) keys.push(b.id);
+        if ("alasanId" in b && (b as { alasanId?: string }).alasanId)
+          keys.push((b as { alasanId: string }).alasanId);
+        break;
+      case "tabel-isian":
+      case "tabel-org":
+      case "tabel-integrasi":
+        if ("id" in b && b.id) keys.push(b.id);
+        if (
+          "pertanyaanId" in b &&
+          (b as { pertanyaanId?: string }).pertanyaanId
+        )
+          keys.push((b as { pertanyaanId: string }).pertanyaanId);
+        if (
+          "perencanaanId" in b &&
+          (b as { perencanaanId?: string }).perencanaanId
+        )
+          keys.push((b as { perencanaanId: string }).perencanaanId);
+        break;
+      case "benar-salah":
+        (b as { items?: { id?: string }[] }).items?.forEach((it) => {
+          if (it.id) keys.push(it.id);
+        });
+        break;
+      case "soal-variatif":
+        if ("id" in b && b.id) {
+          keys.push(`${b.id}__match`);
+          keys.push(`${b.id}__pg`);
+        }
+        break;
+      case "kuis-akhir":
+        (b as { bsItems?: { id?: string }[] }).bsItems?.forEach((it) => {
+          if (it.id) keys.push(it.id);
+        });
+        (b as { rumpangItems?: { id?: string }[] }).rumpangItems?.forEach(
+          (it) => {
+            if (it.id) keys.push(it.id);
+          },
+        );
+        break;
+      case "refleksi-pemahaman":
+        if ("id" in b && b.id) keys.push(b.id);
+        if ((b as { catatanId?: string }).catatanId)
+          keys.push((b as { catatanId: string }).catatanId);
+        break;
+      default:
+        break;
+    }
+    return keys;
+  };
+
+  useEffect(() => {
+    if (!focusAnswerKey) return;
+
+    // cari section yang memuat key ini
+    let targetSection = 0;
+    let targetIndex: number | null = null;
+
+    sections.forEach((sec, si) => {
+      sec.blocks.forEach(({ block, index }) => {
+        if (keysOfBlock(block).includes(focusAnswerKey)) {
+          targetSection = si;
+          targetIndex = index;
+        }
+      });
+    });
+
+    // fallback: scan semua blok step
+    if (targetIndex == null) {
+      (step.blocks || []).forEach((block, index) => {
+        if (keysOfBlock(block).includes(focusAnswerKey)) {
+          targetIndex = index;
+        }
+      });
+    }
+
+    if (hasMultipleSections) {
+      setActiveSection(targetSection);
+    }
+
+    // tunggu tab render, lalu scroll
+    const t = window.setTimeout(() => {
+      const el =
+        document.getElementById(`answer-block-${targetIndex}`) ||
+        document.querySelector(
+          `[data-answer-key="${CSS.escape(focusAnswerKey)}"]`,
+        );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-amber-400", "ring-offset-2");
+        window.setTimeout(() => {
+          el.classList.remove("ring-2", "ring-amber-400", "ring-offset-2");
+        }, 1800);
+      }
+      onFocusedAnswer?.();
+    }, 120);
+
+    return () => window.clearTimeout(t);
+  }, [focusAnswerKey]); // sections/step di-capture closure — OK untuk fokus sekali
 
   // --- LOGIKA PORTAL ---
   const updateMenuPosition = () => {
@@ -3829,6 +4295,11 @@ function BlockRenderer({
                             value: "",
                             editable: false,
                           };
+                          const savedGrid = decodeTableCells(
+                            answers[block.id],
+                            rows.length,
+                            headers.length,
+                          );
                           return (
                             <td
                               key={ci}
@@ -3840,19 +4311,17 @@ function BlockRenderer({
                                   className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
                                   disabled={readOnly}
                                   placeholder="[?]"
-                                  value={saved[ri]?.[ci] ?? ""}
+                                  value={savedGrid[ri]?.[ci] ?? ""}
                                   onChange={(e) => {
-                                    const next: string[][] = rows.map(
-                                      (r, rii) =>
-                                        headers.map(
-                                          (__, cii) => saved[rii]?.[cii] ?? "",
-                                        ),
+                                    const grid = decodeTableCells(
+                                      answers[block.id],
+                                      rows.length,
+                                      headers.length,
                                     );
-                                    if (!next[ri])
-                                      next[ri] = headers.map(() => "");
-                                    next[ri][ci] = e.target.value;
+                                    grid[ri][ci] = e.target.value;
+                                    // simpan format AMAN firestore
                                     onUpdate(block.id, {
-                                      cells: next,
+                                      cells: encodeTableCells(grid),
                                     } as AnswerValue);
                                   }}
                                 />

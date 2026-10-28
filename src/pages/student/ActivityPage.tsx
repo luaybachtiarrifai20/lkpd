@@ -27,6 +27,69 @@ import { ConfirmModal } from "@/components/ui/Modal";
 import { MoleculeField } from "@/components/ui";
 import { navItemsSiswa } from "./StudentDashboard";
 
+/** Firestore menolak nested array. Ubah string[][] → { item_0, item_1, ... }[] */
+function sanitizeAnswerValue(val: unknown): unknown {
+  if (val == null) return null;
+  if (
+    typeof val === "string" ||
+    typeof val === "number" ||
+    typeof val === "boolean"
+  ) {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    // array of arrays? → bungkus tiap baris jadi object
+    return val.map((item, i) => {
+      if (Array.isArray(item)) {
+        const obj: Record<string, string> = {};
+        item.forEach((cell, j) => {
+          obj[`c${j}`] = cell == null ? "" : String(cell);
+        });
+        return obj;
+      }
+      return sanitizeAnswerValue(item);
+    });
+  }
+  if (typeof val === "object") {
+    const o = val as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(o)) {
+      if (v === undefined) continue; // Firestore tolak undefined
+      // { rows: string[][] } atau { cells: string[][] }
+      if ((k === "rows" || k === "cells") && Array.isArray(v)) {
+        out[k] = v.map((row) => {
+          if (Array.isArray(row)) {
+            const obj: Record<string, string> = {};
+            row.forEach((cell, j) => {
+              obj[`c${j}`] = cell == null ? "" : String(cell);
+            });
+            return obj;
+          }
+          if (row && typeof row === "object") {
+            return sanitizeAnswerValue(row);
+          }
+          return { c0: String(row ?? "") };
+        });
+      } else {
+        out[k] = sanitizeAnswerValue(v);
+      }
+    }
+    return out;
+  }
+  return val;
+}
+
+function sanitizeAnswers(
+  answers: Record<string, AnswerValue>,
+): Record<string, AnswerValue> {
+  const out: Record<string, AnswerValue> = {};
+  for (const [key, val] of Object.entries(answers)) {
+    out[key] = sanitizeAnswerValue(val) as AnswerValue;
+  }
+  // pastikan tidak ada undefined
+  return JSON.parse(JSON.stringify(out)) as Record<string, AnswerValue>;
+}
+
 export function ActivityPage() {
   const { nomor } = useParams();
   const { profile } = useAuth();
@@ -175,9 +238,13 @@ export function ActivityPage() {
         saveTimerRef.current = null;
         if (!kegiatanId || !profile || readOnly) return;
         setSaving(true);
-        upsertJawabanDraft(kegiatanId, profile.id, val)
+        const payload = sanitizeAnswers(val);
+        upsertJawabanDraft(kegiatanId, profile.id, payload)
           .then(() => setSavedAt(new Date().toISOString()))
-          .catch((err) => console.error(err))
+          .catch((err) => {
+            console.error("AUTOSAVE ERROR", err);
+            // jangan spam toast tiap ketikan; cukup log
+          })
           .finally(() => setSaving(false));
       }, 2000);
     },
@@ -205,10 +272,12 @@ export function ActivityPage() {
     if (!kegiatanId || !profile || readOnly) return;
     cancelAutosave();
     try {
-      await upsertJawabanDraft(kegiatanId, profile.id, answersRef.current);
+      const payload = sanitizeAnswers(answersRef.current);
+      await upsertJawabanDraft(kegiatanId, profile.id, payload);
       setSavedAt(new Date().toISOString());
       toast("Draft tersimpan", "success");
-    } catch {
+    } catch (err) {
+      console.error("SAVE DRAFT ERROR", err);
       toast("Gagal menyimpan", "error");
     }
   };
@@ -217,12 +286,13 @@ export function ActivityPage() {
     if (!kegiatanId || !profile) return;
     cancelAutosave();
     try {
-      await submitJawaban(kegiatanId, profile.id, answersRef.current);
+      const payload = sanitizeAnswers(answersRef.current);
+      await submitJawaban(kegiatanId, profile.id, payload);
       setStatus("terkumpul");
       setSubmitOpen(false);
       toast("Jawaban berhasil dikumpulkan!", "success");
     } catch (err) {
-      console.error(err);
+      console.error("SUBMIT ERROR", err);
       toast("Gagal mengumpulkan jawaban", "error");
     }
   };
