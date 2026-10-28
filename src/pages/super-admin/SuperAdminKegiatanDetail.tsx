@@ -174,37 +174,70 @@ export function SuperAdminKegiatanDetail() {
     };
   }, [id]);
 
+  function stripUndefined<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj)) as T;
+  }
+
   const handleSaveContent = async () => {
     if (!kegiatan) return;
     setContentSaving(true);
     try {
-      // Payload: simpan full KegiatanContent ke Firestore agar siswa baca dari DB
-      const payload = {
+      const payload = stripUndefined({
         ...kegiatan,
         nomor: kegiatan.nomor,
         judul: kegiatan.judul,
         deskripsi: kegiatan.subjudul || null,
         warna_tema: kegiatan.warna || null,
-        // steps, tujuan, materi, sdg, dll ikut tersimpan
         diupdate_pada: new Date().toISOString(),
-      };
+      });
 
       if (docId) {
         await updateDoc(doc(db, "kegiatan", docId), payload);
       } else {
-        // Buat dokumen baru berdasarkan nomor
         const ref = doc(collection(db, "kegiatan"));
         await setDoc(ref, { ...payload, id: ref.id });
         setDocId(ref.id);
       }
       toast("Konten kegiatan berhasil disimpan", "success");
     } catch (err) {
-      console.error(err);
+      console.error("SAVE ERROR", err);
       toast("Gagal menyimpan konten", "error");
     } finally {
       setContentSaving(false);
     }
   };
+
+  // const handleSaveContent = async () => {
+  //   if (!kegiatan) return;
+  //   setContentSaving(true);
+  //   try {
+  //     // Payload: simpan full KegiatanContent ke Firestore agar siswa baca dari DB
+  //     const payload = {
+  //       ...kegiatan,
+  //       nomor: kegiatan.nomor,
+  //       judul: kegiatan.judul,
+  //       deskripsi: kegiatan.subjudul || null,
+  //       warna_tema: kegiatan.warna || null,
+  //       // steps, tujuan, materi, sdg, dll ikut tersimpan
+  //       diupdate_pada: new Date().toISOString(),
+  //     };
+
+  //     if (docId) {
+  //       await updateDoc(doc(db, "kegiatan", docId), payload);
+  //     } else {
+  //       // Buat dokumen baru berdasarkan nomor
+  //       const ref = doc(collection(db, "kegiatan"));
+  //       await setDoc(ref, { ...payload, id: ref.id });
+  //       setDocId(ref.id);
+  //     }
+  //     toast("Konten kegiatan berhasil disimpan", "success");
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast("Gagal menyimpan konten", "error");
+  //   } finally {
+  //     setContentSaving(false);
+  //   }
+  // };
 
   return (
     <DashboardLayout items={navItems} role="super_admin">

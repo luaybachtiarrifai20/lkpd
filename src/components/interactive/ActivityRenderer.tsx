@@ -846,29 +846,39 @@ function StepContent({
   // Pecah blok berdasarkan bagian-header
   type SectionItem = {
     label: string;
+    headerIndex: number | null; // index blok bagian-header (untuk sisip setelahnya)
     blocks: { block: ContentBlock; index: number }[];
   };
 
   const allBlocks = step.blocks || [];
   const sections: SectionItem[] = [];
-  let currentSec: SectionItem = { label: "Utama", blocks: [] };
+  let currentSec: SectionItem = {
+    label: "Utama",
+    headerIndex: null,
+    blocks: [],
+  };
 
   allBlocks.forEach((block, index) => {
     if (block.kind === "bagian-header") {
-      if (currentSec.blocks.length > 0) {
+      if (currentSec.blocks.length > 0 || currentSec.headerIndex != null) {
         sections.push(currentSec);
       }
       currentSec = {
         label:
           (block as { label?: string }).label ||
           `Bagian ${sections.length + 1}`,
+        headerIndex: index,
         blocks: [],
       };
-      return; // header tidak ikut dirender di isi section
+      return; // header jadi label tab, tidak dirender di isi
     }
     currentSec.blocks.push({ block, index });
   });
-  if (currentSec.blocks.length > 0 || sections.length === 0) {
+  if (
+    currentSec.blocks.length > 0 ||
+    currentSec.headerIndex != null ||
+    sections.length === 0
+  ) {
     sections.push(currentSec);
   }
 
@@ -876,6 +886,22 @@ function StepContent({
   const visibleBlocks = hasMultipleSections
     ? sections[activeSection]?.blocks || []
     : sections[0]?.blocks || [];
+
+  /** Sisipkan blok di akhir section aktif */
+  const addBlockToActiveSection = (block: ContentBlock) => {
+    const sec = sections[activeSection] || sections[0];
+    let afterIndex: number | undefined;
+
+    if (sec?.blocks?.length) {
+      afterIndex = sec.blocks[sec.blocks.length - 1].index;
+    } else if (sec?.headerIndex != null) {
+      afterIndex = sec.headerIndex; // section masih kosong → setelah header
+    } else {
+      afterIndex = undefined; // akhir daftar
+    }
+
+    onAddBlock(stepIndex, block, afterIndex);
+  };
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -1077,8 +1103,14 @@ function StepContent({
                       key={opt.label}
                       type="button"
                       onClick={() => {
-                        onAddBlock(stepIndex, opt.block);
+                        addBlockToActiveSection(opt.block);
                         setAddMenuOpen(false);
+                        // jika menambah tab baru, pindah ke tab terakhir
+                        if (opt.block.kind === "bagian-header") {
+                          setTimeout(() => {
+                            setActiveSection(sections.length); // tab baru di ujung
+                          }, 0);
+                        }
                       }}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-purple-50 border-b border-purple-50 last:border-0">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
@@ -1270,29 +1302,35 @@ function getAddBlockOptions(
             title: "Tabel data: isi yang kosong",
             headers: ["Percobaan", "[A]", "[B]", "Laju"],
             rows: [
-              [
-                { value: "1", editable: false },
-                { value: "0,1", editable: false },
-                { value: "0,1", editable: false },
-                { value: "2", editable: false },
-              ],
-              [
-                { value: "2", editable: false },
-                { value: "0,2", editable: false },
-                { value: "0,1", editable: false },
-                { value: "", editable: true },
-              ],
-              [
-                { value: "3", editable: false },
-                { value: "0,1", editable: false },
-                { value: "0,2", editable: false },
-                { value: "", editable: true },
-              ],
+              {
+                cells: [
+                  { value: "1", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "2", editable: false },
+                ],
+              },
+              {
+                cells: [
+                  { value: "2", editable: false },
+                  { value: "0,2", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "", editable: true },
+                ],
+              },
+              {
+                cells: [
+                  { value: "3", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "0,2", editable: false },
+                  { value: "", editable: true },
+                ],
+              },
             ],
             pertanyaanText:
               "Lalu tentukan orde m dan n dan tulis persamaan lajunya.",
             pertanyaanId: genId("tip"),
-          } as ContentBlock,
+          } as unknown as ContentBlock,
         },
         {
           label: "Tabel Organisasi (Aktivitas)",
@@ -1350,8 +1388,8 @@ function getAddBlockOptions(
     case 3:
       return [
         {
-          label: "Bagian Header",
-          desc: "Pemisah judul bagian (mis. Bagian A)",
+          label: "Tab / Bagian Baru",
+          desc: "Membuat TAB baru (bukan isi konten). Isi konten pakai blok lain.",
           icon: <Target className="h-4 w-4" />,
           block: { kind: "bagian-header", label: "Bagian Baru" },
         },
@@ -1434,29 +1472,35 @@ function getAddBlockOptions(
             title: "Tabel data: isi yang kosong",
             headers: ["Percobaan", "[A]", "[B]", "Laju"],
             rows: [
-              [
-                { value: "1", editable: false },
-                { value: "0,1", editable: false },
-                { value: "0,1", editable: false },
-                { value: "2", editable: false },
-              ],
-              [
-                { value: "2", editable: false },
-                { value: "0,2", editable: false },
-                { value: "0,1", editable: false },
-                { value: "", editable: true },
-              ],
-              [
-                { value: "3", editable: false },
-                { value: "0,1", editable: false },
-                { value: "0,2", editable: false },
-                { value: "", editable: true },
-              ],
+              {
+                cells: [
+                  { value: "1", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "2", editable: false },
+                ],
+              },
+              {
+                cells: [
+                  { value: "2", editable: false },
+                  { value: "0,2", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "", editable: true },
+                ],
+              },
+              {
+                cells: [
+                  { value: "3", editable: false },
+                  { value: "0,1", editable: false },
+                  { value: "0,2", editable: false },
+                  { value: "", editable: true },
+                ],
+              },
             ],
             pertanyaanText:
               "Lalu tentukan orde m dan n dan tulis persamaan lajunya.",
             pertanyaanId: genId("tip"),
-          } as ContentBlock,
+          } as unknown as ContentBlock,
         },
         {
           label: "Soal Variatif (pasang + PG)",
@@ -3527,21 +3571,39 @@ function BlockRenderer({
       );
 
     case "tabel-isian": {
+      type Cell = { value: string; editable: boolean };
+      type Row = { cells: Cell[] };
+
       const headers = (block as { headers?: string[] }).headers || [];
-      const rows =
-        (
-          block as {
-            rows?: Array<Array<{ value: string; editable: boolean }>>;
-          }
-        ).rows || [];
+      // kompatibel data lama (array of array) → normalisasi
+      const rawRows = (block as { rows?: unknown }).rows || [];
+      const rows: Row[] = (Array.isArray(rawRows) ? rawRows : []).map((r) => {
+        if (r && typeof r === "object" && Array.isArray((r as Row).cells)) {
+          return {
+            cells: (r as Row).cells.map((c) => ({
+              value: String(c?.value ?? ""),
+              editable: Boolean(c?.editable),
+            })),
+          };
+        }
+        // legacy: array of cells
+        if (Array.isArray(r)) {
+          return {
+            cells: (r as Cell[]).map((c) => ({
+              value: String(c?.value ?? ""),
+              editable: Boolean(c?.editable),
+            })),
+          };
+        }
+        return { cells: headers.map(() => ({ value: "", editable: false })) };
+      });
+
       const saved =
         (answers[block.id] as unknown as { cells?: string[][] } | undefined)
           ?.cells || [];
 
       const setHeaders = (next: string[]) => patch({ headers: next });
-      const setRows = (
-        next: Array<Array<{ value: string; editable: boolean }>>,
-      ) => patch({ rows: next });
+      const setRows = (next: Row[]) => patch({ rows: next });
 
       return (
         <div className="rounded-2xl border-2 border-dashed border-amber-300/80 bg-amber-50/40 p-4 space-y-3">
@@ -3562,7 +3624,6 @@ function BlockRenderer({
 
           {editMode ? (
             <div className="space-y-3">
-              {/* Header kolom */}
               <div>
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-purple-600">
                   Header kolom
@@ -3586,7 +3647,9 @@ function BlockRenderer({
                         onClick={() => {
                           setHeaders(headers.filter((_, i) => i !== hi));
                           setRows(
-                            rows.map((row) => row.filter((_, i) => i !== hi)),
+                            rows.map((row) => ({
+                              cells: row.cells.filter((_, i) => i !== hi),
+                            })),
                           );
                         }}>
                         ×
@@ -3599,10 +3662,9 @@ function BlockRenderer({
                     onClick={() => {
                       setHeaders([...headers, `Kolom ${headers.length + 1}`]);
                       setRows(
-                        rows.map((row) => [
-                          ...row,
-                          { value: "", editable: false },
-                        ]),
+                        rows.map((row) => ({
+                          cells: [...row.cells, { value: "", editable: false }],
+                        })),
                       );
                     }}>
                     + Kolom
@@ -3610,7 +3672,6 @@ function BlockRenderer({
                 </div>
               </div>
 
-              {/* Isi baris */}
               <div className="overflow-x-auto rounded-xl border border-purple-200 bg-white p-2">
                 <table className="w-full text-sm">
                   <thead>
@@ -3629,7 +3690,7 @@ function BlockRenderer({
                     {rows.map((row, ri) => (
                       <tr key={ri} className="border-t border-slate-100">
                         {headers.map((_, ci) => {
-                          const cell = row[ci] || {
+                          const cell = row.cells[ci] || {
                             value: "",
                             editable: false,
                           };
@@ -3644,23 +3705,24 @@ function BlockRenderer({
                                 value={cell.value}
                                 placeholder={cell.editable ? "[?]" : ""}
                                 onChange={(e) => {
-                                  const next = rows.map((r, rii) =>
-                                    r.map((c, cii) =>
+                                  const next = rows.map((r, rii) => ({
+                                    cells: r.cells.map((c, cii) =>
                                       rii === ri && cii === ci
                                         ? { ...c, value: e.target.value }
-                                        : c,
+                                        : { ...c },
                                     ),
-                                  );
-                                  // pastikan sel ada
-                                  if (!next[ri]) next[ri] = [];
-                                  while (next[ri].length < headers.length) {
-                                    next[ri].push({
+                                  }));
+                                  // pastikan panjang cells = headers
+                                  while (
+                                    next[ri].cells.length < headers.length
+                                  ) {
+                                    next[ri].cells.push({
                                       value: "",
                                       editable: false,
                                     });
                                   }
-                                  next[ri][ci] = {
-                                    ...next[ri][ci],
+                                  next[ri].cells[ci] = {
+                                    ...next[ri].cells[ci],
                                     value: e.target.value,
                                   };
                                   setRows(next);
@@ -3671,39 +3733,29 @@ function BlockRenderer({
                                   type="checkbox"
                                   checked={!!cell.editable}
                                   onChange={(e) => {
-                                    const next = rows.map((r, rii) =>
-                                      r.map((c, cii) =>
+                                    const next = rows.map((r, rii) => ({
+                                      cells: r.cells.map((c, cii) =>
                                         rii === ri && cii === ci
                                           ? {
                                               ...c,
                                               editable: e.target.checked,
                                             }
-                                          : c,
+                                          : { ...c },
                                       ),
-                                    );
-                                    if (!next[ri]?.[ci]) {
-                                      /* sync length */
-                                    }
-                                    const copy = rows.map((r) =>
-                                      r.map((c) => ({ ...c })),
-                                    );
-                                    while (copy.length <= ri)
-                                      copy.push(
-                                        headers.map(() => ({
-                                          value: "",
-                                          editable: false,
-                                        })),
-                                      );
-                                    while (copy[ri].length <= ci)
-                                      copy[ri].push({
+                                    }));
+                                    while (
+                                      next[ri].cells.length < headers.length
+                                    ) {
+                                      next[ri].cells.push({
                                         value: "",
                                         editable: false,
                                       });
-                                    copy[ri][ci] = {
-                                      value: copy[ri][ci]?.value || "",
+                                    }
+                                    next[ri].cells[ci] = {
+                                      value: next[ri].cells[ci]?.value || "",
                                       editable: e.target.checked,
                                     };
-                                    setRows(copy);
+                                    setRows(next);
                                   }}
                                 />
                                 diisi siswa
@@ -3734,7 +3786,12 @@ function BlockRenderer({
                 onClick={() =>
                   setRows([
                     ...rows,
-                    headers.map(() => ({ value: "", editable: false })),
+                    {
+                      cells: headers.map(() => ({
+                        value: "",
+                        editable: false,
+                      })),
+                    },
                   ])
                 }>
                 + Tambah baris
@@ -3767,36 +3824,46 @@ function BlockRenderer({
                   <tbody>
                     {rows.map((row, ri) => (
                       <tr key={ri}>
-                        {row.map((cell, ci) => (
-                          <td
-                            key={ci}
-                            className={`border-b border-slate-100 px-2 py-1.5 ${
-                              cell.editable ? "bg-amber-50/80" : ""
-                            }`}>
-                            {cell.editable ? (
-                              <input
-                                className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
-                                disabled={readOnly}
-                                placeholder="[?]"
-                                value={saved[ri]?.[ci] ?? ""}
-                                onChange={(e) => {
-                                  const next: string[][] = rows.map((r, rii) =>
-                                    r.map((_, cii) => saved[rii]?.[cii] ?? ""),
-                                  );
-                                  if (!next[ri]) next[ri] = row.map(() => "");
-                                  next[ri][ci] = e.target.value;
-                                  onUpdate(block.id, {
-                                    cells: next,
-                                  } as AnswerValue);
-                                }}
-                              />
-                            ) : (
-                              <span className="text-slate-700">
-                                {cell.value}
-                              </span>
-                            )}
-                          </td>
-                        ))}
+                        {headers.map((_, ci) => {
+                          const cell = row.cells[ci] || {
+                            value: "",
+                            editable: false,
+                          };
+                          return (
+                            <td
+                              key={ci}
+                              className={`border-b border-slate-100 px-2 py-1.5 ${
+                                cell.editable ? "bg-amber-50/80" : ""
+                              }`}>
+                              {cell.editable ? (
+                                <input
+                                  className="w-full rounded-lg border border-amber-200 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                  disabled={readOnly}
+                                  placeholder="[?]"
+                                  value={saved[ri]?.[ci] ?? ""}
+                                  onChange={(e) => {
+                                    const next: string[][] = rows.map(
+                                      (r, rii) =>
+                                        headers.map(
+                                          (__, cii) => saved[rii]?.[cii] ?? "",
+                                        ),
+                                    );
+                                    if (!next[ri])
+                                      next[ri] = headers.map(() => "");
+                                    next[ri][ci] = e.target.value;
+                                    onUpdate(block.id, {
+                                      cells: next,
+                                    } as AnswerValue);
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-slate-700">
+                                  {cell.value}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>

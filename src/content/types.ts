@@ -144,7 +144,9 @@ export type ContentBlock =
       id: string;
       title?: string;
       headers: string[];
-      rows: Array<Array<{ value: string; editable: boolean }>>;
+      rows: Array<{
+        cells: Array<{ value: string; editable: boolean }>;
+      }>;
       pertanyaanText?: string;
       pertanyaanId?: string;
     }
